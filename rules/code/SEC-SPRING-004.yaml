@@ -1,0 +1,11 @@
+id: SEC-SPRING-004
+name: NoOpPasswordEncoder in use
+category: SECCONFIG_PASSWORD_ENCODER
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java"]
+detector: regex
+pattern: 'NoOpPasswordEncoder\s*\.\s*getInstance\(\)|new\s+NoOpPasswordEncoder'
+needs_llm_review: false
+references: ["OWASP-A02:2021", "CWE-256"]
+fix_hint: "PasswordEncoderFactories.createDelegatingPasswordEncoder() 또는 BCryptPasswordEncoder 사용"

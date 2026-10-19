@@ -1,0 +1,13 @@
+id: SEC-COMMENT-001
+name: Credential in comment
+category: COMMENT_SENSITIVE
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java", "**/*.kt", "**/*.yml", "**/*.yaml", "**/*.properties"]
+detector: regex
+comment_only: true
+ignore_case: true
+pattern: '(?:password|passwd|\bpw\b|비밀번호|계정|token)\S*\s.{0,40}?(?=[A-Za-z0-9!@#$%^&*_\-]*\d)(?=[A-Za-z0-9!@#$%^&*_\-]*[A-Za-z])[A-Za-z0-9!@#$%^&*_\-]{6,}'
+needs_llm_review: true
+references: ["OWASP-A07:2021", "CWE-615"]
+fix_hint: "주석에서 계정·비밀번호를 삭제하고, 해당 계정이 실제로 존재하면 즉시 비활성화"

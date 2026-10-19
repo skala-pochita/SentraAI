@@ -1,0 +1,12 @@
+id: SEC-SPRING-005
+name: H2 console enabled
+category: SECCONFIG_H2_CONSOLE
+default_severity: MEDIUM
+target: code
+file_globs: ["**/application*.yml", "**/application*.yaml"]
+detector: yaml_path
+paths: ["spring.h2.console.enabled"]
+equals: true
+needs_llm_review: false
+references: ["OWASP-A05:2021", "CWE-489"]
+fix_hint: "운영 프로파일에서 spring.h2.console.enabled=false, frameOptions disable 제거"

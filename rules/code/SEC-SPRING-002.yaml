@@ -1,0 +1,13 @@
+id: SEC-SPRING-002
+name: CSRF protection disabled
+category: SECCONFIG_CSRF
+default_severity: MEDIUM
+target: code
+file_globs: ["**/*Config*.java", "**/*Security*.java"]
+detector: regex
+patterns:
+  - 'csrf\(.*disable'
+  - 'csrf\(\)\s*\.\s*disable\(\)'
+needs_llm_review: true
+references: ["OWASP-A01:2021", "CWE-352"]
+fix_hint: "세션·폼 로그인 체인은 CSRF 를 켜고(CookieCsrfTokenRepository), Stateless JWT API 체인만 비활성화"

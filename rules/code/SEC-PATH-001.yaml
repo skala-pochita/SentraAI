@@ -1,0 +1,14 @@
+id: SEC-PATH-001
+name: File path built from request input
+category: PATH_TRAVERSAL
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java"]
+detector: regex
+patterns:
+  - 'Paths\.get\(.*\+'
+  - 'new\s+File\(.*\+'
+  - 'Path\.of\(.*\+'
+needs_llm_review: true
+references: ["OWASP-A01:2021", "CWE-22"]
+fix_hint: "baseDir.resolve(name).normalize() 후 startsWith(baseDir) 검증, 파일명 화이트리스트"

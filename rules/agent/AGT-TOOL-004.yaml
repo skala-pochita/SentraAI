@@ -1,0 +1,9 @@
+id: AGT-TOOL-004
+name: Indirect prompt injection surface
+category: INDIRECT_INJECTION_SURFACE
+default_severity: MEDIUM
+target: agent
+detector: manifest
+check: indirect_injection_surface
+references: ["OWASP-LLM01:2025"]
+fix_hint: "외부 문서 결과를 <untrusted> 로 감싸 반환(output_untrusted: true)하고 시스템 프롬프트에 데이터 취급 규칙 추가"

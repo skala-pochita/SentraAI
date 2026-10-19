@@ -1,0 +1,12 @@
+id: SEC-LOG-001
+name: Sensitive value written to log
+category: SENSITIVE_LOGGING
+default_severity: MEDIUM
+target: code
+file_globs: ["**/*.java"]
+detector: regex
+ignore_case: true
+pattern: 'log\.(?:info|debug|warn|error|trace)\(.*(?:password|token|secret)'
+needs_llm_review: false
+references: ["OWASP-A09:2021", "CWE-532"]
+fix_hint: "비밀번호·토큰은 로그에서 제거하거나 마스킹"

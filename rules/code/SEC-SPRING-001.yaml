@@ -1,0 +1,11 @@
+id: SEC-SPRING-001
+name: permitAll on any request
+category: SECCONFIG_PERMIT_ALL
+default_severity: CRITICAL
+target: code
+file_globs: ["**/*Config*.java", "**/*Security*.java"]
+detector: regex
+pattern: 'anyRequest\(\)\s*\.\s*permitAll\(\)'
+needs_llm_review: true
+references: ["OWASP-A01:2021", "CWE-284"]
+fix_hint: "anyRequest().authenticated() 로 바꾸고, 공개 경로만 requestMatchers 로 명시"

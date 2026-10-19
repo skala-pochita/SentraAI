@@ -1,0 +1,14 @@
+id: SEC-SQLI-001
+name: SQL built by string concatenation
+category: SQL_INJECTION
+default_severity: CRITICAL
+target: code
+file_globs: ["**/*.java"]
+detector: regex
+patterns:
+  - 'jdbcTemplate\.(?:query|update|execute|queryForList|queryForObject)\(.*"\s*\+'
+  - 'createQuery\(.*"\s*\+'
+  - 'createNativeQuery\(.*"\s*\+'
+needs_llm_review: true
+references: ["OWASP-A03:2021", "CWE-89"]
+fix_hint: "? 바인딩 파라미터(JdbcTemplate) 또는 :named 파라미터(JPQL setParameter) 사용"

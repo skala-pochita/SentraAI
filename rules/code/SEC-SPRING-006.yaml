@@ -1,0 +1,12 @@
+id: SEC-SPRING-006
+name: All actuator endpoints exposed
+category: SECCONFIG_ACTUATOR
+default_severity: HIGH
+target: code
+file_globs: ["**/application*.yml", "**/application*.yaml"]
+detector: yaml_path
+paths: ["management.endpoints.web.exposure.include"]
+equals: "*"
+needs_llm_review: false
+references: ["OWASP-A05:2021", "CWE-200"]
+fix_hint: "exposure.include: health,info 로 제한하고 나머지는 인증 뒤로"

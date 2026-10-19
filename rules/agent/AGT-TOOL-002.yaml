@@ -1,0 +1,9 @@
+id: AGT-TOOL-002
+name: Excessive tool scope
+category: TOOL_EXCESSIVE_SCOPE
+default_severity: HIGH
+target: agent
+detector: manifest
+check: tool_excessive_scope
+references: ["OWASP-LLM06:2025", "CWE-250"]
+fix_hint: "필요한 최소 스코프로 축소 (예: db:* → orders:read)"

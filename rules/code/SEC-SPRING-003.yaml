@@ -1,0 +1,12 @@
+id: SEC-SPRING-003
+name: CORS wildcard origin with credentials
+category: SECCONFIG_CORS
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java"]
+detector: regex
+pattern: 'allowedOrigin(?:Pattern)?s\("\*"\)'
+require_also: 'allowCredentials\(true\)'
+needs_llm_review: false
+references: ["OWASP-A05:2021", "CWE-942"]
+fix_hint: "allowedOrigins 를 실제 프론트엔드 도메인 목록으로 제한"

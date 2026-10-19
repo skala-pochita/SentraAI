@@ -31,7 +31,7 @@ test-e2e:
 	$(BACKEND) uv run pytest -m "llm or infra" tests/e2e tests/integration
 
 lint:
-	$(BACKEND) uv run ruff check . && uv run mypy core harness
+	$(BACKEND) uv run ruff check . && uv run mypy core harness mcp_servers
 	cd frontend && pnpm run lint
 
 eval:

@@ -1,0 +1,9 @@
+id: AGT-PROMPT-001
+name: Secret embedded in system prompt
+category: PROMPT_SECRET_EMBEDDED
+default_severity: MEDIUM
+target: agent
+detector: manifest
+check: prompt_secret_embedded
+references: ["OWASP-LLM07:2025", "CWE-798"]
+fix_hint: "비밀값을 시스템 프롬프트에서 제거하고, 필요하면 권한 검사된 도구로만 조회"

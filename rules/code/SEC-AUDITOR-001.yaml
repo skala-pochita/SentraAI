@@ -1,0 +1,19 @@
+id: SEC-AUDITOR-001
+name: Prompt injection aimed at the AI auditor
+category: AUDITOR_INJECTION_ATTEMPT
+default_severity: MEDIUM
+target: code
+file_globs: ["**/*"]
+detector: regex
+comment_only: true
+ignore_case: true
+patterns:
+  - 'ignore (?:all )?previous instructions'
+  - '\bAI[ _-]?auditor\b'
+  - 'report no (?:issues|findings)'
+  - 'empty findings'
+  - '이슈를? 보고하지 말'
+  - '이전 지시(?:는|를)? (?:모두 )?무시'
+needs_llm_review: false
+references: ["OWASP-LLM01:2025"]
+fix_hint: "감사 회피 목적의 지시문을 삭제하고 작성 경위를 확인"

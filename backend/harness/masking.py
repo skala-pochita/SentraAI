@@ -12,6 +12,8 @@ _PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"(sk-[A-Za-z0-9_\-]{16,})"),
     re.compile(r"(AKIA[0-9A-Z]{16})"),
     re.compile(r"(gh[pousr]_[A-Za-z0-9]{20,})"),
+    # 쿠폰·라이선스형 코드 (예: ABCD-1234-EFGH-5678)
+    re.compile(r"\b([A-Z0-9]{4,}(?:-[A-Z0-9]{3,}){2,})\b"),
     re.compile(r"(eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,})"),
     # key/secret/password/token = "value" 류 대입
     re.compile(

@@ -1,0 +1,9 @@
+id: AGT-TOOL-001
+name: Side-effecting tool without human approval
+category: TOOL_NO_APPROVAL
+default_severity: HIGH
+target: agent
+detector: manifest
+check: tool_no_approval
+references: ["OWASP-LLM06:2025", "OWASP-AGENTIC-T2"]
+fix_hint: "requires_approval: true 로 바꾸고 승인 워크플로를 거쳐서만 실행 (delete 는 CRITICAL)"
