@@ -16,3 +16,18 @@ reports/eval_*.md
 
 # 원본 명세 PDF (공유 제외)
 AI_Security_Auditor_SPEC.pdf
+
+# 환경·로컬 상태 (실제 키는 절대 커밋 금지; 샘플 대상의 가짜 .env 만 예외)
+.env.*
+!.env.example
+.claude/settings.local.json
+*.heartbeat
+
+# 빌드 산출물
+targets/**/.gradle/
+targets/**/build/
+frontend/dist/
+*.log
+
+# 평가 실행 결과 (재생성 가능; 필요하면 직접 add -f)
+reports/cloud_eval_*
