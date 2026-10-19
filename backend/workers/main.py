@@ -8,6 +8,10 @@ import logging
 import time
 from pathlib import Path
 
+from core.kafka.consumer import run_consumer
+from core.kafka.producer import close_producer
+from harness.observability import configure_langsmith
+
 log = logging.getLogger("worker")
 
 HEARTBEAT_DIR = Path("/tmp")  # noqa: S108 - 컨테이너 healthcheck 용
@@ -17,11 +21,54 @@ def heartbeat(role: str) -> None:
     (HEARTBEAT_DIR / f"worker-{role}.heartbeat").write_text(str(time.time()))
 
 
-async def run(role: str) -> None:
-    log.info("worker started role=%s", role)
+async def _heartbeat_loop(role: str) -> None:
     while True:
         heartbeat(role)
         await asyncio.sleep(10)
+
+
+async def run_audit() -> None:
+    from workers.audit import AuditRunner, make_checkpointer, webhook_to_resume
+
+    async with await make_checkpointer() as saver:
+        await saver.asetup()
+        runner = AuditRunner(saver)
+
+        async def on_webhook(msg):  # type: ignore[no-untyped-def]
+            await webhook_to_resume(msg)
+
+        await asyncio.gather(
+            run_consumer(["audit.requested", "audit.resume"], "cg-audit", runner.handle),
+            run_consumer(["github.webhook"], "cg-webhook", on_webhook),
+        )
+
+
+async def run_eval() -> None:
+    from workers.eval import run_eval_worker
+
+    await run_eval_worker()
+
+
+async def run_retry() -> None:
+    from workers.retry import run_retry_worker
+
+    await run_retry_worker(lambda: heartbeat("retry"))
+
+
+async def run(role: str) -> None:
+    configure_langsmith()
+    log.info("worker started role=%s", role)
+    hb = asyncio.create_task(_heartbeat_loop(role))
+    try:
+        while True:
+            try:
+                await {"audit": run_audit, "eval": run_eval, "retry": run_retry}[role]()
+            except (OSError, ConnectionError) as e:  # 브로커·Redis 재연결
+                log.warning("worker %s connection error: %s; restarting in 5s", role, type(e).__name__)
+                await asyncio.sleep(5)
+    finally:
+        hb.cancel()
+        await close_producer()
 
 
 def main() -> None:

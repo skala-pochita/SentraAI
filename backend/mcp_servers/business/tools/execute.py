@@ -102,6 +102,8 @@ async def _chat(
         raise AppError(ErrorCode.UPSTREAM_ERROR, f"target-agent unreachable: {type(e).__name__}") from e
     if res.status_code == 429:
         raise AppError(ErrorCode.RATE_LIMITED, "target-agent rate limited", retry_after_s=5)
+    if res.status_code == 503 and "not configured" in res.text:
+        raise AppError(ErrorCode.VALIDATION, "target-agent LLM not configured (OPENAI_API_KEY)")
     if res.status_code >= 500:
         raise AppError(ErrorCode.UPSTREAM_ERROR, f"target-agent {res.status_code}", {"body": mask_text(res.text[:300])})
     if res.status_code >= 400:

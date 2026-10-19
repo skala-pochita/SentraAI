@@ -95,10 +95,12 @@ async def handle_record(rec: ConsumerRecord, handler: Handler) -> None:
         )
         return
     msg = Message(rec.topic, (rec.key or b"").decode(), env, headers_from_kafka(rec.headers), raw)
-    if not await _acquire(env.message_id):
-        log.info("skip duplicate message %s", env.message_id)
+    # 재시도로 재발행된 메시지는 message_id 가 같으므로 retry_count 를 포함해 멱등 키를 만든다
+    dedupe_id = f"{env.message_id}:{msg.headers.get('retry_count', '0')}"
+    if not await _acquire(dedupe_id):
+        log.info("skip duplicate message %s", dedupe_id)
         return
-    hb = asyncio.create_task(_heartbeat(env.message_id))
+    hb = asyncio.create_task(_heartbeat(dedupe_id))
     try:
         await handler(msg)
     except AppError as e:
@@ -110,7 +112,7 @@ async def handle_record(rec: ConsumerRecord, handler: Handler) -> None:
         hb.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await hb
-    await get_redis().set(f"kafka:processed:{env.message_id}", "done", ex=DONE_TTL_S)
+    await get_redis().set(f"kafka:processed:{dedupe_id}", "done", ex=DONE_TTL_S)
 
 
 async def run_consumer(

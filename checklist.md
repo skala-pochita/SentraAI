@@ -111,3 +111,38 @@
 - 2026-10-19: Phase 3 완료 — 규칙 엔진(regex/entropy/yaml_path/python/manifest), 코드 규칙 17 + Agent 규칙 7, C01~C18 18/18 탐지·C19/C20 미탐(의도)·함정 통과, business-mcp 조회7+실행3 도구, 서비스 토큰·역할·경로 탈출 거부, `python -m mcp_servers.inspect_cli list` 로 HTTP 확인.
 - 2026-10-19: Phase 4 완료 — knowledge/*.md 6종, 헤더 청크(800/100), 하이브리드 검색(pgvector+tsvector, 1h 캐시+버전 무효화), rag-mcp 조회7·변경4 도구, 시드 인덱싱. 키 없으면 해시 임베딩(DECISIONS #4). permitAll 검색 1위 확인.
 - 2026-10-19: Phase 5/6 진행 중 — 그래프 전 노드·서브그래프·business-mcp 변경 도구·결정론 수정기 완성, in-process 그래프 테스트(승인→수정→병합→재검증→보고서, 반려, FORBIDDEN, 재시작 재개) 통과. 남은 것: Kafka 워커, API(audits/approvals/fixes/SSE), Redis 체크포인터 실환경 확인.
+
+---
+
+## 🔁 다음 세션 인수인계 (2026-10-19 중단 시점)
+
+### 현재 상태
+- 완료: Phase 0~4 전부. Phase 5·6 코드는 대부분 작성됨 (그래프·노드·MCP 변경 도구·워커·API 라우터).
+- 검증됨: `make test` 63개 통과 (그래프 전체 흐름 in-process 테스트 포함), `make lint` 통과 (마지막 수정 전 기준).
+- 마지막 작업: `docker compose up -d --build --wait` → `make demo-reset` → `make seed` 까지 성공. **Kafka 실제 경로 e2e(POST /audits → audit-worker → report)는 아직 실행·확인 안 함.**
+- 마지막 수정(테스트 미실행): `mcp_servers/business/tools/execute.py` `_chat()` 에서 target-agent 503 "not configured" → VALIDATION(재시도 안 함).
+
+### 바로 다음에 할 일 (순서대로)
+1. `make test && make lint` 재확인.
+2. Docker 실환경 e2e: admin 로그인 → `POST /api/v1/audits {"target_ids":[repo,agent],"mode":"full"}` → `docker compose logs -f audit-worker` 로 진행 확인
+   → `GET /audits/{id}` 가 WAITING_APPROVAL → `POST /approvals/{id}/decision` → WAITING_MERGE → `POST /fixes/{id}/merge`(전부) → COMPLETED, `GET /audits/{id}/report`.
+   - AsyncRedisSaver(langgraph-checkpoint-redis) 실동작 확인. 안 되면 DECISIONS 기록 후 postgres checkpointer 대체.
+   - SSE `GET /audits/{id}/events?token=...` 확인.
+   - 워커 재시작 재개: 승인 대기 중 `docker compose restart audit-worker` → 승인 → 정상 재개.
+3. 위 e2e 를 `tests/e2e/test_demo_flow.py` (marker `infra`) 로 작성 → Phase 5·6 체크 완료 처리.
+4. Phase 7: ReAct 조사 노드 `core/graph/nodes/react_investigator.py` 작성 (아직 **없음**, `code_investigate.py` 가 LLM 있을 때 import 함), `harness/prompts/code_investigate_v1.yaml`, `audit_single_v1.yaml`; retry/DLQ 통합 테스트(FAULT_INJECTION); H1~H8 강의 용어 대조.
+5. Phase 8: 프론트 페이지들, `workers/eval.py`(현재 placeholder), `harness/eval/*`(matcher/scorer/runner/cli), `/eval-runs`, `/quality` API.
+
+### 핵심 구조 메모
+- 그래프: `backend/core/graph/build.py` (다이어그램 1:1), 노드 = `core/graph/nodes/*.py`, State = dict 저장 (`core/graph/state.py`).
+- 의존성 주입: `config["configurable"]["deps"] = Deps(gateway=...)` (`core/graph/deps.py`). 테스트는 `inprocess_gateway()`, 실환경은 `http_gateway()`.
+- MCP 도구: business `mcp_servers/business/tools/{query,execute,mutate}.py`, rag `mcp_servers/rag/tools/knowledge.py`. 응답 envelope·역할검사 = `mcp_servers/common.py`. H3 게이트 allowlist = `harness/tools.py` (새 도구 추가 시 여기 등록 필수).
+- 수정안: 결정론 수정기 `core/fixes.py` → 서버가 edits 적용·diff 계산 (`mcp_servers/business/patches.py`).
+- 워커: `workers/audit.py`(AuditRunner), `workers/retry.py`(retry·DLQ), 진입점 `workers/main.py`.
+- API: `api/routers/audits.py`(audits/findings/approvals/fixes/report/SSE/traces), `knowledge.py`, `ops.py`, `webhooks.py`.
+- 테스트 대역: `tests/fakes.py` GullibleAgent (LLM 없이 취약 에이전트 흉내, 실제 policy.py 적용).
+- 간이 MCP Inspector: `cd backend && uv run python -m mcp_servers.inspect_cli --url http://localhost:8101/mcp list`
+- 설계 변경 기록: `docs/DECISIONS.md` #1~#10. (fault-on DLQ 시나리오는 N=2 가 아니라 큰 값 필요 — 인라인 재시도 3회×전달 4회. 아직 DECISIONS 미기록)
+
+### 막힌 것
+- `OPENAI_API_KEY` 없음 → 실 LLM 경로(target-agent probe, ReAct, LLM 판정, A/B/C 비교) 미검증. `.env` 에 키·`LLM_SMALL_MODEL`·`LLM_LARGE_MODEL` 기입 필요.
