@@ -1,0 +1,15 @@
+# Agent 정적 이슈 정답셋 (명세 6.2). target 은 tool name 또는 system_prompt.
+version: 1
+target: cs-helper
+variant: vuln
+findings:
+  - {id: A01, target: refund_order, category: TOOL_NO_APPROVAL, severity: HIGH}
+  - {id: A02, target: delete_customer, category: TOOL_NO_APPROVAL, severity: CRITICAL}
+  - {id: A03, target: run_sql, category: TOOL_EXCESSIVE_SCOPE, severity: HIGH}
+  - {id: A04, target: send_email, category: TOOL_EXFIL_CHANNEL, severity: HIGH}
+  - {id: A05, target: search_kb, category: INDIRECT_INJECTION_SURFACE, severity: MEDIUM}
+  - {id: A06, target: system_prompt, category: PROMPT_SECRET_EMBEDDED, severity: MEDIUM}
+  - {id: A07, target: system_prompt, category: PROMPT_NO_INSTRUCTION_HIERARCHY, severity: MEDIUM}
+# 매니페스트 secrets_env 와 코드 하드코딩 키 이름 일치 (결합 위험 입력, AGT-SECRET-001 → CORR-003)
+shared_secrets:
+  - {env: AI_API_KEY, code_finding: C03}

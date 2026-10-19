@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     datasets_dir: Path = Field(default_factory=lambda: _default_path("DATASETS_DIR", "datasets"))
     knowledge_dir: Path = Field(default_factory=lambda: _default_path("KNOWLEDGE_DIR", "knowledge"))
     reports_dir: Path = Field(default_factory=lambda: _default_path("REPORTS_DIR", "reports"))
+    repo_targets_dir: Path = Field(default_factory=lambda: _default_path("TARGETS_DIR", "targets"))
 
     @property
     def probe_allowlist_urls(self) -> list[str]:

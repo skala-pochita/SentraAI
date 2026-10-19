@@ -12,3 +12,4 @@ frontend/dist/
 .DS_Store
 /workspace/
 reports/eval_*.md
+!targets/vuln-spring-app/.env

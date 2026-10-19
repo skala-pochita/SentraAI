@@ -39,17 +39,18 @@
 - [x] **완료 조건**: 역할별 허용·거부 통합 테스트, 만료 토큰 401, 블랙리스트 401, 타인 대상 403
 
 ## Phase 2 — 샘플 대상 + 정답셋 (P0)
-- [ ] `targets/vuln-spring-app` C01~C20 심기 (모든 키 가짜 값, 파일 상단 "테스트용 가짜 값" 명시)
-- [ ] 오탐 함정 D01~D06
-- [ ] 감사기 인젝션 I01 (SecurityConfig C06 바로 위), I02 (README)
-- [ ] `datasets/ground_truth/code.yaml` (findings, decoys, auditor_injections, 라인 번호)
-- [ ] `targets/target-agent/app.py` (FastAPI + LangChain, POST /chat, 가짜 도구, 호출 기록)
-- [ ] `manifests/vuln.yaml`, `manifests/hardened.yaml`, `prompts/system_vuln.md`, `prompts/system_hardened.md` (카나리 `CANARY-7F3A-INTERNAL-DISCOUNT`)
-- [ ] `datasets/ground_truth/agent.yaml` (A01~A07)
-- [ ] `datasets/probes/*.yaml` (P01~P12), `datasets/VERSION`
-- [ ] `make demo-reset` (/workspace git 초기화, agent-config 복사)
-- [ ] 정답셋 위치 검증 스크립트 + 테스트
-- [ ] **완료 조건**: 위치 검증 통과, vuln에서 P01·P03·P05 중 ≥2 성공 / hardened에서 막힘 (스모크)
+- [x] `targets/vuln-spring-app` C01~C20 심기 (모든 키 가짜 값, 파일 상단 "테스트용 가짜 값" 명시)
+- [x] 오탐 함정 D01~D06
+- [x] 감사기 인젝션 I01 (SecurityConfig C06 바로 위), I02 (README)
+- [x] `datasets/ground_truth/code.yaml` (findings, decoys, auditor_injections, 라인 번호)
+- [x] `targets/target-agent/app.py` (FastAPI + LangChain, POST /chat, 가짜 도구, 호출 기록)
+- [x] `manifests/vuln.yaml`, `manifests/hardened.yaml`, `prompts/system_vuln.md`, `prompts/system_hardened.md` (카나리 `CANARY-7F3A-INTERNAL-DISCOUNT`)
+- [x] `datasets/ground_truth/agent.yaml` (A01~A07)
+- [x] `datasets/probes/*.yaml` (P01~P12), `datasets/VERSION`
+- [x] `make demo-reset` (/workspace git 초기화, agent-config 복사)
+- [x] 정답셋 위치 검증 스크립트 + 테스트
+- [x] **완료 조건(오프라인)**: 위치 검증 통과, 정책 레이어 vuln 실행/hardened 차단 테스트 통과
+- [!] **완료 조건(실 LLM)**: vuln P01·P03·P05 중 ≥2 성공 / hardened 차단 — `OPENAI_API_KEY` 필요. `uv run pytest -m llm tests/e2e/test_probe_smoke.py`
 
 ## Phase 3 — 규칙 엔진 + business-mcp 조회·실행 (P0)
 - [ ] 규칙 YAML 형식 (7.1) + 로더
@@ -106,3 +107,4 @@
 - 2026-10-19: PDF 분석, checklist.md 작성.
 - 2026-10-19: Phase 0 완료 — make up 전 컨테이너 healthy, make test/lint 통과. (DECISIONS #3 Node 22)
 - 2026-10-19: Phase 1 완료 — 13장 전 테이블 모델+Alembic 0001, JWT/bcrypt/RBAC/잠금/회전/블랙리스트, 시드. tests/integration/test_auth.py 6개 통과(로컬 postgres auditor_test DB 사용).
+- 2026-10-19: Phase 2 완료(오프라인) — vuln-spring-app C01~C20/D01~D06/I01~I02, code.yaml 라인 검증 스크립트, target-agent(vuln/hardened, policy.py), agent.yaml, probes/base.yaml(P01~P12), demo-reset. 실 LLM 스모크는 키 필요.

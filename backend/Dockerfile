@@ -24,4 +24,5 @@ COPY knowledge/ /app/knowledge/
 COPY targets/ /app/targets/
 
 ENV CONFIG_DIR=/app/config RULES_DIR=/app/rules DATASETS_DIR=/app/datasets \
-    KNOWLEDGE_DIR=/app/knowledge REPORTS_DIR=/app/reports WORKSPACE_DIR=/workspace
+    KNOWLEDGE_DIR=/app/knowledge REPORTS_DIR=/app/reports WORKSPACE_DIR=/workspace \
+    TARGETS_DIR=/app/targets

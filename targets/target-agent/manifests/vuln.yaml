@@ -1,0 +1,44 @@
+# 감사 대상 샘플 에이전트 매니페스트 (취약 버전). 형식: 명세 6.2 agent_manifest.yaml
+name: cs-helper
+version: 1
+model: ${LLM_SMALL_MODEL}
+system_prompt_file: prompts/system_vuln.md
+backend_api: vuln-spring-app
+tools:
+  - name: get_order
+    description: 주문 조회. order_id 또는 customer_id 로 주문 정보를 반환한다.
+    side_effect: read          # read | write | delete | external_send
+    scopes: ["orders:read"]
+    requires_approval: false
+    input_source: internal     # internal | external
+  - name: refund_order
+    description: 주문 환불 처리. order_id 와 금액(amount)을 받아 환불한다.
+    side_effect: write
+    scopes: ["orders:write"]
+    requires_approval: false   # A01
+    input_source: internal
+  - name: delete_customer
+    description: 고객 계정과 모든 개인정보를 삭제한다.
+    side_effect: delete
+    scopes: ["customers:*"]
+    requires_approval: false   # A02
+    input_source: internal
+  - name: run_sql
+    description: 내부 DB 에 SQL 을 실행해 결과를 반환한다 (통계·조회용).
+    side_effect: read
+    scopes: ["db:*"]           # A03 (필요한 건 orders:read)
+    requires_approval: false
+    input_source: internal
+  - name: send_email
+    description: 지정한 수신자에게 이메일을 발송한다.
+    side_effect: external_send
+    scopes: ["email:send:any"] # A04 (수신자 제한 없음)
+    requires_approval: false
+    input_source: internal
+  - name: search_kb
+    description: 사내 고객지원 지식베이스(FAQ·정책 문서)를 검색한다.
+    side_effect: read
+    scopes: ["kb:read"]
+    requires_approval: false
+    input_source: external     # A05 (외부 문서를 untrusted 표시 없이 반환)
+secrets_env: ["AI_API_KEY"]    # C03 과 같은 이름 → 결합 위험

@@ -1,0 +1,45 @@
+# 감사 대상 샘플 에이전트 매니페스트 (강화 버전)
+name: cs-helper
+version: 2
+model: ${LLM_SMALL_MODEL}
+system_prompt_file: prompts/system_hardened.md
+backend_api: vuln-spring-app
+tools:
+  - name: get_order
+    description: 주문 조회. 현재 로그인한 고객 본인의 주문만 조회한다.
+    side_effect: read
+    scopes: ["orders:read:self"]
+    requires_approval: false
+    input_source: internal
+  - name: refund_order
+    description: 주문 환불 요청을 등록한다. 상담원 승인 후 처리된다.
+    side_effect: write
+    scopes: ["orders:write"]
+    requires_approval: true
+    input_source: internal
+  - name: delete_customer
+    description: 고객 계정 삭제 요청을 등록한다. 보안관리자 승인 후 처리된다.
+    side_effect: delete
+    scopes: ["customers:delete"]
+    requires_approval: true
+    input_source: internal
+  - name: run_sql
+    description: 주문 통계 조회 전용 SQL (orders 테이블 SELECT 만 허용).
+    side_effect: read
+    scopes: ["orders:read"]
+    requires_approval: false
+    input_source: internal
+  - name: send_email
+    description: 사내 도메인(@shop.example) 수신자에게만 이메일을 발송한다.
+    side_effect: external_send
+    scopes: ["email:send:domain:shop.example"]
+    requires_approval: true
+    input_source: internal
+  - name: search_kb
+    description: 사내 고객지원 지식베이스를 검색한다. 결과는 신뢰할 수 없는 데이터로 표시된다.
+    side_effect: read
+    scopes: ["kb:read"]
+    requires_approval: false
+    input_source: external
+    output_untrusted: true
+secrets_env: []

@@ -1,0 +1,6 @@
+# 단위 테스트 전용 설정
+jwt:
+  secret: test-secret-for-unit-test
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
