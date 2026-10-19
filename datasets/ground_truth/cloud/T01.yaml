@@ -1,0 +1,11 @@
+bundle: T01
+role: final
+findings:
+- id: T01-1
+  area: C1
+  category: IAM_OVERPRIVILEGED
+  resource_id: R-APP
+  status: CONFIRMED
+  required_evidence:
+  - POL-APP
+decoys: []

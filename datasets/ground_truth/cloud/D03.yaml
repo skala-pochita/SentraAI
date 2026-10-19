@@ -1,0 +1,12 @@
+bundle: D03
+role: dev
+findings:
+- id: D03-1
+  area: B1
+  category: TOOL_TO_SENSITIVE_RESOURCE_PATH
+  resource_id: bucket-payroll
+  status: CONFIRMED
+  required_evidence:
+  - POL-PAYROLL
+  - S-MCP
+decoys: []

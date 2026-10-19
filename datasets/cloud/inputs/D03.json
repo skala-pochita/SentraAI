@@ -1,0 +1,107 @@
+{
+  "schema_version": "1",
+  "bundle_id": "D03",
+  "tools": [
+    {
+      "id": "T1",
+      "name": "export_payroll",
+      "description": "급여 집계를 내보낸다",
+      "side_effect": "read",
+      "requires_approval": false,
+      "access_policy_ref": "POL-CALLER",
+      "source_ref": "S-MCP"
+    }
+  ],
+  "principals": [
+    {
+      "id": "R-CALLER",
+      "kind": "role",
+      "source_ref": "S-IAM"
+    },
+    {
+      "id": "R-PAYROLL",
+      "kind": "role",
+      "source_ref": "S-IAM"
+    }
+  ],
+  "policies": [
+    {
+      "id": "POL-CALLER",
+      "principal_id": "R-CALLER",
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "mcp:Call"
+          ],
+          "resources": [
+            "T1",
+            "T2",
+            "T3",
+            "T4"
+          ],
+          "conditions": {}
+        }
+      ],
+      "source_ref": "S-IAM"
+    },
+    {
+      "id": "POL-PAYROLL",
+      "principal_id": "R-PAYROLL",
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "s3:GetObject"
+          ],
+          "resources": [
+            "bucket-payroll"
+          ],
+          "conditions": {}
+        }
+      ],
+      "source_ref": "S-IAM"
+    }
+  ],
+  "mappings": {
+    "tool_to_principal": [
+      {
+        "tool_id": "T1",
+        "principal_id": "R-PAYROLL",
+        "source_ref": "S-MCP"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "id": "bucket-payroll",
+      "type": "storage",
+      "source_ref": "S-TF",
+      "sensitivity": "high",
+      "encrypted": true,
+      "public": false,
+      "logging": true
+    }
+  ],
+  "business_policy": {
+    "allowed_purposes": [
+      "고객 지원 상담",
+      "집계 리포트 조회"
+    ],
+    "exceptions": [],
+    "ticket_target": "platform-team",
+    "followup_allowed": false
+  },
+  "missing_evidence": [],
+  "sources": [
+    {
+      "id": "S-MCP"
+    },
+    {
+      "id": "S-IAM"
+    },
+    {
+      "id": "S-TF"
+    }
+  ]
+}

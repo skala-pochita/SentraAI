@@ -1,0 +1,33 @@
+bundle: T03
+role: final
+findings:
+- id: T03-1
+  area: C2
+  category: NETWORK_PUBLIC_INGRESS
+  resource_id: sg-web
+  status: CONFIRMED
+  required_evidence:
+  - S-TF
+- id: T03-2
+  area: C3
+  category: STORAGE_PUBLIC_ACCESS
+  resource_id: bucket-customers
+  status: CONFIRMED
+  required_evidence:
+  - S-TF
+- id: T03-3
+  area: C3
+  category: STORAGE_NOT_ENCRYPTED
+  resource_id: bucket-customers
+  status: CONFIRMED
+  required_evidence:
+  - S-TF
+decoys:
+- id: T03-X1
+  area: C3
+  resource_id: bucket-assets
+  why: 업무 정책의 승인된 공개 예외
+- id: T03-X2
+  area: C2
+  resource_id: sg-internal
+  why: 사설 대역만 허용

@@ -1,0 +1,12 @@
+bundle: T05
+role: final
+findings: []
+decoys:
+- id: T05-X1
+  area: A1
+  resource_id: T1
+  why: 승인 요구가 켜져 있다
+- id: T05-X2
+  area: A4
+  resource_id: T4
+  why: 설명에 지시가 없다

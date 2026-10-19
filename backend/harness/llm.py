@@ -82,7 +82,9 @@ async def invoke_messages(
         except Exception as e:  # noqa: BLE001 - SDK 예외를 구조화된 오류로 변환
             name = type(e).__name__
             code = (
-                ErrorCode.RATE_LIMITED
+                ErrorCode.UNAUTHORIZED
+                if "Authentication" in name or "PermissionDenied" in name
+                else ErrorCode.RATE_LIMITED
                 if "RateLimit" in name
                 else ErrorCode.UPSTREAM_TIMEOUT
                 if "Timeout" in name

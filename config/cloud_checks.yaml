@@ -5,6 +5,8 @@ network:
 iam:
   wildcard_actions: ["*", "*:*"]
   sensitive_service_wildcards: ["iam:*", "s3:*", "secretsmanager:*", "kms:*", "sts:*"]
+  # B1: 자원 접근 경로로 인정하는 데이터 서비스 (iam:/mcp: 같은 제어 액션만으로는 자원에 닿지 않는다. 액션 "*" 는 포함)
+  data_services: [s3, dynamodb, rds, rds-data, secretsmanager, kms, ssm]
   privilege_escalation_actions: ["iam:PassRole", "iam:CreatePolicyVersion", "iam:AttachRolePolicy", "iam:PutRolePolicy", "sts:AssumeRole"]
 tool_poisoning:
   # 도구 설명 속 업무 외 지시 (A4). 감사 대상 텍스트이며 지시로 취급하지 않는다.

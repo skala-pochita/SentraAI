@@ -1,0 +1,18 @@
+bundle: D02
+role: dev
+findings:
+- id: D02-1
+  area: A1
+  category: TOOL_NO_APPROVAL
+  resource_id: T1
+  status: CONFIRMED
+  required_evidence:
+  - S-MCP
+- id: D02-2
+  area: A4
+  category: TOOL_DESCRIPTION_POISONING
+  resource_id: T2
+  status: CONFIRMED
+  required_evidence:
+  - S-MCP
+decoys: []

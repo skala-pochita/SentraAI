@@ -1,0 +1,12 @@
+bundle: T08
+role: final
+findings:
+- id: T08-1
+  area: B1
+  category: TOOL_TO_SENSITIVE_RESOURCE_PATH
+  resource_id: bucket-customers
+  status: HOLD
+  required_evidence:
+  - POL-EXPORT
+  needs_contains: caller access policy
+decoys: []

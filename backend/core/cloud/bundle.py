@@ -40,6 +40,7 @@ class Tool(_Model):
     side_effect: SideEffect = "read"
     requires_approval: bool = False
     access_policy_ref: str | None = None  # 누가 호출할 수 있는지에 대한 정책 evidence_id
+    chain_restricted: bool | None = None  # 다른 도구 결과를 입력으로 받는 연결이 정책으로 제한되는지 (None = 증거 없음)
     source_ref: str
 
 
@@ -100,7 +101,9 @@ class Source(_Model):
 
 class BusinessPolicy(_Model):
     allowed_purposes: list[str] = Field(default_factory=list)
-    exceptions: list[str] = Field(default_factory=list)
+    exceptions: list[str] = Field(default_factory=list)  # "<resource_id>: 사유" 형식의 정상 예외
+    ticket_target: str | None = None  # 후속 조치 티켓의 허용 수신 대상 (D1 수신자 변경 판정에 사용)
+    followup_allowed: bool = True
 
 
 class MissingEvidence(_Model):

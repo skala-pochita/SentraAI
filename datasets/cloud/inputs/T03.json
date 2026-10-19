@@ -1,0 +1,152 @@
+{
+  "schema_version": "1",
+  "bundle_id": "T03",
+  "tools": [
+    {
+      "id": "T1",
+      "name": "get_report",
+      "description": "집계 리포트를 조회한다",
+      "side_effect": "read",
+      "requires_approval": false,
+      "access_policy_ref": "POL-CALLER",
+      "source_ref": "S-MCP"
+    }
+  ],
+  "principals": [
+    {
+      "id": "R-CALLER",
+      "kind": "role",
+      "source_ref": "S-IAM"
+    },
+    {
+      "id": "R-APP",
+      "kind": "role",
+      "source_ref": "S-IAM"
+    }
+  ],
+  "policies": [
+    {
+      "id": "POL-CALLER",
+      "principal_id": "R-CALLER",
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "mcp:Call"
+          ],
+          "resources": [
+            "T1",
+            "T2",
+            "T3",
+            "T4"
+          ],
+          "conditions": {}
+        }
+      ],
+      "source_ref": "S-IAM"
+    },
+    {
+      "id": "POL-APP",
+      "principal_id": "R-APP",
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "s3:GetObject"
+          ],
+          "resources": [
+            "bucket-logs"
+          ],
+          "conditions": {}
+        }
+      ],
+      "source_ref": "S-IAM"
+    }
+  ],
+  "mappings": {
+    "tool_to_principal": [
+      {
+        "tool_id": "T1",
+        "principal_id": "R-APP",
+        "source_ref": "S-MCP"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "id": "sg-web",
+      "type": "network",
+      "source_ref": "S-TF",
+      "ingress": [
+        {
+          "cidr": "0.0.0.0/0",
+          "port": 22
+        },
+        {
+          "cidr": "0.0.0.0/0",
+          "port": 443
+        }
+      ]
+    },
+    {
+      "id": "sg-internal",
+      "type": "network",
+      "source_ref": "S-TF",
+      "ingress": [
+        {
+          "cidr": "10.0.0.0/8",
+          "port": 5432
+        }
+      ]
+    },
+    {
+      "id": "bucket-customers",
+      "type": "storage",
+      "source_ref": "S-TF",
+      "sensitivity": "high",
+      "public": true,
+      "encrypted": false,
+      "logging": true
+    },
+    {
+      "id": "bucket-assets",
+      "type": "storage",
+      "source_ref": "S-TF",
+      "sensitivity": "low",
+      "public": true,
+      "encrypted": true,
+      "logging": false
+    },
+    {
+      "id": "bucket-logs",
+      "type": "storage",
+      "source_ref": "S-TF",
+      "sensitivity": "low",
+      "public": false,
+      "encrypted": true
+    }
+  ],
+  "business_policy": {
+    "allowed_purposes": [
+      "고객 지원 상담",
+      "집계 리포트 조회"
+    ],
+    "exceptions": [
+      "bucket-assets: 공개 정적 자산 배포용으로 승인된 공개 버킷"
+    ],
+    "ticket_target": "platform-team",
+    "followup_allowed": false
+  },
+  "missing_evidence": [],
+  "sources": [
+    {
+      "id": "S-MCP"
+    },
+    {
+      "id": "S-IAM"
+    },
+    {
+      "id": "S-TF"
+    }
+  ]
+}

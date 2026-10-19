@@ -123,10 +123,10 @@
 - [ ] `/api/ai/tasks` 5개 파사드 (DECISIONS #12) + 실행 기한 초과 RUNNING → FAILED 스케줄러
 - [ ] 관측: LangSmith trace 1건 확인(키 필요), 불가 시 JSONL 로그 + trace_id=null 및 미충족 표기
 ### 10-4 평가 (기획서 8~11장)
-- [ ] 개발 3묶음 + 최종 T01~T08 정답셋 `datasets/ground_truth/cloud/*.yaml` (IAM Vulnerable·TerraGoat·DVMCP·MCPTox 선정 사례, 정상 반례·정보 부족 포함, 공개 자료 commit·라이선스 기록)
-- [~] A(단순 조회 루프)/B(전체 그래프) 공통 실행기 — `run_cloud_audit(ctx,"A"|"B")` 완료, 서버 측 모의 저장소 `MemoryBackend`, 러너·채점 미착수 — — 같은 도구·마스킹·예산·스키마, 서버 측 모의 저장소
-- [ ] 채점: 정밀도/재현율/F1, 경로 탐지율·정밀도, 근거 정확도, 판단 보류 정확성, 재검증 정확도, 인젝션 실패율, 정상 감사 완료율, 비용·시간 (분모 0 = 해당 없음)
-- [ ] 16회 실행(8묶음×A/B) → 결과 JSON → 정적 비교 화면. 미실행 지표는 "미측정"
+- [~] 개발 3묶음 + 최종 T01~T08 + 공격 변형 2 + 수정본 2 정답셋 (합성 사례 15개, `scripts/build_cloud_datasets.py`; 공개 자료 commit·라이선스·2인 검토는 미확인 — `datasets/cloud/SOURCES.md`) —  `datasets/ground_truth/cloud/*.yaml` (IAM Vulnerable·TerraGoat·DVMCP·MCPTox 선정 사례, 정상 반례·정보 부족 포함, 공개 자료 commit·라이선스 기록)
+- [x] A(단순 조회 루프)/B(전체 그래프) 공통 실행기 — `run_cloud_audit(ctx,"A"|"B")`, 서버 측 모의 저장소 `MemoryBackend`, 러너 `core/cloud/eval_runner.py` — — 같은 도구·마스킹·예산·스키마, 서버 측 모의 저장소
+- [x] 채점 (`core/cloud/scoring.py`, 정답 밖 발견은 사람 검토 목록으로 분리): 정밀도/재현율/F1, 경로 탐지율·정밀도, 근거 정확도, 판단 보류 정확성, 재검증 정확도, 인젝션 실패율, 정상 감사 완료율, 비용·시간 (분모 0 = 해당 없음)
+- [!] 16회 실행(8묶음×A/B) → 결과 JSON → 정적 비교 화면 — `make eval` 구현 완료·미측정 표기 확인. 실 실행은 LLM 키 필요 (셸의 `OPENAI_API_KEY` 가 401 거부됨). 비교 화면(프론트)은 미착수. 미실행 지표는 "미측정"
 - [ ] 확장(여유 시): 3회 반복 → E1 Agent Audit / E2 Checkov → D1 변형(T01·T06) → 수정본 재검증
 - [ ] **완료 조건**: 기획서 11장 제품 동작 시험 13항목 통과, 최종 8묶음 A/B 각 1회 채점 (LLM 키 없으면 "평가 미완료" 로 표기)
 
@@ -150,6 +150,8 @@
 - 2026-10-19: 체크리스트 전수 점검 — 검증된 항목만 [x], 코드만 있고 미검증인 Phase 7·8 항목은 [~] 로 표기.
 
 - 2026-10-19: Phase 10-3 핵심 — Cloud 파이프라인(A/B), 예산, ToolHost(read_resource·3회·마스킹·8000자), 티켓 승인/멱등, 프롬프트 7종, 단위 테스트 15개. make test 98개 통과.
+
+- 2026-10-19: Phase 10-4 — 평가셋 15개, 채점기, A/B/rules 러너(`make eval`, `make eval-selfcheck`). rules 기준선이 정답셋과 전 항목 일치(자체 점검). 환경의 OPENAI_API_KEY 는 401 → A/B 는 미측정. make test 104개 통과.
 
 ---
 

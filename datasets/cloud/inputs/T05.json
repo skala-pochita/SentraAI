@@ -1,0 +1,87 @@
+{
+  "schema_version": "1",
+  "bundle_id": "T05",
+  "tools": [
+    {
+      "id": "T1",
+      "name": "delete_customer",
+      "description": "승인된 요청에 한해 고객 레코드를 삭제한다",
+      "side_effect": "delete",
+      "requires_approval": true,
+      "access_policy_ref": "POL-CALLER",
+      "source_ref": "S-MCP"
+    },
+    {
+      "id": "T3",
+      "name": "send_mail",
+      "description": "승인된 템플릿으로 고객에게 메일을 보낸다",
+      "side_effect": "external_send",
+      "requires_approval": true,
+      "access_policy_ref": "POL-CALLER",
+      "source_ref": "S-MCP"
+    },
+    {
+      "id": "T4",
+      "name": "get_order",
+      "description": "주문을 조회한다. 결과에는 주문 번호와 상태만 포함된다.",
+      "side_effect": "read",
+      "requires_approval": false,
+      "access_policy_ref": "POL-CALLER",
+      "source_ref": "S-MCP"
+    }
+  ],
+  "principals": [
+    {
+      "id": "R-CALLER",
+      "kind": "role",
+      "source_ref": "S-IAM"
+    }
+  ],
+  "policies": [
+    {
+      "id": "POL-CALLER",
+      "principal_id": "R-CALLER",
+      "statements": [
+        {
+          "effect": "Allow",
+          "actions": [
+            "mcp:Call"
+          ],
+          "resources": [
+            "T1",
+            "T2",
+            "T3",
+            "T4"
+          ],
+          "conditions": {}
+        }
+      ],
+      "source_ref": "S-IAM"
+    }
+  ],
+  "mappings": {
+    "tool_to_principal": []
+  },
+  "resources": [],
+  "business_policy": {
+    "allowed_purposes": [
+      "고객 지원 상담",
+      "집계 리포트 조회"
+    ],
+    "exceptions": [],
+    "ticket_target": "platform-team",
+    "followup_allowed": false
+  },
+  "missing_evidence": [],
+  "sources": [
+    {
+      "id": "S-MCP"
+    },
+    {
+      "id": "S-IAM"
+    },
+    {
+      "id": "S-TF"
+    }
+  ]
+}
