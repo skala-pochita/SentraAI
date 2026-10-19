@@ -13,3 +13,6 @@ frontend/dist/
 /workspace/
 reports/eval_*.md
 !targets/vuln-spring-app/.env
+
+# 원본 명세 PDF (공유 제외)
+AI_Security_Auditor_SPEC.pdf
