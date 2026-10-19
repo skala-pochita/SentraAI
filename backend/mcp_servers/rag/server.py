@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-from mcp_servers.common import create_server
-
-mcp = create_server(
-    "rag-mcp",
-    8102,
-    "보안 지식 MCP 서버. OWASP/CWE/Spring Security/사내 정책 검색, 지식 문서 관리, 오탐 규칙 관리.",
-)
+from mcp_servers.common import run_server
+from mcp_servers.rag import tools  # noqa: F401 - 도구 등록
+from mcp_servers.rag.app import PORT, mcp
 
 
 def main() -> None:
-    mcp.run(transport="streamable-http")
+    run_server(mcp, PORT)
 
 
 if __name__ == "__main__":

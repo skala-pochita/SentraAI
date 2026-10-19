@@ -39,3 +39,8 @@ def test_select_files_priority() -> None:
     chosen, dropped = select_files(["a"], ["b"], ["c"], {"a": 40, "b": 40, "c": 40}, token_budget=20)
     assert chosen == ["a", "b"]
     assert dropped == ["c"]
+
+
+def test_code_masking_spares_reference_codes() -> None:
+    assert mask_text("ref OWASP-LLM-2025 SEC-SPRING-001") == "ref OWASP-LLM-2025 SEC-SPRING-001"
+    assert "7F3A" not in mask_text("code CANARY-7F3A-INTERNAL-DISCOUNT")

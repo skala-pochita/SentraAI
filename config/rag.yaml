@@ -1,0 +1,9 @@
+# rag-mcp 하이브리드 검색 (pgvector 코사인 + tsvector 키워드 가중 합)
+weights:
+  openai: {vector: 0.6, keyword: 0.4}
+  hash: {vector: 0.3, keyword: 0.7}    # 오프라인 해시 임베딩은 의미 검색 품질이 낮아 키워드 비중↑
+candidates: 30
+cache_ttl_s: 3600
+chunk:
+  max_tokens: 800
+  overlap_tokens: 100

@@ -12,8 +12,6 @@ _PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"(sk-[A-Za-z0-9_\-]{16,})"),
     re.compile(r"(AKIA[0-9A-Z]{16})"),
     re.compile(r"(gh[pousr]_[A-Za-z0-9]{20,})"),
-    # 쿠폰·라이선스형 코드 (예: ABCD-1234-EFGH-5678)
-    re.compile(r"\b([A-Z0-9]{4,}(?:-[A-Z0-9]{3,}){2,})\b"),
     re.compile(r"(eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,})"),
     # key/secret/password/token = "value" 류 대입
     re.compile(
@@ -24,6 +22,17 @@ _PATTERNS: list[re.Pattern[str]] = [
         """
     ),
 ]
+# 쿠폰·라이선스형 코드 (예: CANARY-7F3A-INTERNAL-DISCOUNT). 영문+숫자가 섞인 조각이 있어야 한다
+# (OWASP-LLM-2025 같은 참조 코드는 제외).
+_CODE = re.compile(r"\b[A-Z0-9]{3,}(?:-[A-Z0-9]{3,}){2,}\b")
+_MIXED = re.compile(r"^(?=.*\d)(?=.*[A-Z])[A-Z0-9]+$")
+
+
+def _mask_code(m: re.Match[str]) -> str:
+    code = m.group(0)
+    return mask_secret(code) if any(_MIXED.match(seg) for seg in code.split("-")) else code
+
+
 _PEM = re.compile(
     r"-----BEGIN ([A-Z ]*PRIVATE KEY)-----.*?-----END \1-----", re.DOTALL
 )
@@ -41,6 +50,7 @@ def mask_text(text: str) -> str:
     if not text:
         return text
     text = _PEM.sub(lambda m: f"-----BEGIN {m.group(1)}-----{MASK}-----END {m.group(1)}-----", text)
+    text = _CODE.sub(_mask_code, text)
     for pat in _PATTERNS:
         text = pat.sub(lambda m: m.group(0).replace(m.group(1), mask_secret(m.group(1))), text)
     return text

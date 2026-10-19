@@ -1,4 +1,4 @@
-"""시드: 사용자 3명, 대상 2개(+연결). python -m api.seed (지식 문서 인덱싱은 Phase 4에서 추가)."""
+"""시드: 사용자 3명, 대상 2개(+연결), 지식 문서 인덱싱. python -m api.seed"""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from api.security import hash_password
 from core.db.models import Target, User
 from core.db.session import session_scope
 from core.settings import get_settings
+from mcp_servers.rag.ingest import ingest_dir
 
 log = logging.getLogger("seed")
 
@@ -63,6 +64,9 @@ async def main() -> None:
         users = await seed_users(db)
         repo, agent = await seed_targets(db, users["DEVELOPER"])
         log.info("seeded users=%s targets=%s,%s", list(users), repo.id, agent.id)
+    async with session_scope() as db:
+        docs = await ingest_dir(db, get_settings().knowledge_dir)
+        log.info("indexed knowledge documents: %s", docs)
 
 
 if __name__ == "__main__":

@@ -63,11 +63,11 @@
 - [x] **완료 조건**: C01~C18 ≥80% 탐지 테스트, 경로 탈출 거부 테스트, 도구 목록 확인
 
 ## Phase 4 — rag-mcp + 지식 문서 (P0)
-- [ ] `knowledge/*.md` 6종 (팀 요약본)
-- [ ] 청크(헤더 기준, 800토큰, overlap 100), 임베딩, 하이브리드 검색(pgvector + tsvector), 캐시 1h
-- [ ] 조회 도구 6개, 변경 도구 4개 (9.4)
-- [ ] seed 시 인덱싱
-- [ ] **완료 조건**: "permitAll 올바른 설정" 검색 시 spring_security_guide 상위 3위 내
+- [x] `knowledge/*.md` 6종 (팀 요약본)
+- [x] 청크(헤더 기준, 800토큰, overlap 100), 임베딩, 하이브리드 검색(pgvector + tsvector), 캐시 1h
+- [x] 조회 도구 6개, 변경 도구 4개 (9.4)
+- [x] seed 시 인덱싱
+- [x] **완료 조건**: "permitAll 올바른 설정" 검색 시 spring_security_guide 상위 3위 내
 
 ## Phase 5 — Kafka + Redis 이벤트 + 그래프 1차 + SSE (P0)
 - [ ] Kafka envelope, producer, consumer(수동 커밋, 멱등 키)
@@ -109,3 +109,4 @@
 - 2026-10-19: Phase 1 완료 — 13장 전 테이블 모델+Alembic 0001, JWT/bcrypt/RBAC/잠금/회전/블랙리스트, 시드. tests/integration/test_auth.py 6개 통과(로컬 postgres auditor_test DB 사용).
 - 2026-10-19: Phase 2 완료(오프라인) — vuln-spring-app C01~C20/D01~D06/I01~I02, code.yaml 라인 검증 스크립트, target-agent(vuln/hardened, policy.py), agent.yaml, probes/base.yaml(P01~P12), demo-reset. 실 LLM 스모크는 키 필요.
 - 2026-10-19: Phase 3 완료 — 규칙 엔진(regex/entropy/yaml_path/python/manifest), 코드 규칙 17 + Agent 규칙 7, C01~C18 18/18 탐지·C19/C20 미탐(의도)·함정 통과, business-mcp 조회7+실행3 도구, 서비스 토큰·역할·경로 탈출 거부, `python -m mcp_servers.inspect_cli list` 로 HTTP 확인.
+- 2026-10-19: Phase 4 완료 — knowledge/*.md 6종, 헤더 청크(800/100), 하이브리드 검색(pgvector+tsvector, 1h 캐시+버전 무효화), rag-mcp 조회7·변경4 도구, 시드 인덱싱. 키 없으면 해시 임베딩(DECISIONS #4). permitAll 검색 1위 확인.
