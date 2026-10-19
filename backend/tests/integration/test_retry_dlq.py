@@ -54,7 +54,7 @@ async def test_retryable_error_goes_to_retry_with_backoff_then_dlq() -> None:
     e = env()
     hdr: dict[str, str] = {}
     targets = []
-    for attempt in range(4):
+    for _ in range(4):
         sent.clear()
         await kc.handle_record(record(e, hdr), boom)
         topic, _, raw, hdr = sent[-1]
