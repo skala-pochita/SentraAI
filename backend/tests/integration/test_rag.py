@@ -61,8 +61,9 @@ async def test_ingest_update_delete_requires_admin(indexed: None) -> None:
         default_call.reset(token)
     token = default_call.set(CallContext("u", "ADMIN", None, "r"))
     try:
-        res = await knowledge.ingest_document(title="임시 정책", source_type="policy",
-                                              content_md="# 임시\n## 규칙\n쿠버네티스 시크릿 회전 주기 90일")
+        res = await knowledge.ingest_document(
+            title="임시 정책", source_type="policy", content_md="# 임시\n## 규칙\n쿠버네티스 시크릿 회전 주기 90일"
+        )
         doc_id = res["data"]["doc_id"]
         hits = await knowledge.search_company_policy(query="쿠버네티스 시크릿 회전", k=3)
         assert hits["data"][0]["doc_title"] == "임시 정책"
@@ -84,9 +85,19 @@ async def test_register_false_positive_flow(indexed: None) -> None:
         a = Audit(requested_by=u.id, mode="full", status="RUNNING", thread_id="t")
         db.add(a)
         await db.flush()
-        f = Finding(audit_id=a.id, target_id=t.id, source="code", category="SECCONFIG_CSRF", rule_id="SEC-SPRING-002",
-                    title="csrf", severity="MEDIUM", confidence=0.5, fingerprint="fp1", evidence=[],
-                    reasoning_summary="r")
+        f = Finding(
+            audit_id=a.id,
+            target_id=t.id,
+            source="code",
+            category="SECCONFIG_CSRF",
+            rule_id="SEC-SPRING-002",
+            title="csrf",
+            severity="MEDIUM",
+            confidence=0.5,
+            fingerprint="fp1",
+            evidence=[],
+            reasoning_summary="r",
+        )
         db.add(f)
         await db.flush()
         fid, uid, tid = str(f.id), str(u.id), str(t.id)

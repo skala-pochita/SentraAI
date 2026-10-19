@@ -57,9 +57,16 @@ def lang_of(path: str) -> str:
 
 def hit(rule: Rule, path: str, line_no: int, line: str, **extra: Any) -> RuleHit:
     return RuleHit(
-        rule_id=rule.id, category=rule.category, severity=rule.default_severity, path=path, line=line_no,
-        snippet_masked=mask_text(line.strip())[:300], needs_llm_review=rule.needs_llm_review,
-        references=rule.references, fix_hint=rule.fix_hint, extra=extra,
+        rule_id=rule.id,
+        category=rule.category,
+        severity=rule.default_severity,
+        path=path,
+        line=line_no,
+        snippet_masked=mask_text(line.strip())[:300],
+        needs_llm_review=rule.needs_llm_review,
+        references=rule.references,
+        fix_hint=rule.fix_hint,
+        extra=extra,
     )
 
 
@@ -67,6 +74,7 @@ Detector = Callable[[Rule, str, str], list[RuleHit]]
 
 
 # ---------- regex ----------
+
 
 def detect_regex(rule: Rule, path: str, content: str) -> list[RuleHit]:
     flags = re.IGNORECASE if rule.ignore_case else 0
@@ -115,6 +123,7 @@ def detect_entropy(rule: Rule, path: str, content: str) -> list[RuleHit]:
 
 # ---------- yaml_path ----------
 
+
 def _flatten_yaml(content: str) -> list[tuple[str, Any, int]]:
     """(dotted.path, scalar value, 1-based line) 목록."""
     try:
@@ -160,6 +169,7 @@ def detect_yaml_path(rule: Rule, path: str, content: str) -> list[RuleHit]:
 
 
 # ---------- python (파일 단위 검사) ----------
+
 
 def detect_python(rule: Rule, path: str, content: str) -> list[RuleHit]:
     if rule.check == "sensitive_file_present":

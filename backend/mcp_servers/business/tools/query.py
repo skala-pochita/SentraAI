@@ -34,8 +34,13 @@ async def list_audit_targets(type: Literal["repo", "agent"] | None = None, ctx: 
     """
     out = []
     for t in await list_targets(type):
-        item: dict[str, Any] = {"target_id": t.id, "type": t.type, "name": t.name, "ref": t.ref,
-                                "linked_target_id": t.linked_target_id}
+        item: dict[str, Any] = {
+            "target_id": t.id,
+            "type": t.type,
+            "name": t.name,
+            "ref": t.ref,
+            "linked_target_id": t.linked_target_id,
+        }
         if t.type == "repo":
             item["commit_sha"] = await commit_sha(t.root)
         out.append(item)
@@ -44,8 +49,17 @@ async def list_audit_targets(type: Literal["repo", "agent"] | None = None, ctx: 
 
 def _lang(path: str) -> str:
     ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
-    return {"java": "java", "kt": "kotlin", "yml": "yaml", "yaml": "yaml", "md": "markdown",
-            "properties": "properties", "gradle": "gradle", "pem": "pem", "py": "python"}.get(ext, ext or "text")
+    return {
+        "java": "java",
+        "kt": "kotlin",
+        "yml": "yaml",
+        "yaml": "yaml",
+        "md": "markdown",
+        "properties": "properties",
+        "gradle": "gradle",
+        "pem": "pem",
+        "py": "python",
+    }.get(ext, ext or "text")
 
 
 @mcp_tool(mcp)
@@ -68,8 +82,9 @@ async def list_repo_files(target_id: str, glob: str | None = None, ctx: Context 
 
 
 @mcp_tool(mcp)
-async def read_repo_file(target_id: str, path: str, start_line: int | None = None, end_line: int | None = None,
-                         ctx: Context | None = None) -> Any:
+async def read_repo_file(
+    target_id: str, path: str, start_line: int | None = None, end_line: int | None = None, ctx: Context | None = None
+) -> Any:
     """레포 파일의 라인 범위를 읽는다. 최대 400줄, 비밀값은 마스킹된다.
 
     입력: target_id, path (레포 루트 기준 상대경로), start_line/end_line (1-based, 선택)
@@ -108,8 +123,9 @@ def _search_python(root: Any, pattern: re.Pattern[str], glob: str | None, limit:
 
 
 @mcp_tool(mcp)
-async def search_repo(target_id: str, pattern: str, glob: str | None = None, max_results: int = 20,
-                      ctx: Context | None = None) -> Any:
+async def search_repo(
+    target_id: str, pattern: str, glob: str | None = None, max_results: int = 20, ctx: Context | None = None
+) -> Any:
     """레포 전체에서 정규식 검색 (라인 단위). 정규식 실행 타임아웃 1초.
 
     입력: target_id, pattern (Python 정규식), glob (선택), max_results (≤50)
@@ -126,8 +142,9 @@ async def search_repo(target_id: str, pattern: str, glob: str | None = None, max
         raise AppError(ErrorCode.VALIDATION, f"invalid regex: {e}") from e
     t = await get_target(target_id, "repo")
     try:
-        return await asyncio.wait_for(asyncio.to_thread(_search_python, t.root, compiled, glob, max_results),
-                                      timeout=SEARCH_TIMEOUT_S)
+        return await asyncio.wait_for(
+            asyncio.to_thread(_search_python, t.root, compiled, glob, max_results), timeout=SEARCH_TIMEOUT_S
+        )
     except TimeoutError as e:
         raise AppError(ErrorCode.UPSTREAM_TIMEOUT, "regex search exceeded 1s") from e
 
@@ -140,8 +157,12 @@ async def load_agent_files(target_id: str) -> dict[str, Any]:
         raise AppError(ErrorCode.NOT_FOUND, "agent manifest not found (run make demo-reset)")
     manifest_text = manifest_p.read_text(encoding="utf-8")
     prompt = prompt_p.read_text(encoding="utf-8") if prompt_p.is_file() else ""
-    return {"target": t, "manifest": yaml.safe_load(manifest_text) or {}, "manifest_text": manifest_text,
-            "system_prompt": prompt}
+    return {
+        "target": t,
+        "manifest": yaml.safe_load(manifest_text) or {},
+        "manifest_text": manifest_text,
+        "system_prompt": prompt,
+    }
 
 
 @mcp_tool(mcp)
@@ -149,21 +170,40 @@ async def get_agent_manifest(target_id: str, ctx: Context | None = None) -> Any:
     """에이전트 대상의 매니페스트(도구·권한·스코프)와 시스템 프롬프트(마스킹)를 반환한다.
 
     입력: target_id (type=agent)
-    출력: {manifest, manifest_path, system_prompt_masked, system_prompt_path, linked_target_id}
+    출력: {manifest, manifest_path, manifest_text_masked, system_prompt_masked, system_prompt_path, linked_target_id}
     오류: NOT_FOUND, VALIDATION(repo 대상). 부작용: 없음.
     """
     a = await load_agent_files(target_id)
-    return {"manifest": a["manifest"], "manifest_path": "manifest.yaml",
-            "system_prompt_masked": mask_text(a["system_prompt"]), "system_prompt_path": "system_prompt.md",
-            "linked_target_id": a["target"].linked_target_id}
+    return {
+        "manifest": a["manifest"],
+        "manifest_path": "manifest.yaml",
+        "manifest_text_masked": mask_text(a["manifest_text"]),
+        "system_prompt_masked": mask_text(a["system_prompt"]),
+        "system_prompt_path": "system_prompt.md",
+        "linked_target_id": a["target"].linked_target_id,
+    }
 
 
 def finding_dict(f: Finding) -> dict[str, Any]:
-    return {"finding_id": str(f.id), "audit_id": str(f.audit_id), "target_id": str(f.target_id), "source": f.source,
-            "category": f.category, "rule_id": f.rule_id, "title": f.title, "severity": f.severity,
-            "confidence": f.confidence, "status": f.status, "fingerprint": f.fingerprint, "evidence": f.evidence,
-            "reasoning_summary": f.reasoning_summary, "tools_used": f.tools_used, "standard_refs": f.standard_refs,
-            "fix_hint": f.fix_hint, "created_at": f.created_at.isoformat() if f.created_at else None}
+    return {
+        "finding_id": str(f.id),
+        "audit_id": str(f.audit_id),
+        "target_id": str(f.target_id),
+        "source": f.source,
+        "category": f.category,
+        "rule_id": f.rule_id,
+        "title": f.title,
+        "severity": f.severity,
+        "confidence": f.confidence,
+        "status": f.status,
+        "fingerprint": f.fingerprint,
+        "evidence": f.evidence,
+        "reasoning_summary": f.reasoning_summary,
+        "tools_used": f.tools_used,
+        "standard_refs": f.standard_refs,
+        "fix_hint": f.fix_hint,
+        "created_at": f.created_at.isoformat() if f.created_at else None,
+    }
 
 
 def _uuid(v: str, name: str) -> uuid.UUID:
@@ -174,8 +214,13 @@ def _uuid(v: str, name: str) -> uuid.UUID:
 
 
 @mcp_tool(mcp)
-async def get_findings(audit_id: str | None = None, target_id: str | None = None, status: str | None = None,
-                       severity: str | None = None, ctx: Context | None = None) -> Any:
+async def get_findings(
+    audit_id: str | None = None,
+    target_id: str | None = None,
+    status: str | None = None,
+    severity: str | None = None,
+    ctx: Context | None = None,
+) -> Any:
     """저장된 Finding 목록을 필터로 조회한다.
 
     입력: audit_id?, target_id?, status?, severity? (최소 1개 권장)
@@ -204,11 +249,23 @@ async def get_audit_history(target_id: str, limit: int = 5, ctx: Context | None 
     오류: VALIDATION. 부작용: 없음.
     """
     tid = _uuid(target_id, "target_id")
-    q = (select(Audit).join(AuditTarget, AuditTarget.audit_id == Audit.id).where(AuditTarget.target_id == tid)
-         .order_by(Audit.created_at.desc()).limit(min(max(limit, 1), 20)))
+    q = (
+        select(Audit)
+        .join(AuditTarget, AuditTarget.audit_id == Audit.id)
+        .where(AuditTarget.target_id == tid)
+        .order_by(Audit.created_at.desc())
+        .limit(min(max(limit, 1), 20))
+    )
     async with session_scope() as db:
         rows = (await db.execute(q)).scalars()
-        return [{"audit_id": str(a.id), "status": a.status, "mode": a.mode,
-                 "started_at": a.started_at.isoformat() if a.started_at else None,
-                 "finished_at": a.finished_at.isoformat() if a.finished_at else None, "summary": a.summary}
-                for a in rows]
+        return [
+            {
+                "audit_id": str(a.id),
+                "status": a.status,
+                "mode": a.mode,
+                "started_at": a.started_at.isoformat() if a.started_at else None,
+                "finished_at": a.finished_at.isoformat() if a.finished_at else None,
+                "summary": a.summary,
+            }
+            for a in rows
+        ]

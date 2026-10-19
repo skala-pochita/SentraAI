@@ -49,15 +49,31 @@ async def hybrid_search(query: str, sources: tuple[str, ...], k: int = 5) -> lis
     cfg = load_config("rag")
     raw = await get_redis().get("rag:version")
     version = raw.decode() if isinstance(raw, bytes) else (raw or "0")
-    key = "cache:rag:" + hashlib.sha1(  # noqa: S324 - 캐시 키
-        f"{version}|{query}|{','.join(sources)}|{k}".encode()).hexdigest()
+    key = (
+        "cache:rag:"
+        + hashlib.sha1(  # noqa: S324 - 캐시 키
+            f"{version}|{query}|{','.join(sources)}|{k}".encode()
+        ).hexdigest()
+    )
     if (cached := await cache_get(key)) is not None:
         return list(cached)
     [emb] = await embed([query])
     async with session_scope() as db:
-        rows = (await db.execute(text(_SQL), {
-            "emb": json.dumps(emb), "sources": list(sources), "tsq": tsquery(query), "n": int(cfg["candidates"]),
-        })).mappings().all()
+        rows = (
+            (
+                await db.execute(
+                    text(_SQL),
+                    {
+                        "emb": json.dumps(emb),
+                        "sources": list(sources),
+                        "tsq": tsquery(query),
+                        "n": int(cfg["candidates"]),
+                    },
+                )
+            )
+            .mappings()
+            .all()
+        )
     if not rows:
         return []
     w = cfg["weights"][provider()]
@@ -66,9 +82,18 @@ async def hybrid_search(query: str, sources: tuple[str, ...], k: int = 5) -> lis
     scored = []
     for r in rows:
         score = w["vector"] * max(r["vscore"], 0) / vmax + w["keyword"] * r["kscore"] / kmax
-        scored.append({"chunk_id": str(r["id"]), "doc_id": str(r["doc_id"]), "doc_title": r["title"],
-                       "section": r["section"], "text": r["text"], "score": round(float(score), 4),
-                       "ref_code": r["ref_code"], "source_type": r["source_type"]})
+        scored.append(
+            {
+                "chunk_id": str(r["id"]),
+                "doc_id": str(r["doc_id"]),
+                "doc_title": r["title"],
+                "section": r["section"],
+                "text": r["text"],
+                "score": round(float(score), 4),
+                "ref_code": r["ref_code"],
+                "source_type": r["source_type"],
+            }
+        )
     scored.sort(key=lambda x: x["score"], reverse=True)
     out = scored[:k]
     await cache_set(key, out, int(cfg["cache_ttl_s"]))

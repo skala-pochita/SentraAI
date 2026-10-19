@@ -22,10 +22,19 @@ AGENT_ID = "00000000-0000-0000-0000-00000000000b"
 @pytest.fixture
 def workspace(tmp_path: Path, fake_redis: object) -> Iterator[Path]:
     reset(REPO_ROOT / "targets", tmp_path, "vuln")
-    register_override(TargetInfo(REPO_ID, "repo", "vuln-spring-app", str(tmp_path / "vuln-spring-app"),
-                                 linked_target_id=AGENT_ID))
-    register_override(TargetInfo(AGENT_ID, "agent", "cs-helper", "http://target-agent:8201",
-                                 {"config_dir": str(tmp_path / "agent-config")}, linked_target_id=REPO_ID))
+    register_override(
+        TargetInfo(REPO_ID, "repo", "vuln-spring-app", str(tmp_path / "vuln-spring-app"), linked_target_id=AGENT_ID)
+    )
+    register_override(
+        TargetInfo(
+            AGENT_ID,
+            "agent",
+            "cs-helper",
+            "http://target-agent:8201",
+            {"config_dir": str(tmp_path / "agent-config")},
+            linked_target_id=REPO_ID,
+        )
+    )
     token = default_call.set(CallContext("u1", "ADMIN", None, "r"))
     yield tmp_path
     default_call.reset(token)
@@ -38,9 +47,18 @@ def as_role(role: str) -> Any:
 
 async def test_tool_list_has_spec_tools() -> None:
     names = {t.name for t in await mcp.list_tools()}
-    for n in ["list_audit_targets", "list_repo_files", "read_repo_file", "search_repo", "get_agent_manifest",
-              "get_findings", "get_audit_history", "run_static_scan", "run_agent_rule_check",
-              "run_injection_probe"]:
+    for n in [
+        "list_audit_targets",
+        "list_repo_files",
+        "read_repo_file",
+        "search_repo",
+        "get_agent_manifest",
+        "get_findings",
+        "get_audit_history",
+        "run_static_scan",
+        "run_agent_rule_check",
+        "run_injection_probe",
+    ]:
         assert n in names
     # docstring(설명·입력·출력·오류·부작용)이 도구 설명으로 노출된다
     tool = next(t for t in await mcp.list_tools() if t.name == "read_repo_file")
@@ -51,8 +69,9 @@ async def test_read_repo_file_masks_and_limits(workspace: Path) -> None:
     res = await query.read_repo_file(target_id=REPO_ID, path=".env")
     assert res["ok"] and "AKIAFAKE0EXAMPLE0000" not in res["data"]["content_masked"]
     assert res["meta"]["request_id"]
-    res = await query.read_repo_file(target_id=REPO_ID, path="src/main/resources/application.yml",
-                                     start_line=5, end_line=9)
+    res = await query.read_repo_file(
+        target_id=REPO_ID, path="src/main/resources/application.yml", start_line=5, end_line=9
+    )
     assert res["data"]["start_line"] == 5 and res["data"]["end_line"] == 9
 
 
@@ -110,8 +129,15 @@ async def test_probe_requires_admin_and_allowlist(workspace: Path, monkeypatch: 
         assert res["error"]["code"] == "FORBIDDEN"
     finally:
         default_call.reset(tok)
-    register_override(TargetInfo("00000000-0000-0000-0000-00000000000c", "agent", "evil", "http://evil.test",
-                                 {"config_dir": str(workspace / "agent-config")}))
+    register_override(
+        TargetInfo(
+            "00000000-0000-0000-0000-00000000000c",
+            "agent",
+            "evil",
+            "http://evil.test",
+            {"config_dir": str(workspace / "agent-config")},
+        )
+    )
     res = await execute.run_injection_probe(target_id="00000000-0000-0000-0000-00000000000c", probe_id="P01")
     assert res["error"]["code"] == "FORBIDDEN"
 
@@ -123,8 +149,10 @@ async def test_probe_judges_deterministically(workspace: Path, monkeypatch: pyte
     get_settings.cache_clear()
 
     async def fake_chat(client: Any, url: str, sid: str, message: str, kb: Any) -> dict[str, Any]:
-        return {"reply": "삭제했습니다", "tool_calls": [{"name": "delete_customer", "args": {"customer_id": 1004},
-                                                          "executed": True}]}
+        return {
+            "reply": "삭제했습니다",
+            "tool_calls": [{"name": "delete_customer", "args": {"customer_id": 1004}, "executed": True}],
+        }
 
     monkeypatch.setattr(execute, "_chat", fake_chat)
     res = await execute.run_injection_probe(target_id=AGENT_ID, probe_id="P03", attempts=2)

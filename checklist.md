@@ -70,17 +70,17 @@
 - [x] **완료 조건**: "permitAll 올바른 설정" 검색 시 spring_security_guide 상위 3위 내
 
 ## Phase 5 — Kafka + Redis 이벤트 + 그래프 1차 + SSE (P0)
-- [ ] Kafka envelope, producer, consumer(수동 커밋, 멱등 키)
+- [x] Kafka envelope, producer, consumer(수동 커밋, 멱등 키)
 - [ ] 토픽 생성 (11.1, 파티션 3)
-- [ ] `harness/events.py` emit → Pub/Sub + Stream + DB
-- [ ] AuditState (8.2), StateGraph 1차: intake → code/agent 서브그래프(병렬 Send) → correlate → report
+- [x] `harness/events.py` emit → Pub/Sub + Stream + DB
+- [x] AuditState (8.2), StateGraph: intake → code/agent 서브그래프(병렬 Send) → correlate → (승인·수정·재검증) → report — `tests/integration/test_graph_flow.py`
 - [ ] AsyncRedisSaver 체크포인터
 - [ ] `POST /audits` → audit.requested, `GET /audits/{id}/events` SSE (Last-Event-ID)
 - [ ] **완료 조건**: 감사 1건이 Kafka로 시작해 report까지 완료, SSE 이벤트 수신
 
 ## Phase 6 — 승인·수정·재검증 루프 (P0)
-- [ ] human_approval interrupt / risk_accept / fix_generate / apply_fix(local) / wait_merge / re_verify / mark_manual
-- [ ] business-mcp 변경 도구 + 역할 재검사 + 멱등성(fingerprint, idempotency_key) + 상태 전이 표
+- [x] human_approval interrupt / risk_accept / fix_generate / apply_fix(local) / wait_merge / re_verify / mark_manual (그래프 테스트 통과)
+- [x] business-mcp 변경 도구 + 역할 재검사 + 멱등성(fingerprint, idempotency_key) + 상태 전이 표 (+merge_fix)
 - [ ] `/approvals`, `/approvals/{id}/decision`, `/fixes/{id}/merge`, audit.resume
 - [ ] **완료 조건**: 데모 2~6단계 e2e, 승인 없는 apply_fix → FORBIDDEN, 워커 재시작 후 재개 테스트
 
@@ -110,3 +110,4 @@
 - 2026-10-19: Phase 2 완료(오프라인) — vuln-spring-app C01~C20/D01~D06/I01~I02, code.yaml 라인 검증 스크립트, target-agent(vuln/hardened, policy.py), agent.yaml, probes/base.yaml(P01~P12), demo-reset. 실 LLM 스모크는 키 필요.
 - 2026-10-19: Phase 3 완료 — 규칙 엔진(regex/entropy/yaml_path/python/manifest), 코드 규칙 17 + Agent 규칙 7, C01~C18 18/18 탐지·C19/C20 미탐(의도)·함정 통과, business-mcp 조회7+실행3 도구, 서비스 토큰·역할·경로 탈출 거부, `python -m mcp_servers.inspect_cli list` 로 HTTP 확인.
 - 2026-10-19: Phase 4 완료 — knowledge/*.md 6종, 헤더 청크(800/100), 하이브리드 검색(pgvector+tsvector, 1h 캐시+버전 무효화), rag-mcp 조회7·변경4 도구, 시드 인덱싱. 키 없으면 해시 임베딩(DECISIONS #4). permitAll 검색 1위 확인.
+- 2026-10-19: Phase 5/6 진행 중 — 그래프 전 노드·서브그래프·business-mcp 변경 도구·결정론 수정기 완성, in-process 그래프 테스트(승인→수정→병합→재검증→보고서, 반려, FORBIDDEN, 재시작 재개) 통과. 남은 것: Kafka 워커, API(audits/approvals/fixes/SSE), Redis 체크포인터 실환경 확인.

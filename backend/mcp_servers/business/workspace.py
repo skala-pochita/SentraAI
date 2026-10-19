@@ -46,9 +46,15 @@ def clear_overrides() -> None:
 
 
 def _info(t: Target) -> TargetInfo:
-    return TargetInfo(str(t.id), t.type, t.name, t.ref, dict(t.config or {}),
-                      str(t.linked_target_id) if t.linked_target_id else None,
-                      str(t.owner_user_id) if t.owner_user_id else None)
+    return TargetInfo(
+        str(t.id),
+        t.type,
+        t.name,
+        t.ref,
+        dict(t.config or {}),
+        str(t.linked_target_id) if t.linked_target_id else None,
+        str(t.owner_user_id) if t.owner_user_id else None,
+    )
 
 
 async def get_target(target_id: str, expected_type: str | None = None) -> TargetInfo:
@@ -94,11 +100,17 @@ def safe_path(root: Path, rel: str) -> Path:
     return full
 
 
-def run_git(root: Path, *args: str, timeout: float = 15, check: bool = True,
-            input_text: str | None = None) -> subprocess.CompletedProcess[str]:
+def run_git(
+    root: Path, *args: str, timeout: float = 15, check: bool = True, input_text: str | None = None
+) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(  # noqa: S603
-            ["git", *args], cwd=root, capture_output=True, text=True, timeout=timeout, check=check,  # noqa: S607
+            ["git", *args],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=check,  # noqa: S607
             input=input_text,
         )
     except subprocess.TimeoutExpired as e:
@@ -107,8 +119,9 @@ def run_git(root: Path, *args: str, timeout: float = 15, check: bool = True,
         raise AppError(ErrorCode.CONFLICT, f"git {args[0]} failed", {"stderr": (e.stderr or "")[-500:]}) from e
 
 
-async def git(root: Path, *args: str, timeout: float = 15, check: bool = True,
-              input_text: str | None = None) -> subprocess.CompletedProcess[str]:
+async def git(
+    root: Path, *args: str, timeout: float = 15, check: bool = True, input_text: str | None = None
+) -> subprocess.CompletedProcess[str]:
     return await asyncio.to_thread(run_git, root, *args, timeout=timeout, check=check, input_text=input_text)
 
 

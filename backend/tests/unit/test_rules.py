@@ -15,8 +15,11 @@ GT = yaml.safe_load((REPO_ROOT / "datasets/ground_truth/code.yaml").read_text())
 
 
 def _matches(hits: list[RuleHit], item: dict[str, Any], tol: int = 3) -> list[RuleHit]:
-    return [h for h in hits if h.path == item["file"] and abs(h.line - item["line"]) <= tol
-            and h.category == item["category"]]
+    return [
+        h
+        for h in hits
+        if h.path == item["file"] and abs(h.line - item["line"]) <= tol and h.category == item["category"]
+    ]
 
 
 def test_rules_load() -> None:

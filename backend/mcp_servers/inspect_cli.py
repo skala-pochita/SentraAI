@@ -1,7 +1,7 @@
 """간이 MCP Inspector: 도구 목록 조회·호출.
 
-  python -m mcp_servers.inspect_cli --url http://localhost:8101/mcp list
-  python -m mcp_servers.inspect_cli call read_repo_file '{"target_id": "...", "path": ".env"}'
+python -m mcp_servers.inspect_cli --url http://localhost:8101/mcp list
+python -m mcp_servers.inspect_cli call read_repo_file '{"target_id": "...", "path": ".env"}'
 """
 
 from __future__ import annotations
@@ -24,8 +24,11 @@ async def main() -> None:
     ap.add_argument("tool", nargs="?")
     ap.add_argument("args", nargs="?", default="{}")
     a = ap.parse_args()
-    headers = {"Authorization": f"Bearer {get_settings().mcp_service_token}", "X-Actor-Role": a.role,
-               "X-Actor-Id": "inspect-cli"}
+    headers = {
+        "Authorization": f"Bearer {get_settings().mcp_service_token}",
+        "X-Actor-Role": a.role,
+        "X-Actor-Id": "inspect-cli",
+    }
     async with streamablehttp_client(a.url, headers=headers, timeout=30) as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()

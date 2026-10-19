@@ -54,7 +54,13 @@ def _in(col: str, values: tuple[str, ...]) -> CheckConstraint:
 ROLES = ("ADMIN", "DEVELOPER", "AUDITOR")
 SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO")
 AUDIT_STATUSES = (
-    "QUEUED", "RUNNING", "WAITING_APPROVAL", "WAITING_MERGE", "COMPLETED", "FAILED", "CANCELLED",
+    "QUEUED",
+    "RUNNING",
+    "WAITING_APPROVAL",
+    "WAITING_MERGE",
+    "COMPLETED",
+    "FAILED",
+    "CANCELLED",
 )
 FINDING_STATUSES = ("OPEN", "FIXING", "RESOLVED", "ACCEPTED_RISK", "FALSE_POSITIVE", "MANUAL_REQUIRED")
 KB_SOURCE_TYPES = ("owasp_top10", "owasp_llm", "owasp_agentic", "cwe", "framework", "policy", "past_case")

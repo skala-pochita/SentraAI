@@ -60,8 +60,9 @@ async def test_login_me_and_bad_password(client: httpx.AsyncClient, seeded: dict
 async def test_lockout_after_5_failures(client: httpx.AsyncClient, seeded: dict[str, Any]) -> None:
     for _ in range(5):
         await client.post(f"{P}/auth/login", json={"email": "auditor@demo.io", "password": "nope"})
-    res = await client.post(f"{P}/auth/login",
-                            json={"email": "auditor@demo.io", "password": get_settings().seed_auditor_password})
+    res = await client.post(
+        f"{P}/auth/login", json={"email": "auditor@demo.io", "password": get_settings().seed_auditor_password}
+    )
     assert res.status_code == 429
 
 
@@ -88,8 +89,11 @@ async def test_developer_sees_only_own_targets(client: httpx.AsyncClient, seeded
 async def test_expired_token_401(client: httpx.AsyncClient, seeded: dict[str, Any]) -> None:
     user = seeded["users"]["ADMIN"]
     past = datetime.now(UTC) - timedelta(minutes=1)
-    tok = jwt.encode({"sub": str(user.id), "role": "ADMIN", "jti": "x", "exp": past, "typ": "access"},
-                     get_settings().jwt_secret, algorithm="HS256")
+    tok = jwt.encode(
+        {"sub": str(user.id), "role": "ADMIN", "jti": "x", "exp": past, "typ": "access"},
+        get_settings().jwt_secret,
+        algorithm="HS256",
+    )
     res = await client.get(f"{P}/me", headers={"Authorization": f"Bearer {tok}"})
     assert res.status_code == 401
 

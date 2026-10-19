@@ -18,6 +18,7 @@ _PATTERNS: list[re.Pattern[str]] = [
         r"""(?ix)
         (?:password|passwd|pwd|secret|token|api[_-]?key|apikey|private[_-]?key|access[_-]?key)
         [\w.\-]*\s*[:=]\s*["']?
+        (?!System\.getenv|env\.|process\.env|os\.environ)
         ([^\s"'${}][^\s"',;]{5,})
         """
     ),
@@ -33,9 +34,7 @@ def _mask_code(m: re.Match[str]) -> str:
     return mask_secret(code) if any(_MIXED.match(seg) for seg in code.split("-")) else code
 
 
-_PEM = re.compile(
-    r"-----BEGIN ([A-Z ]*PRIVATE KEY)-----.*?-----END \1-----", re.DOTALL
-)
+_PEM = re.compile(r"-----BEGIN ([A-Z ]*PRIVATE KEY)-----.*?-----END \1-----", re.DOTALL)
 
 
 def mask_secret(value: str) -> str:

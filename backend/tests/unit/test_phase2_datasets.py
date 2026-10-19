@@ -44,8 +44,12 @@ def _manifest(variant: str) -> dict[str, Any]:
 
 
 def test_ground_truth_locations_match_files() -> None:
-    res = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "check_ground_truth.py")],
-                         capture_output=True, text=True, timeout=30)
+    res = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "check_ground_truth.py")],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
     assert res.returncode == 0, res.stdout + res.stderr
 
 
@@ -61,8 +65,12 @@ def test_ground_truth_counts() -> None:
 def test_fake_secrets_only() -> None:
     # 샘플 키에는 FAKE 표식이 있어야 한다 (명세 0장 규칙 8)
     base = REPO_ROOT / "targets/vuln-spring-app"
-    for rel in ["src/main/java/com/demo/shop/client/AiClient.java", ".env",
-                "src/main/resources/keys/private.pem", "src/main/java/com/demo/shop/client/PaymentClient.java"]:
+    for rel in [
+        "src/main/java/com/demo/shop/client/AiClient.java",
+        ".env",
+        "src/main/resources/keys/private.pem",
+        "src/main/java/com/demo/shop/client/PaymentClient.java",
+    ]:
         assert "FAKE" in (base / rel).read_text()
 
 

@@ -111,20 +111,31 @@ async def index_document(db: AsyncSession, doc: KbDocument) -> int:
     await db.execute(delete(KbChunk).where(KbChunk.doc_id == doc.id))
     chunks = chunk_markdown(doc.title, doc.content_md)
     vectors = await embed([c.text for c in chunks])
-    db.add_all(KbChunk(doc_id=doc.id, section=c.section, text=c.text, embedding=v)
-               for c, v in zip(chunks, vectors, strict=True))
+    db.add_all(
+        KbChunk(doc_id=doc.id, section=c.section, text=c.text, embedding=v)
+        for c, v in zip(chunks, vectors, strict=True)
+    )
     await db.flush()
     return len(chunks)
 
 
-async def upsert_document(db: AsyncSession, title: str, source_type: str, content_md: str,
-                          ref_code: str | None = None, doc_id: uuid.UUID | None = None) -> tuple[KbDocument, int]:
+async def upsert_document(
+    db: AsyncSession,
+    title: str,
+    source_type: str,
+    content_md: str,
+    ref_code: str | None = None,
+    doc_id: uuid.UUID | None = None,
+) -> tuple[KbDocument, int]:
     if source_type not in KB_SOURCE_TYPES:
         raise AppError(ErrorCode.VALIDATION, f"source_type must be one of {KB_SOURCE_TYPES}")
     if not content_md.strip():
         raise AppError(ErrorCode.VALIDATION, "content_md is empty")
-    doc = await db.get(KbDocument, doc_id) if doc_id else (
-        await db.execute(select(KbDocument).where(KbDocument.title == title))).scalar_one_or_none()
+    doc = (
+        await db.get(KbDocument, doc_id)
+        if doc_id
+        else (await db.execute(select(KbDocument).where(KbDocument.title == title))).scalar_one_or_none()
+    )
     if doc is None:
         doc = KbDocument(title=title, source_type=source_type, content_md=content_md, ref_code=ref_code)
         db.add(doc)
@@ -139,8 +150,9 @@ async def ingest_dir(db: AsyncSession, directory: Path) -> list[tuple[str, int]]
     out = []
     for path in sorted(directory.glob("*.md")):
         meta, body = parse_front_matter(path.read_text(encoding="utf-8"))
-        doc, n = await upsert_document(db, meta.get("title", path.stem), meta.get("source_type", "policy"), body,
-                                       meta.get("ref_code"))
+        doc, n = await upsert_document(
+            db, meta.get("title", path.stem), meta.get("source_type", "policy"), body, meta.get("ref_code")
+        )
         out.append((doc.title, n))
         log.info("indexed %s chunks=%d", path.name, n)
     await bump_rag_version()

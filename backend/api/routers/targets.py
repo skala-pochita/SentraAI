@@ -30,8 +30,15 @@ class TargetOut(BaseModel):
 
     @classmethod
     def of(cls, t: Target) -> TargetOut:
-        return cls(id=t.id, type=t.type, name=t.name, ref=t.ref, owner_user_id=t.owner_user_id,
-                   linked_target_id=t.linked_target_id, config=t.config)
+        return cls(
+            id=t.id,
+            type=t.type,
+            name=t.name,
+            ref=t.ref,
+            owner_user_id=t.owner_user_id,
+            linked_target_id=t.linked_target_id,
+            config=t.config,
+        )
 
 
 class TargetCreate(BaseModel):
@@ -44,8 +51,9 @@ class TargetCreate(BaseModel):
 
 
 @router.get("/targets")
-async def list_targets(user: CurrentUser = LoggedIn, p: Page = Depends(page_params),
-                       db: AsyncSession = Depends(get_db)) -> dict[str, object]:
+async def list_targets(
+    user: CurrentUser = LoggedIn, p: Page = Depends(page_params), db: AsyncSession = Depends(get_db)
+) -> dict[str, object]:
     q = select(Target)
     allowed = await accessible_target_ids(user, db)
     if allowed is not None:
@@ -56,8 +64,7 @@ async def list_targets(user: CurrentUser = LoggedIn, p: Page = Depends(page_para
 
 
 @router.post("/targets", response_model=TargetOut, status_code=201)
-async def create_target(body: TargetCreate, _: CurrentUser = Admin,
-                        db: AsyncSession = Depends(get_db)) -> TargetOut:
+async def create_target(body: TargetCreate, _: CurrentUser = Admin, db: AsyncSession = Depends(get_db)) -> TargetOut:
     if body.linked_target_id and await db.get(Target, body.linked_target_id) is None:
         raise AppError(ErrorCode.VALIDATION, "linked_target_id not found")
     t = Target(**body.model_dump())

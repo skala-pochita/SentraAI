@@ -29,8 +29,9 @@ PROBE_TIMEOUT_S = 30.0
 MAX_ATTEMPTS = 10
 
 
-async def static_scan(target_id: str, paths: list[str] | None = None,
-                      rule_ids: list[str] | None = None) -> tuple[list[RuleHit], str, bool]:
+async def static_scan(
+    target_id: str, paths: list[str] | None = None, rule_ids: list[str] | None = None
+) -> tuple[list[RuleHit], str, bool]:
     """(hits, commit_sha, cached). 전체 스캔만 cache:scan:{target}:{commit}:{rules_hash} 에 캐시."""
     t = await get_target(target_id, "repo")
     sha = await commit_sha(t.root)
@@ -46,8 +47,9 @@ async def static_scan(target_id: str, paths: list[str] | None = None,
 
 
 @mcp_tool(mcp)
-async def run_static_scan(target_id: str, paths: list[str] | None = None, rule_ids: list[str] | None = None,
-                          ctx: Context | None = None) -> Any:
+async def run_static_scan(
+    target_id: str, paths: list[str] | None = None, rule_ids: list[str] | None = None, ctx: Context | None = None
+) -> Any:
     """레포 대상에 정적 규칙(rules/code/*.yaml)을 실행한다. 커밋 해시 기준으로 결과를 캐시한다.
 
     입력: target_id, paths (선택, 특정 파일만), rule_ids (선택)
@@ -85,11 +87,15 @@ def _check_allowlist(base_url: str) -> str:
     return url
 
 
-async def _chat(client: httpx.AsyncClient, url: str, session_id: str, message: str,
-                kb_docs: list[str] | None) -> dict[str, Any]:
+async def _chat(
+    client: httpx.AsyncClient, url: str, session_id: str, message: str, kb_docs: list[str] | None
+) -> dict[str, Any]:
     try:
-        res = await client.post(f"{url}/chat", json={"session_id": session_id, "message": message,
-                                                      "kb_docs": kb_docs}, timeout=PROBE_TIMEOUT_S)
+        res = await client.post(
+            f"{url}/chat",
+            json={"session_id": session_id, "message": message, "kb_docs": kb_docs},
+            timeout=PROBE_TIMEOUT_S,
+        )
     except httpx.TimeoutException as e:
         raise AppError(ErrorCode.UPSTREAM_TIMEOUT, "target-agent timeout") from e
     except httpx.TransportError as e:
@@ -97,8 +103,7 @@ async def _chat(client: httpx.AsyncClient, url: str, session_id: str, message: s
     if res.status_code == 429:
         raise AppError(ErrorCode.RATE_LIMITED, "target-agent rate limited", retry_after_s=5)
     if res.status_code >= 500:
-        raise AppError(ErrorCode.UPSTREAM_ERROR, f"target-agent {res.status_code}",
-                       {"body": mask_text(res.text[:300])})
+        raise AppError(ErrorCode.UPSTREAM_ERROR, f"target-agent {res.status_code}", {"body": mask_text(res.text[:300])})
     if res.status_code >= 400:
         raise AppError(ErrorCode.VALIDATION, f"target-agent rejected request {res.status_code}")
     data: dict[str, Any] = res.json()
@@ -144,8 +149,14 @@ async def run_injection_probe(
     elif base is not None:
         probe = base
     else:
-        probe = Probe(id=probe_id or "ADHOC", category="ADHOC", channel=channel, turns=[payload or ""],
-                      kb_docs=kb_docs, success=ProbeSuccess(type="canary"))
+        probe = Probe(
+            id=probe_id or "ADHOC",
+            category="ADHOC",
+            channel=channel,
+            turns=[payload or ""],
+            kb_docs=kb_docs,
+            success=ProbeSuccess(type="canary"),
+        )
     t = await get_target(target_id, "agent")
     url = _check_allowlist(t.ref)
     call = current_call()
@@ -164,18 +175,43 @@ async def run_injection_probe(
             sig = signals(reply, tool_calls, ps)
             verdict = judge_attempt(probe, reply, tool_calls, ps)
             run_id = uuid.uuid4()
-            results.append({"probe_run_id": str(run_id), "attempt": i, "reply_masked": mask_text(reply),
-                            "tool_calls": mask_obj(tool_calls), **sig.model_dump(), "verdict": verdict})
-            rows.append(ProbeRun(
-                id=run_id, audit_id=uuid.UUID(call.audit_id) if call.audit_id else None,
-                target_id=uuid.UUID(t.id), probe_id=probe.id, category=probe.category, channel=probe.channel,
-                attempt=i, request={"turns": [mask_text(x) for x in probe.turns], "kb_docs": probe.kb_docs,
-                                    "adaptive": probe.adaptive},
-                reply_masked=mask_text(reply), tool_calls=mask_obj(tool_calls),  # type: ignore[arg-type]
-                success=verdict == "SUCCESS", judged_by="deterministic",
-                latency_ms=int((time.monotonic() - started) * 1000),
-            ))
+            results.append(
+                {
+                    "probe_run_id": str(run_id),
+                    "attempt": i,
+                    "reply_masked": mask_text(reply),
+                    "tool_calls": mask_obj(tool_calls),
+                    **sig.model_dump(),
+                    "verdict": verdict,
+                }
+            )
+            rows.append(
+                ProbeRun(
+                    id=run_id,
+                    audit_id=uuid.UUID(call.audit_id) if call.audit_id else None,
+                    target_id=uuid.UUID(t.id),
+                    probe_id=probe.id,
+                    category=probe.category,
+                    channel=probe.channel,
+                    attempt=i,
+                    request={
+                        "turns": [mask_text(x) for x in probe.turns],
+                        "kb_docs": probe.kb_docs,
+                        "adaptive": probe.adaptive,
+                    },
+                    reply_masked=mask_text(reply),
+                    tool_calls=mask_obj(tool_calls),  # type: ignore[arg-type]
+                    success=verdict == "SUCCESS",
+                    judged_by="deterministic",
+                    latency_ms=int((time.monotonic() - started) * 1000),
+                )
+            )
     if t.id not in _overrides:
         await _persist(rows)
-    return {"probe_id": probe.id, "category": probe.category, "channel": probe.channel,
-            "probe_run_ids": [r["probe_run_id"] for r in results], "attempts": results}
+    return {
+        "probe_id": probe.id,
+        "category": probe.category,
+        "channel": probe.channel,
+        "probe_run_ids": [r["probe_run_id"] for r in results],
+        "attempts": results,
+    }

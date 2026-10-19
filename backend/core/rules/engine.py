@@ -105,8 +105,15 @@ def scan_repo(root: Path, paths: list[str] | None = None, rule_ids: list[str] | 
 # ---------------- Agent 규칙 (7.3) ----------------
 
 HIERARCHY_PHRASES = (
-    "데이터로", "지시가 아니다", "지시로 취급하지", "따르지 않는다", "untrusted", "지시 계층", "우선순위",
-    "treat as data", "do not follow instructions",
+    "데이터로",
+    "지시가 아니다",
+    "지시로 취급하지",
+    "따르지 않는다",
+    "untrusted",
+    "지시 계층",
+    "우선순위",
+    "treat as data",
+    "do not follow instructions",
 )
 SECRET_PHRASES = ("공개 금지", "절대 공개", "비밀", "기밀", "do not reveal", "never disclose")
 
@@ -120,8 +127,9 @@ def _manifest_line(manifest_text: str, tool: str | None) -> int:
     return 1
 
 
-def _tool_hit(rule: Rule, manifest_path: str, manifest_text: str, tool: dict[str, Any], why: str,
-              severity: str | None = None) -> RuleHit:
+def _tool_hit(
+    rule: Rule, manifest_path: str, manifest_text: str, tool: dict[str, Any], why: str, severity: str | None = None
+) -> RuleHit:
     line = _manifest_line(manifest_text, tool["name"])
     h = hit(rule, manifest_path, line, f"- name: {tool['name']}", tool=tool["name"], reason=why)
     return h.model_copy(update={"severity": severity}) if severity else h
@@ -143,15 +151,24 @@ def check_manifest(
         for t in tools:
             if t.get("side_effect") in ("write", "delete", "external_send") and not t.get("requires_approval"):
                 sev = "CRITICAL" if t.get("side_effect") == "delete" else None
-                out.append(_tool_hit(r, manifest_path, manifest_text, t,
-                                     f"side_effect={t.get('side_effect')} 인데 requires_approval=false", sev))
+                out.append(
+                    _tool_hit(
+                        r,
+                        manifest_path,
+                        manifest_text,
+                        t,
+                        f"side_effect={t.get('side_effect')} 인데 requires_approval=false",
+                        sev,
+                    )
+                )
     if r := rules.get("tool_excessive_scope"):
         for t in tools:
             scopes = [str(s) for s in t.get("scopes", [])]
             wildcard = [s for s in scopes if "*" in s]
             write_on_read = t.get("side_effect") == "read" and any(":write" in s for s in scopes)
-            if (wildcard or write_on_read) and not (t.get("side_effect") == "external_send"
-                                                    and all(s.endswith(":any") for s in scopes)):
+            if (wildcard or write_on_read) and not (
+                t.get("side_effect") == "external_send" and all(s.endswith(":any") for s in scopes)
+            ):
                 out.append(_tool_hit(r, manifest_path, manifest_text, t, f"과도한 스코프 {scopes}"))
     if r := rules.get("tool_exfil_channel"):
         for t in tools:
@@ -173,8 +190,16 @@ def check_manifest(
     if r := rules.get("prompt_no_instruction_hierarchy"):
         if not any(ph in system_prompt for ph in HIERARCHY_PHRASES):
             first = plines[0] if plines else ""
-            out.append(hit(r, prompt_path, 1, first, target="system_prompt",
-                           reason="사용자·문서 지시를 데이터로 취급하라는 규칙 없음 (LLM 재판정 대상)"))
+            out.append(
+                hit(
+                    r,
+                    prompt_path,
+                    1,
+                    first,
+                    target="system_prompt",
+                    reason="사용자·문서 지시를 데이터로 취급하라는 규칙 없음 (LLM 재판정 대상)",
+                )
+            )
     if (r := rules.get("agent_shared_secret")) and code_secret_names:
         for name in manifest.get("secrets_env", []) or []:
             if name in code_secret_names:

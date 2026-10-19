@@ -42,16 +42,25 @@ async def seed_targets(db: AsyncSession, owner: User) -> tuple[Target, Target]:
     s = get_settings()
     repo = (await db.execute(select(Target).where(Target.name == REPO_TARGET))).scalar_one_or_none()
     if repo is None:
-        repo = Target(type="repo", name=REPO_TARGET, ref=str(s.workspace_dir / REPO_TARGET),
-                      owner_user_id=owner.id, config={"default_branch": "main"})
+        repo = Target(
+            type="repo",
+            name=REPO_TARGET,
+            ref=str(s.workspace_dir / REPO_TARGET),
+            owner_user_id=owner.id,
+            config={"default_branch": "main"},
+        )
         db.add(repo)
         await db.flush()
     agent = (await db.execute(select(Target).where(Target.name == AGENT_TARGET))).scalar_one_or_none()
     if agent is None:
-        agent = Target(type="agent", name=AGENT_TARGET, ref=s.target_agent_url, owner_user_id=owner.id,
-                       linked_target_id=repo.id,
-                       config={"config_dir": str(s.workspace_dir / "agent-config"),
-                               "backend_api_of": str(repo.id)})
+        agent = Target(
+            type="agent",
+            name=AGENT_TARGET,
+            ref=s.target_agent_url,
+            owner_user_id=owner.id,
+            linked_target_id=repo.id,
+            config={"config_dir": str(s.workspace_dir / "agent-config"), "backend_api_of": str(repo.id)},
+        )
         db.add(agent)
         await db.flush()
     repo.linked_target_id = agent.id

@@ -84,6 +84,7 @@ _ENV_REF = re.compile(r"\$\{([A-Z0-9_]+)\}")
 
 def _expand(value: Any, settings: Settings) -> Any:
     if isinstance(value, str):
+
         def repl(m: re.Match[str]) -> str:
             name = m.group(1)
             env = os.environ.get(name)

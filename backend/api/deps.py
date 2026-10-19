@@ -67,8 +67,7 @@ async def accessible_target_ids(user: CurrentUser, db: AsyncSession) -> set[uuid
     """DEVELOPER 는 자기 소유 대상(+연결된 대상)만. None = 전체 접근."""
     if user.role != "DEVELOPER":
         return None
-    rows = (await db.execute(select(Target.id, Target.linked_target_id).where(
-        Target.owner_user_id == user.id))).all()
+    rows = (await db.execute(select(Target.id, Target.linked_target_id).where(Target.owner_user_id == user.id))).all()
     ids = {r.id for r in rows} | {r.linked_target_id for r in rows if r.linked_target_id}
     return ids
 

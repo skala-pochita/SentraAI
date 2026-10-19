@@ -73,13 +73,19 @@ def _from_ctx(ctx: Context | None) -> CallContext:
 
 
 def ok(data: Any, started: float, request_id: str) -> dict[str, Any]:
-    return {"ok": True, "data": mask_obj(data),
-            "meta": {"request_id": request_id, "elapsed_ms": int((time.monotonic() - started) * 1000)}}
+    return {
+        "ok": True,
+        "data": mask_obj(data),
+        "meta": {"request_id": request_id, "elapsed_ms": int((time.monotonic() - started) * 1000)},
+    }
 
 
 def fail(err: AppError, started: float, request_id: str) -> dict[str, Any]:
-    return {"ok": False, "error": err.to_dict(),
-            "meta": {"request_id": request_id, "elapsed_ms": int((time.monotonic() - started) * 1000)}}
+    return {
+        "ok": False,
+        "error": err.to_dict(),
+        "meta": {"request_id": request_id, "elapsed_ms": int((time.monotonic() - started) * 1000)},
+    }
 
 
 def mcp_tool(
@@ -95,8 +101,11 @@ def mcp_tool(
             token = _current.set(call)
             try:
                 if call.role not in roles:
-                    raise AppError(ErrorCode.FORBIDDEN, f"{fn.__name__} requires role {'/'.join(roles)}",
-                                   {"actor_role": call.role or None})
+                    raise AppError(
+                        ErrorCode.FORBIDDEN,
+                        f"{fn.__name__} requires role {'/'.join(roles)}",
+                        {"actor_role": call.role or None},
+                    )
                 data = await fn(*args, **kwargs)
                 return ok(data, started, call.request_id)
             except AppError as e:
@@ -126,8 +135,9 @@ class ServiceTokenMiddleware:
             auth = headers.get("authorization", "")
             expected = f"Bearer {get_settings().mcp_service_token}"
             if not hmac.compare_digest(auth.encode(), expected.encode()):
-                res = JSONResponse({"ok": False, "error": AppError(ErrorCode.UNAUTHORIZED,
-                                                                   "invalid service token").to_dict()}, 401)
+                res = JSONResponse(
+                    {"ok": False, "error": AppError(ErrorCode.UNAUTHORIZED, "invalid service token").to_dict()}, 401
+                )
                 await res(scope, receive, send)
                 return
         await self.app(scope, receive, send)

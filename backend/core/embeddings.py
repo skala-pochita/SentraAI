@@ -48,6 +48,9 @@ async def embed(texts: list[str]) -> list[list[float]]:
         return await client.aembed_documents(texts)
     except Exception as e:  # noqa: BLE001 - SDK 예외를 구조화된 오류로 변환
         name = type(e).__name__
-        code = ErrorCode.RATE_LIMITED if "RateLimit" in name else (
-            ErrorCode.UPSTREAM_TIMEOUT if "Timeout" in name else ErrorCode.UPSTREAM_ERROR)
+        code = (
+            ErrorCode.RATE_LIMITED
+            if "RateLimit" in name
+            else (ErrorCode.UPSTREAM_TIMEOUT if "Timeout" in name else ErrorCode.UPSTREAM_ERROR)
+        )
         raise AppError(code, f"embedding failed: {name}") from e

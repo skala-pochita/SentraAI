@@ -80,8 +80,9 @@ async def login(body: LoginIn, db: AsyncSession = Depends(get_db)) -> TokenOut:
     fail_key = f"auth:fail:{email}"
     fails = int(await r.get(fail_key) or 0)
     if fails >= MAX_FAILS:
-        raise AppError(ErrorCode.RATE_LIMITED, "too many failed logins; locked for 15 minutes",
-                       retry_after_s=await r.ttl(fail_key))
+        raise AppError(
+            ErrorCode.RATE_LIMITED, "too many failed logins; locked for 15 minutes", retry_after_s=await r.ttl(fail_key)
+        )
     user = (await db.execute(select(User).where(func.lower(User.email) == email))).scalar_one_or_none()
     if user is None or not user.is_active or not verify_password(body.password, user.password_hash):
         n = await r.incr(fail_key)
@@ -128,8 +129,9 @@ async def me(user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)) -
 
 
 @router.get("/users")
-async def list_users(_: CurrentUser = Admin, p: Page = Depends(page_params),
-                     db: AsyncSession = Depends(get_db)) -> dict[str, object]:
+async def list_users(
+    _: CurrentUser = Admin, p: Page = Depends(page_params), db: AsyncSession = Depends(get_db)
+) -> dict[str, object]:
     total = (await db.execute(select(func.count()).select_from(User))).scalar_one()
     rows = (await db.execute(select(User).order_by(User.created_at).offset(p.offset).limit(p.size))).scalars()
     return paged([UserOut.of(u) for u in rows], total, p)
@@ -137,8 +139,7 @@ async def list_users(_: CurrentUser = Admin, p: Page = Depends(page_params),
 
 @router.post("/users", response_model=UserOut, status_code=201)
 async def create_user(body: UserCreate, _: CurrentUser = Admin, db: AsyncSession = Depends(get_db)) -> UserOut:
-    user = User(email=body.email.lower(), name=body.name, role=body.role,
-                password_hash=hash_password(body.password))
+    user = User(email=body.email.lower(), name=body.name, role=body.role, password_hash=hash_password(body.password))
     db.add(user)
     try:
         await db.flush()
