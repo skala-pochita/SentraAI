@@ -1,7 +1,7 @@
 """간이 MCP Inspector: 도구 목록 조회·호출.
 
   python -m mcp_servers.inspect_cli --url http://localhost:8101/mcp list
-  python -m mcp_servers.inspect_cli --url http://localhost:8101/mcp call read_repo_file '{"target_id": "...", "path": ".env"}'
+  python -m mcp_servers.inspect_cli call read_repo_file '{"target_id": "...", "path": ".env"}'
 """
 
 from __future__ import annotations
