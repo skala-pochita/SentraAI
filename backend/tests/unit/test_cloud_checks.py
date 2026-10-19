@@ -41,6 +41,7 @@ BASE: dict[str, Any] = {
     "resources": [
         {"id": "bucket-customers", "type": "storage", "sensitivity": "high", "encrypted": True, "source_ref": "S-TF"}
     ],
+    "business_policy": {"ticket_target": "platform-team"},
     "sources": [{"id": s} for s in ("S-MCP", "S-IAM", "S-TF")],
 }
 

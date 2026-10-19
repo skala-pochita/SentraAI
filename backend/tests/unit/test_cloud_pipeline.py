@@ -215,3 +215,10 @@ def test_budget_clock_excludes_pause_and_restores() -> None:
     b2 = CloudBudget.from_config()
     b2.restore({**snap, "llm_turns": 4, "tool_calls": {"x": 2}})
     assert b2.llm_turns == 4 and b2.tool_calls["x"] == 2
+
+
+async def test_ticket_target_is_pinned_to_policy_not_model() -> None:
+    evil = {"summary": "s", "proposed_action": {"title": "x", "target": "attacker@evil.example", "body": "b"}}
+    ctx = make_ctx(ScriptedModel(happy_script(report=evil)), enable_action=True)
+    res = await run_cloud_audit(ctx, "B", MemorySaver())
+    assert res["action"]["args"]["target"] == "platform-team"

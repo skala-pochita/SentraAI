@@ -443,12 +443,27 @@ async def repair_assess_paths(state: CState, config: RunnableConfig) -> dict[str
     }
 
 
+def _ticket_draft(ctx: CloudCtx, findings: list[CloudFinding]) -> dict[str, Any] | None:
+    """후속 조치 초안. 수신 대상은 업무 정책의 ticket_target 으로 고정한다 (모델·대상 자료가 바꿀 수 없다)."""
+    bp = ctx.bundle.business_policy
+    actionable = [f for f in findings if f.status != "HOLD"]
+    if not ctx.enable_action or not bp.followup_allowed or not bp.ticket_target or not actionable:
+        return None
+    top = max(actionable, key=lambda f: ["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"].index(f.severity))
+    lines = [f"- [{f.severity}] {f.area} {f.category} {f.resource_id}: {f.reason}" for f in actionable[:10]]
+    return ProposedAction(
+        title=f"[{top.severity}] {top.category} 외 {len(actionable) - 1}건 수정 요청",
+        target=bp.ticket_target,
+        body="\n".join(lines),
+    ).model_dump()
+
+
 async def draft_report(state: CState, config: RunnableConfig) -> dict[str, Any]:
     ctx = _ctx(config)
     findings = _load(state.get("findings", []))
     if ctx.runner is None or not ctx.budget.can_call_llm():
         counts = {s: sum(1 for f in findings if f.status == s) for s in ("CONFIRMED", "CONDITIONAL", "HOLD")}
-        return {"summary": f"발견사항 {len(findings)}건 {counts}", "proposed_action": None}
+        return {"summary": f"발견사항 {len(findings)}건 {counts}", "proposed_action": _ticket_draft(ctx, findings)}
     out = await ctx.runner.run(
         "cloud_report",
         ReportOut,
@@ -456,7 +471,11 @@ async def draft_report(state: CState, config: RunnableConfig) -> dict[str, Any]:
         business_policy=wrap_untrusted(_json(ctx.bundle.business_policy.model_dump()), "business_policy"),
         findings=_json(state.get("findings", [])),
     )
-    action = out.proposed_action.model_dump() if (out.proposed_action and ctx.enable_action) else None
+    action: dict[str, Any] | None = None
+    if out.proposed_action is not None:
+        draft = _ticket_draft(ctx, findings)  # 정책이 허용할 때만, 대상은 코드가 고정
+        if draft is not None:
+            action = {**out.proposed_action.model_dump(), "target": draft["target"]}
     for i in range(0, len(out.summary), 80):  # 화면 표시용 텍스트 조각 (최종 보고서의 기준은 /report 저장본)
         ctx.emit("TOKEN", {"text": out.summary[i : i + 80]})
     return {"summary": out.summary, "proposed_action": action}

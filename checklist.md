@@ -121,14 +121,14 @@
 - [x] 변경 도구 `create_remediation_ticket` (business-mcp, DB 에서 승인 APPROVED·SHA-256 해시·(task_id, action_id) 멱등 검증; 승인 없음/인수 변경 FORBIDDEN, 다른 인수 재시도 CONFLICT) —·인수 SHA-256 해시·`taskId+actionId` 멱등 (기존 `fingerprint/idempotency_key` 재사용 여부 점검)
 - [x] 6개 이벤트 (TOKEN 포함) 저장 `cloud_task_events` (task_id,eventSeq 유일) + SSE `/api/ai/tasks/{id}/stream?after=` — 보고서 저장 후 DONE (/TOOL_END/APPROVAL_REQUIRED/DONE/FAILED) 매핑, `active_elapsed_ms` 승인 이벤트 포함
 - [x] `/api/ai/tasks` 5개 API (`api/routers/ai_tasks.py`: 202·{status,answer,sources}·승인 202·해시 불일치 409·소유자 격리 404) + 실행 기한 초과 RUNNING → FAILED 스케줄러(`reap_expired`, retry-worker 15초 주기, 승인 대기 제외)
-- [ ] 관측: LangSmith trace 1건 확인(키 필요), 불가 시 JSONL 로그 + trace_id=null 및 미충족 표기
+- [!] 관측: LangSmith trace 1건 확인(키 필요 — 미연동, trace_id=null 로 JSONL/DB span 만 기록, LangSmith 요구 미충족), 불가 시 JSONL 로그 + trace_id=null 및 미충족 표기
 ### 10-4 평가 (기획서 8~11장)
 - [~] 개발 3묶음 + 최종 T01~T08 + 공격 변형 2 + 수정본 2 정답셋 (합성 사례 15개, `scripts/build_cloud_datasets.py`; 공개 자료 commit·라이선스·2인 검토는 미확인 — `datasets/cloud/SOURCES.md`) —  `datasets/ground_truth/cloud/*.yaml` (IAM Vulnerable·TerraGoat·DVMCP·MCPTox 선정 사례, 정상 반례·정보 부족 포함, 공개 자료 commit·라이선스 기록)
 - [x] A(단순 조회 루프)/B(전체 그래프) 공통 실행기 — `run_cloud_audit(ctx,"A"|"B")`, 서버 측 모의 저장소 `MemoryBackend`, 러너 `core/cloud/eval_runner.py` — — 같은 도구·마스킹·예산·스키마, 서버 측 모의 저장소
 - [x] 채점 (`core/cloud/scoring.py`, 정답 밖 발견은 사람 검토 목록으로 분리): 정밀도/재현율/F1, 경로 탐지율·정밀도, 근거 정확도, 판단 보류 정확성, 재검증 정확도, 인젝션 실패율, 정상 감사 완료율, 비용·시간 (분모 0 = 해당 없음)
 - [!] 16회 실행(8묶음×A/B) → 결과 JSON → 정적 비교 화면 — `make eval` 구현 완료·미측정 표기 확인. 실 실행은 LLM 키 필요 (셸의 `OPENAI_API_KEY` 가 401 거부됨). 비교 화면(프론트)은 미착수. 미실행 지표는 "미측정"
 - [ ] 확장(여유 시): 3회 반복 → E1 Agent Audit / E2 Checkov → D1 변형(T01·T06) → 수정본 재검증
-- [ ] **완료 조건**: 기획서 11장 제품 동작 시험 13항목 통과, 최종 8묶음 A/B 각 1회 채점 (LLM 키 없으면 "평가 미완료" 로 표기)
+- [~] **완료 조건**: 기획서 11장 제품 동작 시험 13항목 — 인증·격리 / 202 접수·조회·승인 / 책임 경계(워커는 MCP 만) / 진행 이벤트 / MCP 조회 / RAG 원문·3회·마스킹 / 승인 전 변경 차단 / 승인·실행 / 거부·해시 불일치 / **워커 재시작 후 재개(실환경 e2e)** / 중복 방지 / 예산 / RUNNING 기한 초과 는 테스트 통과(`tests/e2e/test_cloud_flow.py` 등). 남음: LangSmith trace(키 필요), Vue 화면 시연, 최종 8묶음 A/B 각 1회 채점(키 필요)., 최종 8묶음 A/B 각 1회 채점 (LLM 키 없으면 "평가 미완료" 로 표기)
 
 ---
 
@@ -154,6 +154,8 @@
 - 2026-10-19: Phase 10-4 — 평가셋 15개, 채점기, A/B/rules 러너(`make eval`, `make eval-selfcheck`). rules 기준선이 정답셋과 전 항목 일치(자체 점검). 환경의 OPENAI_API_KEY 는 401 → A/B 는 미측정. make test 104개 통과.
 
 - 2026-10-19: Phase 10 제품 경로 — cloud_tasks 등 4테이블, business/rag-mcp 도구·Resource, CloudRunner 워커(승인 대기·재개·부분 결과), /api/ai/tasks 5개 API, 기한 초과 리퍼. 통합 테스트 15개 추가, make test 119개 통과.
+
+- 2026-10-19: Cloud 실환경 e2e(접수→승인대기→워커 재시작→승인→티켓 1건→SSE DONE) 통과. 오프라인 draft_report 가 ticket_target 고정 티켓 초안 생성. infra e2e 4건·make test 121개 통과.
 
 ---
 
