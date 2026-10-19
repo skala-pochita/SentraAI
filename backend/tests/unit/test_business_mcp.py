@@ -164,6 +164,10 @@ async def test_probe_judges_deterministically(workspace: Path, monkeypatch: pyte
 
 async def test_probe_upstream_timeout_is_retryable(workspace: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from core.errors import AppError, ErrorCode
+    from core.settings import get_settings
+
+    monkeypatch.setenv("PROBE_ALLOWLIST", "http://target-agent:8201")
+    get_settings.cache_clear()
 
     async def boom(*_: Any) -> dict[str, Any]:
         raise AppError(ErrorCode.UPSTREAM_TIMEOUT, "target-agent timeout")
@@ -171,3 +175,4 @@ async def test_probe_upstream_timeout_is_retryable(workspace: Path, monkeypatch:
     monkeypatch.setattr(execute, "_chat", boom)
     res = await execute.run_injection_probe(target_id=AGENT_ID, probe_id="P01", attempts=1)
     assert res["error"]["code"] == "UPSTREAM_TIMEOUT" and res["error"]["retryable"] is True
+    get_settings.cache_clear()

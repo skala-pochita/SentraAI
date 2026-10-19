@@ -181,32 +181,39 @@ async def _event_stream(request: Request, audit_id: str, last_id: str | None) ->
     key = f"audit:{audit_id}:stream"
     cursor = last_id or "0-0"
     if not last_id and not await r.exists(key):
-        # 스트림 만료 시 DB 영구 보관분을 재생
+        # 스트림 만료 시 종료된 감사는 DB 영구 보관분을 재생한다. 첫 이벤트 전인 진행 중 감사는 아래 xread 로 대기.
         from core.db.session import session_scope
 
         async with session_scope() as db:
-            rows = (
-                await db.execute(
-                    select(AuditEvent).where(AuditEvent.audit_id == uuid.UUID(audit_id)).order_by(AuditEvent.ts)
+            audit = await db.get(Audit, uuid.UUID(audit_id))
+            finished = audit is None or audit.status in ("COMPLETED", "FAILED", "CANCELLED")
+            rows = []
+            if finished:
+                rows = list(
+                    (
+                        await db.execute(
+                            select(AuditEvent).where(AuditEvent.audit_id == uuid.UUID(audit_id)).order_by(AuditEvent.ts)
+                        )
+                    ).scalars()
                 )
-            ).scalars()
-            for e in rows:
-                yield {
-                    "id": str(e.id),
-                    "event": e.type,
-                    "data": json.dumps(
-                        {
-                            "event_id": str(e.id),
-                            "audit_id": audit_id,
-                            "type": e.type,
-                            "node": e.node,
-                            "ts": e.ts.isoformat(),
-                            "payload": e.payload,
-                        },
-                        ensure_ascii=False,
-                    ),
-                }
-        return
+        for e in rows:
+            yield {
+                "id": str(e.id),
+                "event": e.type,
+                "data": json.dumps(
+                    {
+                        "event_id": str(e.id),
+                        "audit_id": audit_id,
+                        "type": e.type,
+                        "node": e.node,
+                        "ts": e.ts.isoformat(),
+                        "payload": e.payload,
+                    },
+                    ensure_ascii=False,
+                ),
+            }
+        if finished:
+            return
     while not await request.is_disconnected():
         res = await r.xread({key: cursor}, block=15000, count=100)
         if not res:

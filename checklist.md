@@ -71,18 +71,18 @@
 
 ## Phase 5 — Kafka + Redis 이벤트 + 그래프 1차 + SSE (P0)
 - [x] Kafka envelope, producer, consumer(수동 커밋, 멱등 키)
-- [ ] 토픽 생성 (11.1, 파티션 3)
+- [x] 토픽 생성 (11.1, 파티션 3) — kafka-init 8개 토픽 확인
 - [x] `harness/events.py` emit → Pub/Sub + Stream + DB
 - [x] AuditState (8.2), StateGraph: intake → code/agent 서브그래프(병렬 Send) → correlate → (승인·수정·재검증) → report — `tests/integration/test_graph_flow.py`
-- [ ] AsyncRedisSaver 체크포인터
-- [ ] `POST /audits` → audit.requested, `GET /audits/{id}/events` SSE (Last-Event-ID)
-- [ ] **완료 조건**: 감사 1건이 Kafka로 시작해 report까지 완료, SSE 이벤트 수신
+- [x] AsyncRedisSaver 체크포인터 (실환경 워커 로그·재시작 재개로 확인)
+- [x] `POST /audits` → audit.requested, `GET /audits/{id}/events` SSE (Last-Event-ID) — 첫 이벤트 전 연결 시 스트림이 닫히던 버그 수정
+- [x] **완료 조건**: 감사 1건이 Kafka로 시작해 report까지 완료, SSE 이벤트 수신 — `tests/e2e/test_demo_flow.py` (`-m infra`)
 
 ## Phase 6 — 승인·수정·재검증 루프 (P0)
 - [x] human_approval interrupt / risk_accept / fix_generate / apply_fix(local) / wait_merge / re_verify / mark_manual (그래프 테스트 통과)
 - [x] business-mcp 변경 도구 + 역할 재검사 + 멱등성(fingerprint, idempotency_key) + 상태 전이 표 (+merge_fix)
-- [ ] `/approvals`, `/approvals/{id}/decision`, `/fixes/{id}/merge`, audit.resume
-- [ ] **완료 조건**: 데모 2~6단계 e2e, 승인 없는 apply_fix → FORBIDDEN, 워커 재시작 후 재개 테스트
+- [x] `/approvals`, `/approvals/{id}/decision`, `/fixes/{id}/merge`, audit.resume
+- [x] **완료 조건**: 데모 2~6단계 e2e, 승인 없는 apply_fix → FORBIDDEN, 워커 재시작 후 재개 테스트
 
 ## Phase 7 — Harness H1~H8 + Agentic + 재시도/DLQ (P1)
 - [ ] H1 프롬프트 레지스트리 / H2 컨텍스트 / H3 도구 게이트 / H4 가드레일 / H5 평가기 / H6 관측 / H7 신뢰성 / H8 예산
@@ -101,6 +101,35 @@
 ## Phase 9 — 확장 (P2)
 - [ ] GitHub 모드, 외부 MCP 클라이언트 연동, D_large_harness
 
+## Phase 10 — Agent·Cloud 감사 확장 (기획서 `AI_Agent_Cloud_Audit_Plan.md` 개정판 6, DECISIONS #11~#16)
+> Phase 0~6 의 기존 코드·에이전트 감사 위에 얹는다. 기획서의 이틀 MVP 우선순위: 인증→감사→근거 조회→승인 대기→변경 도구→재개→결과 표시 시연 완주, 그 다음 최종 8묶음 A/B 각 1회(16회).
+### 10-1 입력·스키마 (기획서 5장)
+- [ ] `evidence_bundle.json` 스키마 (schema_version, bundle_id, tools, principals, policies, mappings, resources, business_policy, missing_evidence, sources) + 참조 ID·크기 검증
+- [ ] 증거 저장/조회 (`evidence_id` 유지), 결함·등급·정답 경로가 JSON 에 섞이면 거부
+- [ ] 출력 Finding 확장: 대상 자원, 판정 상태(결함 확인/조건부 위험/판단 보류), 근거 ID·위치, 위험 경로, 성립 조건, 추가 확인 항목 + 정상 판정·미점검 항목 기록
+### 10-2 감사 범위 규칙 (기획서 4장)
+- [ ] A1 도구 기능·위험 분류 / A2 접근·승인 / A3 도구 조합 / A4 도구 오염(설명 속 숨은 지시) — 기존 `rules/agent` 7개와 매핑 정리
+- [ ] B1 계층 간 경로(도구→실행 역할→자원): 명시된 mappings 만 사용, 없는 연결 생성 금지, 끊긴 연결은 위험 확정 금지
+- [ ] C1 IAM / C2 네트워크 / C3 저장소·데이터 규칙 (`rules/cloud/*.yaml`) — 별표만으로 권한 상승 확정 금지
+- [ ] 판단 보류: 호출자 접근 정책 등 필요한 증거를 요청하는 출력
+- [ ] D1 감사자 인젝션 방어(도구 설명·파일 속 지시 무시) — 위반 사건 4종(결함 누락/허위 근거/수신자 변경/무단 호출) 판정기
+### 10-3 그래프·Harness (기획서 6장)
+- [ ] 노드 매핑: load_evidence→plan_audit→collect→assess→build_paths→verify(회귀 1회)→draft_report→approval→execute_action→finalize
+- [ ] 예산: 8 LLM 턴, 활성 120초(승인 대기 제외, 재개 시 초기화 금지), 동일 도구 3회, 429/503 재시도 2회, 남은 30초 이하면 collect/repair 생략 (`config/budget.yaml` `cloud_audit`)
+- [ ] `read_resource` 가상 도구 (허용 URI·버전 검증, 작업당 3회) + rag-mcp `guidance://security-baseline/v1` Resource
+- [ ] 마스킹: 이메일·전화·키·토큰, ID 는 일관 치환으로 B1 연결 유지
+- [ ] 변경 도구 `create_remediation_ticket`: 승인 검증·인수 SHA-256 해시·`taskId+actionId` 멱등 (기존 `fingerprint/idempotency_key` 재사용 여부 점검)
+- [ ] 6개 이벤트(TOKEN/TOOL_START/TOOL_END/APPROVAL_REQUIRED/DONE/FAILED) 매핑, `active_elapsed_ms` 승인 이벤트 포함
+- [ ] `/api/ai/tasks` 5개 파사드 (DECISIONS #12) + 실행 기한 초과 RUNNING → FAILED 스케줄러
+- [ ] 관측: LangSmith trace 1건 확인(키 필요), 불가 시 JSONL 로그 + trace_id=null 및 미충족 표기
+### 10-4 평가 (기획서 8~11장)
+- [ ] 개발 3묶음 + 최종 T01~T08 정답셋 `datasets/ground_truth/cloud/*.yaml` (IAM Vulnerable·TerraGoat·DVMCP·MCPTox 선정 사례, 정상 반례·정보 부족 포함, 공개 자료 commit·라이선스 기록)
+- [ ] A(단순 조회 루프)/B(전체 그래프) 공통 실행기 — 같은 도구·마스킹·예산·스키마, 서버 측 모의 저장소
+- [ ] 채점: 정밀도/재현율/F1, 경로 탐지율·정밀도, 근거 정확도, 판단 보류 정확성, 재검증 정확도, 인젝션 실패율, 정상 감사 완료율, 비용·시간 (분모 0 = 해당 없음)
+- [ ] 16회 실행(8묶음×A/B) → 결과 JSON → 정적 비교 화면. 미실행 지표는 "미측정"
+- [ ] 확장(여유 시): 3회 반복 → E1 Agent Audit / E2 Checkov → D1 변형(T01·T06) → 수정본 재검증
+- [ ] **완료 조건**: 기획서 11장 제품 동작 시험 13항목 통과, 최종 8묶음 A/B 각 1회 채점 (LLM 키 없으면 "평가 미완료" 로 표기)
+
 ---
 
 ## 진행 로그
@@ -111,6 +140,10 @@
 - 2026-10-19: Phase 3 완료 — 규칙 엔진(regex/entropy/yaml_path/python/manifest), 코드 규칙 17 + Agent 규칙 7, C01~C18 18/18 탐지·C19/C20 미탐(의도)·함정 통과, business-mcp 조회7+실행3 도구, 서비스 토큰·역할·경로 탈출 거부, `python -m mcp_servers.inspect_cli list` 로 HTTP 확인.
 - 2026-10-19: Phase 4 완료 — knowledge/*.md 6종, 헤더 청크(800/100), 하이브리드 검색(pgvector+tsvector, 1h 캐시+버전 무효화), rag-mcp 조회7·변경4 도구, 시드 인덱싱. 키 없으면 해시 임베딩(DECISIONS #4). permitAll 검색 1위 확인.
 - 2026-10-19: Phase 5/6 진행 중 — 그래프 전 노드·서브그래프·business-mcp 변경 도구·결정론 수정기 완성, in-process 그래프 테스트(승인→수정→병합→재검증→보고서, 반려, FORBIDDEN, 재시작 재개) 통과. 남은 것: Kafka 워커, API(audits/approvals/fixes/SSE), Redis 체크포인터 실환경 확인.
+
+- 2026-10-19: 기획서(개정판 6) 반영 — Phase 10(Agent·Cloud 감사) 추가, DECISIONS #11~#16. test_business_mcp 타임아웃 테스트의 PROBE_ALLOWLIST 누락 수정.
+
+- 2026-10-19: Phase 5·6 완료 — Docker 실환경 e2e 3건(승인→병합→보고서, SSE, 승인 대기 중 audit-worker 재시작 후 재개) 통과, make test 66개·lint·mypy 통과.
 
 ---
 
