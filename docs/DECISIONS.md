@@ -20,3 +20,6 @@
 | 14 | 2026-10-19 | 예산 값 | 기획서의 LLM 8턴·활성 120초·동일 도구 3회·429/503 재시도 2회·회귀 1회를 `config/budget.yaml` 의 `cloud_audit` 블록으로 추가(코드 하드코딩 금지). 기존 `audit`(토큰·비용) 한도는 유지 | CLAUDE.md 규칙 6. A/B 공통 적용 |
 | 15 | 2026-10-19 | 평가 모델 | 기획서 후보 `gpt-5.4-nano-2026-03-17` 은 `LLM_SMALL_MODEL` 환경변수로 지정(제거 예정 2027-04-01, 권장 대체 gpt-6-luna). 계정 호출 가능 여부는 키 확보 후 확인 | CLAUDE.md 규칙 6. 키 없이는 실 LLM 평가 불가이므로 평가 결과는 미측정 표기 |
 | 16 | 2026-10-19 | 체크포인터 | 기획서는 PostgreSQL checkpointer, 명세는 Redis. 명세(Redis)를 유지하고 Redis 실환경 확인 실패 시 Postgres(전용 스키마)로 대체 | 기존 결정 유지. 기획서 요건(thread_id 재개, 재시작 후 이어서 실행)은 어느 쪽이든 동일 |
+| 17 | 2026-10-19 | ReAct 조사 구현 | 명세 8.5 의 `create_react_agent` 대신 `structured_call` 기반 JSON 스텝 루프(`react_investigator.py`)로 구현. 도구 선택은 매 스텝 `{why, action|final}` | 모델 비의존(도구 호출 API 없이 동작)·스텝 상한 6 을 코드가 보장·오프라인 스크립트 모델로 테스트 가능. H3 게이트·investigate.step 이벤트는 명세와 동일 |
+| 18 | 2026-10-19 | Cloud 감사 저장 | 기획서의 Spring 업무 DB 를 대신해 Postgres 의 `cloud_tasks/cloud_task_events/cloud_approvals/remediation_tickets` 사용. 워커는 business/rag-mcp 로만 읽고 쓴다(체크포인터는 Redis). 승인은 `cloud_approvals`(APPROVED) 가 기준 | DECISIONS #11 의 매핑. 책임 경계(Agent 직접 DB 금지)는 MCP 경유로 유지 |
+| 19 | 2026-10-19 | Cloud 입력 | 증거 묶음은 합성 사례 15개(`datasets/cloud`). 공개 자료(IAM Vulnerable 등) commit·라이선스·2인 검토는 미확인 | `datasets/cloud/SOURCES.md` 참조. 확인 전에는 공개 자료에서 추출했다고 주장하지 않음 |

@@ -86,10 +86,10 @@
 
 ## Phase 7 — Harness H1~H8 + Agentic + 재시도/DLQ (P1)
 - [~] H1 프롬프트 레지스트리 / H2 컨텍스트 / H3 도구 게이트 / H4 가드레일 / H5 평가기 / H6 관측 / H7 신뢰성 / H8 예산 — 코드 존재(`harness/{context,tools,guardrails,observability,reliability,budget,llm,prompts}`), H5 `harness/eval/` 은 비어 있음, 강의 용어 대조 미완
-- [ ] ReAct 조사 노드 (create_react_agent, 6스텝, investigate.step 이벤트)
-- [ ] 적응형 probe 생성, probe_judge 라운드 루프
-- [ ] code_evidence_check 근거 검증
-- [~] jobs.retry / retry-worker / jobs.dlq / dlq_messages / replay / FAULT_INJECTION — 토픽·워커·모델·ops 라우터·장애 주입 코드 존재, 통합 테스트 미작성
+- [x] ReAct 조사 노드 `core/graph/nodes/react_investigator.py` (6스텝 상한·파일당 토큰 예산·H3 게이트·investigate.step·관찰 untrusted 래핑·감사기 인젝션 후보 기각 불가) — `create_react_agent` 대신 JSON 스텝 루프(DECISIONS #17). 테스트는 스크립트된 모델, 실 LLM 로 C19·C20 탐지는 키 필요
+- [~] 적응형 probe 생성, probe_judge 라운드 루프 — 노드·프롬프트 존재(그래프 흐름 테스트는 LLM 없는 경로만), 실 LLM 검증 미실행
+- [x] code_evidence_check 근거 검증 (그래프 흐름 테스트에서 파일·라인 대조, 불일치 시 NEEDS_REVIEW)
+- [x] jobs.retry / retry-worker / jobs.dlq / dlq_messages / replay / FAULT_INJECTION — `tests/integration/test_retry_dlq.py` 7개 (3회 재시도 후 DLQ·백오프 증가·비재시도 즉시 DLQ·중복 skip·DLQ 적재/replay 새 message_id·장애 주입 계산). apply_fix 경로에서의 장애 주입 실환경 시나리오(`make fault-on`)는 미실행
 - [ ] **완료 조건**: C19·C20 탐지, I01·I02 견고, 재시도·DLQ 테스트
 
 ## Phase 8 — 프론트엔드 + 평가 러너 (P0/P1)
@@ -156,6 +156,8 @@
 - 2026-10-19: Phase 10 제품 경로 — cloud_tasks 등 4테이블, business/rag-mcp 도구·Resource, CloudRunner 워커(승인 대기·재개·부분 결과), /api/ai/tasks 5개 API, 기한 초과 리퍼. 통합 테스트 15개 추가, make test 119개 통과.
 
 - 2026-10-19: Cloud 실환경 e2e(접수→승인대기→워커 재시작→승인→티켓 1건→SSE DONE) 통과. 오프라인 draft_report 가 ticket_target 고정 티켓 초안 생성. infra e2e 4건·make test 121개 통과.
+
+- 2026-10-19: Phase 7 — ReAct 조사 노드(테스트 6), 재시도/DLQ 통합 테스트(7). make test 전체 통과.
 
 ---
 
