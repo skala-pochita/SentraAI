@@ -93,9 +93,9 @@
 - [ ] **완료 조건**: C19·C20 탐지, I01·I02 견고, 재시도·DLQ 테스트
 
 ## Phase 8 — 프론트엔드 + 평가 러너 (P0/P1)
-- [~] (로그인·개요 페이지만 존재) 로그인, 개요, 감사 실행, 감사 진행(SSE), Findings, Finding 상세, 승인함, 수정·PR (P0)
-- [ ] 결합 위험, 레드팀 결과, 보고서, 모델 비교, 품질, 트레이스, 지식 관리, Ops (P1)
-- [ ] A/B/C 러너, matcher/scorer, `reports/eval_{id}.md`, `make eval`
+- [x] 로그인, 개요, 감사 실행, 감사 진행(SSE), Findings, Finding 상세, 승인함, 수정·PR (P0) — `frontend/src/pages/*` vue-tsc·vite build 통과, nginx 프록시 확인. 브라우저 시연(리허설)은 미실행
+- [x] 결합 위험, 레드팀 결과, 보고서, 모델 비교(`/eval`, Cloud 평가 JSON), 품질, 트레이스, 지식 관리, Ops (P1) + 클라우드 감사(`/cloud`: 제출·SSE·승인 카드·근거 원문)
+- [~] 러너·matcher/scorer: Cloud A/B/rules 러너(`core/cloud/eval_runner.py`, `reports/cloud_eval_*.json|md`, `make eval`) 완료, 코드·에이전트 정적 기준선 채점 `harness/eval/code_eval.py`(S: 재현율 0.9, C19·C20 미탐, D03 오탐) 완료. 코드 감사 A/B/C 모델 비교(LLM)는 키 필요로 미구현
 - [ ] **완료 조건**: 데모 1~9단계 리허설, make eval 결과 /eval 표시
 
 ## Phase 9 — 확장 (P2)
@@ -159,20 +159,23 @@
 
 - 2026-10-19: Phase 7 — ReAct 조사 노드(테스트 6), 재시도/DLQ 통합 테스트(7). make test 전체 통과.
 
+- 2026-10-19: Phase 8 프론트 전 페이지(19개 라우트), `/eval` API, 코드 정적 기준선 채점. make test 137개·lint 통과.
+
 ---
 
 ## 🔁 다음 세션 인수인계 (2026-10-19 중단 시점)
 
 ### 현재 상태
-- 완료: Phase 0~6 (Docker 실환경 e2e 3건 포함 — `cd backend && uv run pytest -m infra tests/e2e/test_demo_flow.py`, 전제 `make up`). Phase 10 은 오프라인 결정론 부분(`core/cloud`)까지.
-- 검증됨: `make test` 83개, `make lint`(ruff·mypy·vue-tsc) 통과.
+- 완료: Phase 0~6, Phase 10 의 제품 경로(증거 저장·MCP 도구/Resource·CloudRunner·`/api/ai/tasks`·기한 리퍼·평가 러너), Phase 7 대부분(ReAct, 재시도/DLQ), Phase 8 프론트 전 페이지.
+- 검증됨: `make test` 137개, `make lint`(ruff·mypy·vue-tsc), infra e2e 5건(`uv run pytest -m infra tests/e2e`, 전제 `make up`).
+- 막힘: **LLM 키** — 셸의 `OPENAI_API_KEY` 는 OpenAI 가 401 로 거부. 키 확보 전까지 A/B 모델 비교(16회)·실 LLM probe·ReAct 실검증·LangSmith 는 미측정/미충족.
 
 ### 바로 다음에 할 일 (순서대로)
-1. Phase 10-1 남은 것: 증거 묶음 DB 저장·API·business-mcp 조회 도구, Finding 확장(판정 상태·경로·성립 조건), `/api/ai/tasks` 파사드.
-2. Phase 10-2 남은 것: A2·A3, D1 판정기. 그래프에 `core/cloud/checks.audit_bundle` 을 결정론 선행 단계로 연결(load_evidence/assess/build_paths/verify 노드 매핑).
-3. Phase 10-3: `config/budget.yaml` `cloud_audit` 블록(8턴·120초·동일 도구 3회), read_resource, 티켓 도구, 기한 초과 스케줄러.
-4. Phase 7: ReAct 조사 노드 `core/graph/nodes/react_investigator.py` (아직 없음), retry/DLQ 통합 테스트.
-5. Phase 10-4 / 8: 정답셋 T01~T08, A/B 러너·채점, 프론트. (LLM 키 필요한 부분은 미측정 표기)
+1. 유효한 `OPENAI_API_KEY`·`LLM_SMALL_MODEL` 을 `.env` 에 넣고: 개발 3묶음 예행 → `make eval SET=final CONFIGS=A,B` (16회) → 정답 밖 발견 사람 검토(`needs_review`) → 결과 확정. 이후 `SET=attack`/`revision`, `REPS=3`.
+2. `uv run pytest -m llm tests/e2e/test_probe_smoke.py` (Phase 2 실 LLM 완료 조건), ReAct 로 C19·C20 탐지 실측.
+3. 정답셋 2인 검토·공개 자료 commit/라이선스 기록(`datasets/cloud/SOURCES.md`), 개발셋/최종셋 패턴 계열 분리.
+4. 브라우저 데모 리허설 1~9단계(프론트), LangSmith trace 1건, `make fault-on` 실환경 시나리오.
+5. Phase 9(P2): GitHub 모드, 외부 MCP 클라이언트, D_large_harness.
 
 ### 핵심 구조 메모
 - 그래프: `backend/core/graph/build.py` (다이어그램 1:1), 노드 = `core/graph/nodes/*.py`, State = dict 저장 (`core/graph/state.py`).

@@ -31,9 +31,7 @@ async def task(db_ready: None, monkeypatch: pytest.MonkeyPatch) -> tuple[str, st
         user = User(email=f"u{uuid.uuid4().hex[:6]}@t.io", password_hash="x", name="u", role="ADMIN")
         db.add(user)
         await db.flush()
-        t = CloudTask(
-            requested_by=user.id, bundle_id="dev-1", bundle=BASE, bundle_sha256="0", status="RUNNING"
-        )
+        t = CloudTask(requested_by=user.id, bundle_id="dev-1", bundle=BASE, bundle_sha256="0", status="RUNNING")
         db.add(t)
         await db.flush()
         return str(t.id), str(user.id)
@@ -67,7 +65,13 @@ async def test_ticket_requires_approved_matching_hash_and_is_idempotent(task: tu
     assert e.value.code == "FORBIDDEN"
     # PENDING 승인 레코드는 무효
     async with session_scope() as db:
-        ap = CloudApproval(task_id=uuid.UUID(tid), action_id=action, tool="business_create_remediation_ticket", args=ARGS, args_hash=args_hash(ARGS))
+        ap = CloudApproval(
+            task_id=uuid.UUID(tid),
+            action_id=action,
+            tool="business_create_remediation_ticket",
+            args=ARGS,
+            args_hash=args_hash(ARGS),
+        )
         db.add(ap)
         await db.flush()
         ref = str(ap.id)

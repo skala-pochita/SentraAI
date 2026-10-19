@@ -92,9 +92,7 @@ def _answer(task: CloudTask, pending: CloudApproval | None) -> dict[str, Any] | 
 
 
 @router.get("/tasks/{task_id}")
-async def get_task(
-    task_id: str, user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)
-) -> dict[str, Any]:
+async def get_task(task_id: str, user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)) -> dict[str, Any]:
     task = await _get_task(db, user, task_id)
     pending = (
         await db.execute(

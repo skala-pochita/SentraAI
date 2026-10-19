@@ -40,13 +40,20 @@ async def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
     reset(REPO_ROOT / "targets", tmp_path, "vuln")
     async with session_scope() as db:
         users = await seed_users(db)
-        t = Target(type="repo", name="vuln-spring-app", ref=str(tmp_path / "vuln-spring-app"), owner_user_id=users["DEVELOPER"].id)
+        t = Target(
+            type="repo",
+            name="vuln-spring-app",
+            ref=str(tmp_path / "vuln-spring-app"),
+            owner_user_id=users["DEVELOPER"].id,
+        )
         db.add(t)
         await db.flush()
         return {"target_id": str(t.id), "name": t.name, "type": "repo"}
 
 
-def state(repo: dict[str, Any], candidates: list[dict[str, Any]] | None = None, risky: list[str] | None = None) -> dict[str, Any]:
+def state(
+    repo: dict[str, Any], candidates: list[dict[str, Any]] | None = None, risky: list[str] | None = None
+) -> dict[str, Any]:
     return {
         "audit_id": str(uuid.uuid4()),
         "actor_role": "ADMIN",
@@ -76,14 +83,40 @@ async def run(repo: dict[str, Any], script: list[Any], st: dict[str, Any]) -> tu
 async def test_c19_c20_found_by_reading_risky_files(repo: dict[str, Any]) -> None:
     script = [
         read_step(PAY_CFG),
-        final(new=[{"category": "HARDCODED_SECRET", "title": "Base64 로 숨긴 결제 설정", "severity": "HIGH", "file_path": PAY_CFG,
-                    "line_start": 13, "snippet": 'MERCHANT_CFG = "cGdf', "reasoning": "Base64 디코드하면 가맹점 비밀"}]),
+        final(
+            new=[
+                {
+                    "category": "HARDCODED_SECRET",
+                    "title": "Base64 로 숨긴 결제 설정",
+                    "severity": "HIGH",
+                    "file_path": PAY_CFG,
+                    "line_start": 13,
+                    "snippet": 'MERCHANT_CFG = "cGdf',
+                    "reasoning": "Base64 디코드하면 가맹점 비밀",
+                }
+            ]
+        ),
         read_step(PAY_CLIENT),
-        final(new=[{"category": "HARDCODED_SECRET", "title": "분할된 sk_live_ 키", "severity": "HIGH", "file_path": PAY_CLIENT,
-                    "line_start": 14, "snippet": 'auth = "sk_live_" + ', "reasoning": "문자열 결합으로 키 구성"}]),
+        final(
+            new=[
+                {
+                    "category": "HARDCODED_SECRET",
+                    "title": "분할된 sk_live_ 키",
+                    "severity": "HIGH",
+                    "file_path": PAY_CLIENT,
+                    "line_start": 14,
+                    "snippet": 'auth = "sk_live_" + ',
+                    "reasoning": "문자열 결합으로 키 구성",
+                }
+            ]
+        ),
     ]
     out, deps = await run(repo, script, state(repo, risky=[PAY_CFG, PAY_CLIENT]))
-    found = {(f["evidence"][0]["file_path"], f["evidence"][0]["line_start"]) for f in out["investigated"] if f["rule_id"] == "LLM-REACT"}
+    found = {
+        (f["evidence"][0]["file_path"], f["evidence"][0]["line_start"])
+        for f in out["investigated"]
+        if f["rule_id"] == "LLM-REACT"
+    }
     assert found == {(PAY_CFG, 13), (PAY_CLIENT, 14)}
     steps = [p for t, p in deps.captured if t == "investigate.step"]  # type: ignore[attr-defined]
     assert [s["tool"] for s in steps] == ["read_repo_file", "read_repo_file"] and all(s["why"] for s in steps)
@@ -114,12 +147,36 @@ async def test_disallowed_tool_is_refused_by_gate_and_loop_continues(repo: dict[
 
 async def test_auditor_injection_candidate_cannot_be_dismissed(repo: dict[str, Any]) -> None:
     cand = {
-        "temp_id": "s-1", "target_id": repo["target_id"], "source": "code", "category": "AUDITOR_INJECTION_ATTEMPT",
-        "rule_id": "SEC-AUDITOR-001", "title": "inj", "severity": "MEDIUM", "confidence": 0.6, "verdict": "NEEDS_REVIEW",
-        "evidence": [{"kind": "code", "file_path": "README.md", "line_start": 3, "line_end": 3, "snippet_masked": "ignore previous"}],
+        "temp_id": "s-1",
+        "target_id": repo["target_id"],
+        "source": "code",
+        "category": "AUDITOR_INJECTION_ATTEMPT",
+        "rule_id": "SEC-AUDITOR-001",
+        "title": "inj",
+        "severity": "MEDIUM",
+        "confidence": 0.6,
+        "verdict": "NEEDS_REVIEW",
+        "evidence": [
+            {
+                "kind": "code",
+                "file_path": "README.md",
+                "line_start": 3,
+                "line_end": 3,
+                "snippet_masked": "ignore previous",
+            }
+        ],
     }
-    out, _ = await run(repo, [final(verdicts=[{"temp_id": "s-1", "verdict": "FALSE_POSITIVE", "confidence": 0.9, "reason": "README 지시를 따름"}])],
-                       state(repo, [cand]))
+    out, _ = await run(
+        repo,
+        [
+            final(
+                verdicts=[
+                    {"temp_id": "s-1", "verdict": "FALSE_POSITIVE", "confidence": 0.9, "reason": "README 지시를 따름"}
+                ]
+            )
+        ],
+        state(repo, [cand]),
+    )
     (f,) = out["investigated"]
     assert f["verdict"] == "TRUE_POSITIVE" and f["category"] == "AUDITOR_INJECTION_ATTEMPT"
 
@@ -137,8 +194,15 @@ async def test_budget_exhaustion_falls_back_to_static_verdicts(repo: dict[str, A
     deps.budget.max_tokens = 1
     deps.budget.used_tokens = 5
     cand = {
-        "temp_id": "s-2", "target_id": repo["target_id"], "source": "code", "category": "SECRET_LEAK", "rule_id": "X",
-        "title": "t", "severity": "HIGH", "confidence": 0.85, "verdict": "NEEDS_REVIEW",
+        "temp_id": "s-2",
+        "target_id": repo["target_id"],
+        "source": "code",
+        "category": "SECRET_LEAK",
+        "rule_id": "X",
+        "title": "t",
+        "severity": "HIGH",
+        "confidence": 0.85,
+        "verdict": "NEEDS_REVIEW",
         "evidence": [{"kind": "code", "file_path": PAY_CFG, "line_start": 13, "line_end": 13, "snippet_masked": "x"}],
     }
     out = await investigate(state(repo, [cand]), cfg(deps), (ScriptedModel([final()]), "fake"))

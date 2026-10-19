@@ -61,7 +61,11 @@ async def test_retryable_error_goes_to_retry_with_backoff_then_dlq() -> None:
         targets.append(topic)
         assert Envelope.decode(raw).message_id == e.message_id  # 같은 메시지를 그대로 재발행
     assert targets == ["jobs.retry", "jobs.retry", "jobs.retry", "jobs.dlq"]
-    assert hdr["retry_count"] == "3" and hdr["last_error_code"] == "RATE_LIMITED" and hdr["original_topic"] == "audit.requested"
+    assert (
+        hdr["retry_count"] == "3"
+        and hdr["last_error_code"] == "RATE_LIMITED"
+        and hdr["original_topic"] == "audit.requested"
+    )
 
 
 async def test_backoff_headers_grow() -> None:
@@ -112,7 +116,12 @@ async def test_duplicate_delivery_is_skipped_after_success() -> None:
 
 async def test_dlq_store_and_replay_republishes_with_new_message_id(db_ready: None, client: httpx.AsyncClient) -> None:
     e = env()
-    hdr = {"original_topic": "audit.requested", "retry_count": "3", "last_error_code": "RATE_LIMITED", "last_error_message": "x"}
+    hdr = {
+        "original_topic": "audit.requested",
+        "retry_count": "3",
+        "last_error_code": "RATE_LIMITED",
+        "last_error_message": "x",
+    }
     await store_dlq("jobs.dlq", b"k", e.encode(), headers_to_kafka(hdr))
     async with session_scope() as db:
         users = await seed_users(db)
@@ -121,7 +130,9 @@ async def test_dlq_store_and_replay_republishes_with_new_message_id(db_ready: No
         dlq_id = str(row.id)
         assert users["ADMIN"]
     s = get_settings()
-    tok = (await client.post("/api/v1/auth/login", json={"email": "admin@demo.io", "password": s.seed_admin_password})).json()["access_token"]
+    tok = (
+        await client.post("/api/v1/auth/login", json={"email": "admin@demo.io", "password": s.seed_admin_password})
+    ).json()["access_token"]
     res = await client.post(f"/api/v1/ops/dlq/{dlq_id}/replay", headers={"Authorization": f"Bearer {tok}"})
     assert res.status_code == 200 and res.json()["status"] == "REPLAYED"
     topic, _, raw, headers = sent[-1]
@@ -131,7 +142,9 @@ async def test_dlq_store_and_replay_republishes_with_new_message_id(db_ready: No
     assert again.status_code == 409
 
 
-async def test_fault_injection_rate_limits_first_n_then_recovers(db_ready: None, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_fault_injection_rate_limits_first_n_then_recovers(
+    db_ready: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from mcp_servers.business.tools import mutate
 
     monkeypatch.setenv("FAULT_INJECTION", "github_rate_limit:2")

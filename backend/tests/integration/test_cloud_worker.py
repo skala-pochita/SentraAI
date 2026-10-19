@@ -34,7 +34,14 @@ async def new_task(db_ready: None, monkeypatch: pytest.MonkeyPatch) -> Any:
     get_settings.cache_clear()
 
     async def make() -> tuple[str, str]:
-        bundle = {**BASE, "business_policy": {**BASE.get("business_policy", {}), "followup_allowed": True, "ticket_target": "platform-team"}}
+        bundle = {
+            **BASE,
+            "business_policy": {
+                **BASE.get("business_policy", {}),
+                "followup_allowed": True,
+                "ticket_target": "platform-team",
+            },
+        }
         async with session_scope() as db:
             user = User(email=f"u{uuid.uuid4().hex[:6]}@t.io", password_hash="x", name="u", role="ADMIN")
             db.add(user)
@@ -49,7 +56,11 @@ async def new_task(db_ready: None, monkeypatch: pytest.MonkeyPatch) -> Any:
 
 async def events(tid: str) -> list[str]:
     async with session_scope() as db:
-        rows = await db.execute(select(CloudTaskEvent.type).where(CloudTaskEvent.task_id == uuid.UUID(tid)).order_by(CloudTaskEvent.event_seq))
+        rows = await db.execute(
+            select(CloudTaskEvent.type)
+            .where(CloudTaskEvent.task_id == uuid.UUID(tid))
+            .order_by(CloudTaskEvent.event_seq)
+        )
         return list(rows.scalars())
 
 
@@ -73,7 +84,11 @@ async def test_flow_wait_approval_restart_resume_one_ticket(new_task: Any) -> No
     assert await r1.start(tid) == "WAITING_APPROVAL"
 
     async with session_scope() as db:
-        await db.execute(update(CloudApproval).where(CloudApproval.id == uuid.UUID(approval_id)).values(status="APPROVED", decided_by=uuid.UUID(uid), decided_at=datetime.now(UTC)))
+        await db.execute(
+            update(CloudApproval)
+            .where(CloudApproval.id == uuid.UUID(approval_id))
+            .values(status="APPROVED", decided_by=uuid.UUID(uid), decided_at=datetime.now(UTC))
+        )
     # 워커 재시작: 새 CloudRunner + 같은 체크포인터로 같은 thread 재개
     r2 = CloudRunner(saver, inprocess_gateway, factory([{"unused": 1}]))
     assert await r2.resume(tid, approval_id) == "COMPLETED"
@@ -84,7 +99,11 @@ async def test_flow_wait_approval_restart_resume_one_ticket(new_task: Any) -> No
         assert task is not None and task.status == "COMPLETED" and task.report_version == 1
         assert task.answer["actionResult"]["status"] == "CREATED" and task.answer["findings"]
         assert task.answer["sources"]
-        n = (await db.execute(select(func.count()).select_from(RemediationTicket).where(RemediationTicket.task_id == task.id))).scalar_one()
+        n = (
+            await db.execute(
+                select(func.count()).select_from(RemediationTicket).where(RemediationTicket.task_id == task.id)
+            )
+        ).scalar_one()
         assert n == 1
     ev = await events(tid)
     assert ev.index("DONE") == len(ev) - 1 and ev.count("DONE") == 1
@@ -129,12 +148,21 @@ async def test_reaper_fails_expired_running_but_not_waiting(new_task: Any) -> No
     waiting, _ = await new_task()
     past = datetime.now(UTC) - timedelta(seconds=5)
     async with session_scope() as db:
-        await db.execute(update(CloudTask).where(CloudTask.id == uuid.UUID(running)).values(status="RUNNING", deadline_at=past))
-        await db.execute(update(CloudTask).where(CloudTask.id == uuid.UUID(waiting)).values(status="WAITING_APPROVAL", deadline_at=None))
+        await db.execute(
+            update(CloudTask).where(CloudTask.id == uuid.UUID(running)).values(status="RUNNING", deadline_at=past)
+        )
+        await db.execute(
+            update(CloudTask)
+            .where(CloudTask.id == uuid.UUID(waiting))
+            .values(status="WAITING_APPROVAL", deadline_at=None)
+        )
     assert running in await reap_expired()
     async with session_scope() as db:
         a = await db.get(CloudTask, uuid.UUID(running))
         b = await db.get(CloudTask, uuid.UUID(waiting))
         assert a is not None and b is not None
-        assert (a.status, a.failure_code) == ("FAILED", "EXECUTION_DEADLINE_EXCEEDED") and b.status == "WAITING_APPROVAL"
+        assert (a.status, a.failure_code) == (
+            "FAILED",
+            "EXECUTION_DEADLINE_EXCEEDED",
+        ) and b.status == "WAITING_APPROVAL"
     assert (await events(running))[-1] == "FAILED"

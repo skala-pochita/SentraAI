@@ -55,7 +55,9 @@ async def create(client: httpx.AsyncClient, hdr: dict[str, str]) -> str:
 
 async def test_auth_and_role_rules(client: httpx.AsyncClient, users: dict[str, dict[str, str]]) -> None:
     assert (await client.post(f"{P}/tasks", json={"evidence_bundle": BASE})).status_code == 401
-    assert (await client.post(f"{P}/tasks", json={"evidence_bundle": BASE}, headers=users["AUDITOR"])).status_code == 403
+    assert (
+        await client.post(f"{P}/tasks", json={"evidence_bundle": BASE}, headers=users["AUDITOR"])
+    ).status_code == 403
     tid = await create(client, users["DEVELOPER"])
     assert published[-1][0] == "audit.requested" and published[-1][2]["task_id"] == tid
 
@@ -87,13 +89,21 @@ async def make_waiting(tid: str) -> tuple[str, str]:
         task = await db.get(CloudTask, uuid.UUID(tid))
         assert task is not None
         task.status = "WAITING_APPROVAL"
-        ap = CloudApproval(task_id=task.id, action_id="act-1", tool="business_create_remediation_ticket", args=args, args_hash=args_hash(args))
+        ap = CloudApproval(
+            task_id=task.id,
+            action_id="act-1",
+            tool="business_create_remediation_ticket",
+            args=args,
+            args_hash=args_hash(args),
+        )
         db.add(ap)
         await db.flush()
         return str(ap.id), args_hash(args)
 
 
-async def test_pending_action_snapshot_and_approval_rules(client: httpx.AsyncClient, users: dict[str, dict[str, str]]) -> None:
+async def test_pending_action_snapshot_and_approval_rules(
+    client: httpx.AsyncClient, users: dict[str, dict[str, str]]
+) -> None:
     tid = await create(client, users["DEVELOPER"])
     ref, h = await make_waiting(tid)
     snap = (await client.get(f"{P}/tasks/{tid}", headers=users["DEVELOPER"])).json()
@@ -117,21 +127,31 @@ async def test_pending_action_snapshot_and_approval_rules(client: httpx.AsyncCli
     assert flip.status_code == 409
 
 
-async def test_approval_rejected_when_task_not_waiting(client: httpx.AsyncClient, users: dict[str, dict[str, str]]) -> None:
+async def test_approval_rejected_when_task_not_waiting(
+    client: httpx.AsyncClient, users: dict[str, dict[str, str]]
+) -> None:
     tid = await create(client, users["ADMIN"])
     _, h = await make_waiting(tid)
     async with session_scope() as db:
         task = await db.get(CloudTask, uuid.UUID(tid))
         assert task is not None
         task.status = "COMPLETED"
-    res = await client.post(f"{P}/tasks/{tid}/approval", json={"actionId": "act-1", "decision": "APPROVE", "argsHash": h}, headers=users["ADMIN"])
+    res = await client.post(
+        f"{P}/tasks/{tid}/approval",
+        json={"actionId": "act-1", "decision": "APPROVE", "argsHash": h},
+        headers=users["ADMIN"],
+    )
     assert res.status_code == 409
 
 
-async def test_sse_streams_public_events_until_done(client: httpx.AsyncClient, users: dict[str, dict[str, str]]) -> None:
+async def test_sse_streams_public_events_until_done(
+    client: httpx.AsyncClient, users: dict[str, dict[str, str]]
+) -> None:
     tid = await create(client, users["DEVELOPER"])
     async with session_scope() as db:
-        for seq, (t, d) in enumerate([("TOOL_START", {"tool": "x"}), ("INTERNAL_DEBUG", {}), ("TOKEN", {"text": "hi"}), ("DONE", {})], start=1):
+        for seq, (t, d) in enumerate(
+            [("TOOL_START", {"tool": "x"}), ("INTERNAL_DEBUG", {}), ("TOKEN", {"text": "hi"}), ("DONE", {})], start=1
+        ):
             db.add(CloudTaskEvent(task_id=uuid.UUID(tid), event_seq=seq, type=t, data=d))
     seen: list[dict[str, Any]] = []
     async with client.stream("GET", f"{P}/tasks/{tid}/stream", headers=users["DEVELOPER"]) as r:
@@ -159,5 +179,7 @@ async def test_event_seq_unique_constraint(client: httpx.AsyncClient, users: dic
             for _ in range(2):
                 db.add(CloudTaskEvent(task_id=uuid.UUID(tid), event_seq=1, type="TOKEN", data={}))
     async with session_scope() as db:
-        rows = (await db.execute(select(CloudTaskEvent).where(CloudTaskEvent.task_id == uuid.UUID(tid)))).scalars().all()
+        rows = (
+            (await db.execute(select(CloudTaskEvent).where(CloudTaskEvent.task_id == uuid.UUID(tid)))).scalars().all()
+        )
         assert rows == []

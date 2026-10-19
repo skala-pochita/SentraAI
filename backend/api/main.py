@@ -12,6 +12,7 @@ from fastapi import FastAPI
 
 from api.errors import install_error_handlers
 from api.routers import ai_tasks, audits, auth, knowledge, ops, targets, webhooks
+from api.routers import eval as eval_router
 from core.kafka.producer import close_producer
 
 API_PREFIX = "/api/v1"
@@ -48,7 +49,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="AI Security Auditor API", version="0.1.0", lifespan=lifespan)
 install_error_handlers(app)
 
-for r in (auth.router, targets.router, audits.router, knowledge.router, ops.router, webhooks.router):
+for r in (
+    auth.router,
+    targets.router,
+    audits.router,
+    knowledge.router,
+    ops.router,
+    webhooks.router,
+    eval_router.router,
+):
     app.include_router(r, prefix=API_PREFIX)
 
 # 기획서 외부 API: /api/ai/tasks (DECISIONS #12)
