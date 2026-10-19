@@ -104,14 +104,14 @@
 ## Phase 10 — Agent·Cloud 감사 확장 (기획서 `AI_Agent_Cloud_Audit_Plan.md` 개정판 6, DECISIONS #11~#16)
 > Phase 0~6 의 기존 코드·에이전트 감사 위에 얹는다. 기획서의 이틀 MVP 우선순위: 인증→감사→근거 조회→승인 대기→변경 도구→재개→결과 표시 시연 완주, 그 다음 최종 8묶음 A/B 각 1회(16회).
 ### 10-1 입력·스키마 (기획서 5장)
-- [ ] `evidence_bundle.json` 스키마 (schema_version, bundle_id, tools, principals, policies, mappings, resources, business_policy, missing_evidence, sources) + 참조 ID·크기 검증
-- [ ] 증거 저장/조회 (`evidence_id` 유지), 결함·등급·정답 경로가 JSON 에 섞이면 거부
+- [x] `evidence_bundle.json` 스키마 + 참조 ID·크기·금지 필드 검증 — `core/cloud/bundle.py` `parse_bundle`
+- [~] 증거 저장/조회 (`evidence_id` 유지) — 금지 필드(findings/severity/ground_truth 등) 거부는 완료, DB 저장·API·MCP 조회 도구 미착수
 - [ ] 출력 Finding 확장: 대상 자원, 판정 상태(결함 확인/조건부 위험/판단 보류), 근거 ID·위치, 위험 경로, 성립 조건, 추가 확인 항목 + 정상 판정·미점검 항목 기록
 ### 10-2 감사 범위 규칙 (기획서 4장)
-- [ ] A1 도구 기능·위험 분류 / A2 접근·승인 / A3 도구 조합 / A4 도구 오염(설명 속 숨은 지시) — 기존 `rules/agent` 7개와 매핑 정리
-- [ ] B1 계층 간 경로(도구→실행 역할→자원): 명시된 mappings 만 사용, 없는 연결 생성 금지, 끊긴 연결은 위험 확정 금지
-- [ ] C1 IAM / C2 네트워크 / C3 저장소·데이터 규칙 (`rules/cloud/*.yaml`) — 별표만으로 권한 상승 확정 금지
-- [ ] 판단 보류: 호출자 접근 정책 등 필요한 증거를 요청하는 출력
+- [~] A1(승인 없는 변경 도구)·A4(도구 설명 오염 패턴) 결정론 점검 완료 — A2(역할별 접근)·A3(도구 조합)·기존 `rules/agent` 매핑 정리 미착수
+- [x] B1 계층 간 경로(도구→실행 역할→자원): 명시된 mappings 만 사용, 없는 연결 생성 금지, Deny 로 끊긴 경로는 cleared — `core/cloud/checks.py` `build_paths`
+- [x] C1 IAM / C2 네트워크 / C3 저장소 결정론 점검 (`config/cloud_checks.yaml` 임계값) — 별표/PassRole 만으로 상승 확정 금지(CONDITIONAL). 규칙 YAML 화는 미정
+- [x] 판단 보류(HOLD): 호출자 접근 정책 누락 시 B1 위험 미확정 + `needs` 로 필요한 증거 명시
 - [ ] D1 감사자 인젝션 방어(도구 설명·파일 속 지시 무시) — 위반 사건 4종(결함 누락/허위 근거/수신자 변경/무단 호출) 판정기
 ### 10-3 그래프·Harness (기획서 6장)
 - [ ] 노드 매핑: load_evidence→plan_audit→collect→assess→build_paths→verify(회귀 1회)→draft_report→approval→execute_action→finalize
@@ -144,6 +144,8 @@
 - 2026-10-19: 기획서(개정판 6) 반영 — Phase 10(Agent·Cloud 감사) 추가, DECISIONS #11~#16. test_business_mcp 타임아웃 테스트의 PROBE_ALLOWLIST 누락 수정.
 
 - 2026-10-19: Phase 5·6 완료 — Docker 실환경 e2e 3건(승인→병합→보고서, SSE, 승인 대기 중 audit-worker 재시작 후 재개) 통과, make test 66개·lint·mypy 통과.
+
+- 2026-10-19: Phase 10 착수 — `core/cloud/{bundle,checks}.py`, `config/cloud_checks.yaml`, `tests/unit/test_cloud_checks.py`(17개). make test 83개·lint·mypy 통과.
 
 ---
 

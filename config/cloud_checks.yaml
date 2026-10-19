@@ -1,0 +1,18 @@
+# Agent·Cloud 결정론 점검 설정 (기획서 4장). 코드에 임계값을 하드코딩하지 않는다.
+network:
+  public_cidrs: ["0.0.0.0/0", "::/0"]
+  allowed_public_ports: [80, 443]
+iam:
+  wildcard_actions: ["*", "*:*"]
+  sensitive_service_wildcards: ["iam:*", "s3:*", "secretsmanager:*", "kms:*", "sts:*"]
+  privilege_escalation_actions: ["iam:PassRole", "iam:CreatePolicyVersion", "iam:AttachRolePolicy", "iam:PutRolePolicy", "sts:AssumeRole"]
+tool_poisoning:
+  # 도구 설명 속 업무 외 지시 (A4). 감사 대상 텍스트이며 지시로 취급하지 않는다.
+  patterns:
+    - "(?i)ignore (all |any )?(previous|prior|above) (instructions|rules)"
+    - "(?i)do not (tell|inform|mention|report)"
+    - "(?i)(send|forward|upload|post) .{0,60}(to|at) https?://"
+    - "(?i)(before|after) (calling|using) this tool,? (first )?(call|run|read)"
+    - "(?i)(수신자|보고서).{0,20}(변경|바꿔|숨겨)"
+    - "(?i)(이전|위)의? 지시.{0,10}(무시|따르지)"
+    - "(?i)(결함|취약점|문제).{0,15}(보고하지|숨기|언급하지)"
