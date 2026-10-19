@@ -152,21 +152,15 @@
 ## 🔁 다음 세션 인수인계 (2026-10-19 중단 시점)
 
 ### 현재 상태
-- 완료: Phase 0~4 전부. Phase 5·6 코드는 대부분 작성됨 (그래프·노드·MCP 변경 도구·워커·API 라우터).
-- 검증됨: `make test` 63개 통과 (그래프 전체 흐름 in-process 테스트 포함), `make lint` 통과 (마지막 수정 전 기준).
-- 마지막 작업: `docker compose up -d --build --wait` → `make demo-reset` → `make seed` 까지 성공. **Kafka 실제 경로 e2e(POST /audits → audit-worker → report)는 아직 실행·확인 안 함.**
-- 마지막 수정(테스트 미실행): `mcp_servers/business/tools/execute.py` `_chat()` 에서 target-agent 503 "not configured" → VALIDATION(재시도 안 함).
+- 완료: Phase 0~6 (Docker 실환경 e2e 3건 포함 — `cd backend && uv run pytest -m infra tests/e2e/test_demo_flow.py`, 전제 `make up`). Phase 10 은 오프라인 결정론 부분(`core/cloud`)까지.
+- 검증됨: `make test` 83개, `make lint`(ruff·mypy·vue-tsc) 통과.
 
 ### 바로 다음에 할 일 (순서대로)
-1. `make test && make lint` 재확인.
-2. Docker 실환경 e2e: admin 로그인 → `POST /api/v1/audits {"target_ids":[repo,agent],"mode":"full"}` → `docker compose logs -f audit-worker` 로 진행 확인
-   → `GET /audits/{id}` 가 WAITING_APPROVAL → `POST /approvals/{id}/decision` → WAITING_MERGE → `POST /fixes/{id}/merge`(전부) → COMPLETED, `GET /audits/{id}/report`.
-   - AsyncRedisSaver(langgraph-checkpoint-redis) 실동작 확인. 안 되면 DECISIONS 기록 후 postgres checkpointer 대체.
-   - SSE `GET /audits/{id}/events?token=...` 확인.
-   - 워커 재시작 재개: 승인 대기 중 `docker compose restart audit-worker` → 승인 → 정상 재개.
-3. 위 e2e 를 `tests/e2e/test_demo_flow.py` (marker `infra`) 로 작성 → Phase 5·6 체크 완료 처리.
-4. Phase 7: ReAct 조사 노드 `core/graph/nodes/react_investigator.py` 작성 (아직 **없음**, `code_investigate.py` 가 LLM 있을 때 import 함), `harness/prompts/code_investigate_v1.yaml`, `audit_single_v1.yaml`; retry/DLQ 통합 테스트(FAULT_INJECTION); H1~H8 강의 용어 대조.
-5. Phase 8: 프론트 페이지들, `workers/eval.py`(현재 placeholder), `harness/eval/*`(matcher/scorer/runner/cli), `/eval-runs`, `/quality` API.
+1. Phase 10-1 남은 것: 증거 묶음 DB 저장·API·business-mcp 조회 도구, Finding 확장(판정 상태·경로·성립 조건), `/api/ai/tasks` 파사드.
+2. Phase 10-2 남은 것: A2·A3, D1 판정기. 그래프에 `core/cloud/checks.audit_bundle` 을 결정론 선행 단계로 연결(load_evidence/assess/build_paths/verify 노드 매핑).
+3. Phase 10-3: `config/budget.yaml` `cloud_audit` 블록(8턴·120초·동일 도구 3회), read_resource, 티켓 도구, 기한 초과 스케줄러.
+4. Phase 7: ReAct 조사 노드 `core/graph/nodes/react_investigator.py` (아직 없음), retry/DLQ 통합 테스트.
+5. Phase 10-4 / 8: 정답셋 T01~T08, A/B 러너·채점, 프론트. (LLM 키 필요한 부분은 미측정 표기)
 
 ### 핵심 구조 메모
 - 그래프: `backend/core/graph/build.py` (다이어그램 1:1), 노드 = `core/graph/nodes/*.py`, State = dict 저장 (`core/graph/state.py`).
