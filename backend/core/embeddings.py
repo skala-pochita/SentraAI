@@ -43,7 +43,7 @@ async def embed(texts: list[str]) -> list[list[float]]:
     from langchain_openai import OpenAIEmbeddings
 
     s = get_settings()
-    client = OpenAIEmbeddings(model=s.embedding_model, timeout=30, max_retries=2)
+    client = OpenAIEmbeddings(model=s.embedding_model, request_timeout=30, max_retries=2)
     try:
         return await client.aembed_documents(texts)
     except Exception as e:  # noqa: BLE001 - SDK 예외를 구조화된 오류로 변환

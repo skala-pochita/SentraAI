@@ -47,7 +47,8 @@ WHERE vec.id IS NOT NULL OR kw.id IS NOT NULL
 
 async def hybrid_search(query: str, sources: tuple[str, ...], k: int = 5) -> list[dict[str, Any]]:
     cfg = load_config("rag")
-    version = await get_redis().get("rag:version") or "0"
+    raw = await get_redis().get("rag:version")
+    version = raw.decode() if isinstance(raw, bytes) else (raw or "0")
     key = "cache:rag:" + hashlib.sha1(  # noqa: S324 - 캐시 키
         f"{version}|{query}|{','.join(sources)}|{k}".encode()).hexdigest()
     if (cached := await cache_get(key)) is not None:
