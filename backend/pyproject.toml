@@ -1,0 +1,68 @@
+[project]
+name = "ai-security-auditor"
+version = "0.1.0"
+description = "AI Security Auditor backend (api, workers, MCP servers, harness)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sse-starlette",
+    "pydantic>=2",
+    "pydantic-settings",
+    "email-validator",
+    "sqlalchemy[asyncio]>=2",
+    "asyncpg",
+    "alembic",
+    "pgvector",
+    "pyjwt",
+    "bcrypt",
+    "redis>=5",
+    "aiokafka",
+    "httpx",
+    "pyyaml",
+    "langchain-core",
+    "langchain-openai",
+    "langgraph",
+    "langgraph-checkpoint-redis",
+    "langchain-mcp-adapters",
+    "mcp",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+    "mypy",
+    "types-pyyaml",
+    "fakeredis",
+    "aiosqlite",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "llm: requires real LLM API",
+    "infra: requires docker compose infra (postgres/redis/kafka)",
+]
+addopts = "-m 'not llm'"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "BLE", "S110"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]

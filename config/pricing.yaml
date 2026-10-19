@@ -1,0 +1,4 @@
+# 모델별 1M 토큰당 USD. 팀이 직접 기입한다 (명세 17.3). 0이면 비용 미집계.
+models:
+  gpt-5.4-nano: {input: 0.0, output: 0.0}
+  text-embedding-3-small: {input: 0.0, output: 0.0}

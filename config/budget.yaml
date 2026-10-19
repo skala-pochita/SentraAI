@@ -1,0 +1,22 @@
+# H8 예산 제어 한도
+audit:
+  max_tokens: 400000
+  max_cost_usd: 2.0
+react:
+  max_steps: 6
+  max_tokens_per_file: 12000
+  risky_file_top_k: 8
+  risky_name_keywords: [Config, Client, Security, Payment, Auth]
+probe:
+  max_adaptive_per_round: 4
+  max_rounds: 2
+  attempts: 3
+  concurrency: 3
+fix:
+  max_retries: 3
+mcp:
+  call_timeout_s: 30
+  inline_retries_s: [0.5, 2.0]
+reliability:
+  circuit_fail_threshold: 5
+  circuit_open_s: 60

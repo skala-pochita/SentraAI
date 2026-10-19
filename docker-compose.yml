@@ -1,0 +1,211 @@
+name: ai-security-auditor
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  image: ai-security-auditor/backend:dev
+  env_file: [.env]
+  environment:
+    DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
+    REDIS_URL: redis://redis:6379/0
+    KAFKA_BOOTSTRAP: kafka:9092
+    BUSINESS_MCP_URL: http://business-mcp:8101/mcp
+    RAG_MCP_URL: http://rag-mcp:8102/mcp
+    TARGET_AGENT_URL: http://target-agent:8201
+    PROBE_ALLOWLIST: http://target-agent:8201
+  restart: unless-stopped
+
+x-worker-health: &worker-health
+  test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(cut -d. -f1 /tmp/worker-$${WORKER_ROLE}.heartbeat) )) -lt 60"]
+  interval: 10s
+  timeout: 5s
+  retries: 6
+  start_period: 20s
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: auditor
+      POSTGRES_PASSWORD: auditor
+      POSTGRES_DB: auditor
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auditor -d auditor"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis/redis-stack-server:7.4.0-v3
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.9.1
+    ports: ["9092:9092", "29092:29092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 15s
+
+  kafka-init:
+    image: apache/kafka:3.9.1
+    depends_on:
+      kafka: {condition: service_healthy}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for t in audit.requested audit.resume audit.completed github.webhook eval.requested eval.tasks jobs.retry jobs.dlq; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic $$t --partitions 3 --replication-factor 1
+        done
+    restart: "no"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    profiles: [ui]
+    ports: ["8080:8080"]
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      kafka: {condition: service_healthy}
+
+  target-agent:
+    build:
+      context: .
+      dockerfile: targets/target-agent/Dockerfile
+    env_file: [.env]
+    environment:
+      AGENT_CONFIG_DIR: /workspace/agent-config
+    ports: ["8201:8201"]
+    volumes: ["workspace:/workspace:ro"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8201/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  business-mcp:
+    <<: *backend
+    command: ["python", "-m", "mcp_servers.business.server"]
+    ports: ["8101:8101"]
+    volumes: ["workspace:/workspace"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      target-agent: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8101/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rag-mcp:
+    <<: *backend
+    command: ["python", "-m", "mcp_servers.rag.server"]
+    ports: ["8102:8102"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8102/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    <<: *backend
+    command: ["sh", "-c", "alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port 8000"]
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      kafka-init: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v1/ops/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  audit-worker:
+    <<: *backend
+    command: ["python", "-m", "workers.main", "--role", "audit"]
+    environment:
+      WORKER_ROLE: audit
+      DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BOOTSTRAP: kafka:9092
+      BUSINESS_MCP_URL: http://business-mcp:8101/mcp
+      RAG_MCP_URL: http://rag-mcp:8102/mcp
+      TARGET_AGENT_URL: http://target-agent:8201
+    healthcheck: *worker-health
+    depends_on: &worker-deps
+      api: {condition: service_healthy}
+      business-mcp: {condition: service_healthy}
+      rag-mcp: {condition: service_healthy}
+
+  eval-worker:
+    <<: *backend
+    command: ["python", "-m", "workers.main", "--role", "eval"]
+    environment:
+      WORKER_ROLE: eval
+      DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BOOTSTRAP: kafka:9092
+      BUSINESS_MCP_URL: http://business-mcp:8101/mcp
+      RAG_MCP_URL: http://rag-mcp:8102/mcp
+      TARGET_AGENT_URL: http://target-agent:8201
+    healthcheck: *worker-health
+    depends_on: *worker-deps
+
+  retry-worker:
+    <<: *backend
+    command: ["python", "-m", "workers.main", "--role", "retry"]
+    environment:
+      WORKER_ROLE: retry
+      DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
+      REDIS_URL: redis://redis:6379/0
+      KAFKA_BOOTSTRAP: kafka:9092
+    healthcheck: *worker-health
+    depends_on: *worker-deps
+
+  frontend:
+    build:
+      context: frontend
+    ports: ["5173:80"]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
+  workspace:
