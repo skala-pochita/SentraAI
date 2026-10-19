@@ -33,12 +33,19 @@ async def run_audit() -> None:
     async with await make_checkpointer() as saver:
         await saver.asetup()
         runner = AuditRunner(saver)
+        from workers.cloud import CloudRunner
+
+        cloud = CloudRunner(saver)
+
+        async def on_audit(msg):  # type: ignore[no-untyped-def]
+            # Agent·Cloud 감사는 payload 에 task_id 가 있다 (같은 토픽·컨슈머 그룹 사용)
+            await (cloud if "task_id" in msg.envelope.payload else runner).handle(msg)
 
         async def on_webhook(msg):  # type: ignore[no-untyped-def]
             await webhook_to_resume(msg)
 
         await asyncio.gather(
-            run_consumer(["audit.requested", "audit.resume"], "cg-audit", runner.handle),
+            run_consumer(["audit.requested", "audit.resume"], "cg-audit", on_audit),
             run_consumer(["github.webhook"], "cg-webhook", on_webhook),
         )
 

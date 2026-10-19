@@ -105,7 +105,7 @@
 > Phase 0~6 의 기존 코드·에이전트 감사 위에 얹는다. 기획서의 이틀 MVP 우선순위: 인증→감사→근거 조회→승인 대기→변경 도구→재개→결과 표시 시연 완주, 그 다음 최종 8묶음 A/B 각 1회(16회).
 ### 10-1 입력·스키마 (기획서 5장)
 - [x] `evidence_bundle.json` 스키마 + 참조 ID·크기·금지 필드 검증 — `core/cloud/bundle.py` `parse_bundle`
-- [~] 증거 저장/조회 (`evidence_id` 유지) — 금지 필드(findings/severity/ground_truth 등) 거부는 완료, DB 저장·API·MCP 조회 도구 미착수
+- [x] 증거 저장/조회 (`evidence_id` 유지) — `cloud_tasks.bundle` 저장(Alembic 0002), 금지 필드 거부, business-mcp `get_audit_evidence` (소유자/ADMIN·AUDITOR 만)
 - [ ] 출력 Finding 확장: 대상 자원, 판정 상태(결함 확인/조건부 위험/판단 보류), 근거 ID·위치, 위험 경로, 성립 조건, 추가 확인 항목 + 정상 판정·미점검 항목 기록
 ### 10-2 감사 범위 규칙 (기획서 4장)
 - [~] A1(승인 없는 변경 도구)·A4(도구 설명 오염 패턴) 결정론 점검 완료 — A2(역할별 접근)·A3(도구 조합)·기존 `rules/agent` 매핑 정리 미착수
@@ -116,11 +116,11 @@
 ### 10-3 그래프·Harness (기획서 6장)
 - [x] 노드 매핑 (`core/cloud/pipeline.py` LangGraph, interrupt·같은 thread_id 재개 테스트 포함): load_evidence→plan_audit→collect→assess→build_paths→verify(회귀 1회)→draft_report→approval→execute_action→finalize
 - [x] 예산 (`core/cloud/budget.py`, 재개 시 스냅샷 복원, 429/503 재시도 `core/cloud/llm.py`): 8 LLM 턴, 활성 120초(승인 대기 제외, 재개 시 초기화 금지), 동일 도구 3회, 429/503 재시도 2회, 남은 30초 이하면 collect/repair 생략 (`config/budget.yaml` `cloud_audit`)
-- [~] `read_resource` 가상 도구 (허용 URI·3회 한도) 완료 — 실제 rag-mcp 서버의 `guidance://security-baseline/v1` Resource 노출은 미착수 (모의 백엔드는 `knowledge/cloud_security_baseline.md` 사용)
+- [x] `read_resource` 가상 도구 (허용 URI·3회 한도) + rag-mcp 실제 Resource `guidance://security-baseline/v1` (MCP resources/read) + `search_security_guidance` 도구
 - [x] 마스킹 (`core/cloud/masking.py`): 이메일·전화·키·토큰, ID 는 일관 치환으로 B1 연결 유지
-- [~] 변경 도구 `create_remediation_ticket`: 승인 검증·해시·멱등 로직은 `core/cloud/tickets.py` 로 완료·테스트 (DB/business-mcp 도구 연결 미착수) —·인수 SHA-256 해시·`taskId+actionId` 멱등 (기존 `fingerprint/idempotency_key` 재사용 여부 점검)
-- [~] 6개 이벤트: 파이프라인이 TOOL_START/TOOL_END/APPROVAL_REQUIRED/DONE/FAILED 생성(active_elapsed_ms 포함), SSE 변환·TOKEN 미착수 (/TOOL_END/APPROVAL_REQUIRED/DONE/FAILED) 매핑, `active_elapsed_ms` 승인 이벤트 포함
-- [ ] `/api/ai/tasks` 5개 파사드 (DECISIONS #12) + 실행 기한 초과 RUNNING → FAILED 스케줄러
+- [x] 변경 도구 `create_remediation_ticket` (business-mcp, DB 에서 승인 APPROVED·SHA-256 해시·(task_id, action_id) 멱등 검증; 승인 없음/인수 변경 FORBIDDEN, 다른 인수 재시도 CONFLICT) —·인수 SHA-256 해시·`taskId+actionId` 멱등 (기존 `fingerprint/idempotency_key` 재사용 여부 점검)
+- [x] 6개 이벤트 (TOKEN 포함) 저장 `cloud_task_events` (task_id,eventSeq 유일) + SSE `/api/ai/tasks/{id}/stream?after=` — 보고서 저장 후 DONE (/TOOL_END/APPROVAL_REQUIRED/DONE/FAILED) 매핑, `active_elapsed_ms` 승인 이벤트 포함
+- [x] `/api/ai/tasks` 5개 API (`api/routers/ai_tasks.py`: 202·{status,answer,sources}·승인 202·해시 불일치 409·소유자 격리 404) + 실행 기한 초과 RUNNING → FAILED 스케줄러(`reap_expired`, retry-worker 15초 주기, 승인 대기 제외)
 - [ ] 관측: LangSmith trace 1건 확인(키 필요), 불가 시 JSONL 로그 + trace_id=null 및 미충족 표기
 ### 10-4 평가 (기획서 8~11장)
 - [~] 개발 3묶음 + 최종 T01~T08 + 공격 변형 2 + 수정본 2 정답셋 (합성 사례 15개, `scripts/build_cloud_datasets.py`; 공개 자료 commit·라이선스·2인 검토는 미확인 — `datasets/cloud/SOURCES.md`) —  `datasets/ground_truth/cloud/*.yaml` (IAM Vulnerable·TerraGoat·DVMCP·MCPTox 선정 사례, 정상 반례·정보 부족 포함, 공개 자료 commit·라이선스 기록)
@@ -152,6 +152,8 @@
 - 2026-10-19: Phase 10-3 핵심 — Cloud 파이프라인(A/B), 예산, ToolHost(read_resource·3회·마스킹·8000자), 티켓 승인/멱등, 프롬프트 7종, 단위 테스트 15개. make test 98개 통과.
 
 - 2026-10-19: Phase 10-4 — 평가셋 15개, 채점기, A/B/rules 러너(`make eval`, `make eval-selfcheck`). rules 기준선이 정답셋과 전 항목 일치(자체 점검). 환경의 OPENAI_API_KEY 는 401 → A/B 는 미측정. make test 104개 통과.
+
+- 2026-10-19: Phase 10 제품 경로 — cloud_tasks 등 4테이블, business/rag-mcp 도구·Resource, CloudRunner 워커(승인 대기·재개·부분 결과), /api/ai/tasks 5개 API, 기한 초과 리퍼. 통합 테스트 15개 추가, make test 119개 통과.
 
 ---
 

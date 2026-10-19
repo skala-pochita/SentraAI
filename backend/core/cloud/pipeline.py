@@ -10,6 +10,7 @@ LLM 이 없으면 B 는 `llm_used=false` 로 결정론 점검(core.cloud.checks)
 from __future__ import annotations
 
 import json
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal, TypedDict
 
@@ -97,10 +98,20 @@ class CloudCtx:
     enable_action: bool = False
     partial: dict[str, Any] = field(default_factory=dict)  # 예산 소진 시 부분 결과 보존
     seq: int = 0
+    flushed: int = 0
+    on_events: Callable[[list[dict[str, Any]]], Awaitable[None]] | None = None  # 새 이벤트를 즉시 저장·중계
+    on_report: Callable[[dict[str, Any]], Awaitable[None]] | None = None  # DONE 전에 보고서를 저장 (저장 성공 후 DONE)
 
     def emit(self, type_: str, data: dict[str, Any]) -> None:
         self.seq += 1
         self.events.append({"eventSeq": self.seq, "type": type_, "data": data})
+
+    async def flush(self) -> None:
+        """아직 전달하지 않은 이벤트를 on_events 로 보낸다 (노드가 끝날 때마다 호출)."""
+        if self.on_events is not None and self.flushed < len(self.events):
+            batch = self.events[self.flushed :]
+            self.flushed = len(self.events)
+            await self.on_events(batch)
 
 
 class CState(TypedDict, total=False):
@@ -446,6 +457,8 @@ async def draft_report(state: CState, config: RunnableConfig) -> dict[str, Any]:
         findings=_json(state.get("findings", [])),
     )
     action = out.proposed_action.model_dump() if (out.proposed_action and ctx.enable_action) else None
+    for i in range(0, len(out.summary), 80):  # 화면 표시용 텍스트 조각 (최종 보고서의 기준은 /report 저장본)
+        ctx.emit("TOKEN", {"text": out.summary[i : i + 80]})
     return {"summary": out.summary, "proposed_action": action}
 
 
@@ -495,9 +508,58 @@ async def execute_action(state: CState, config: RunnableConfig) -> dict[str, Any
     return {"action_result": {"status": "CREATED", **json.loads(res.content)}}
 
 
+def build_sources(ctx: CloudCtx, findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """인용된 근거 ID → {evidence_id, kind, location, excerpt}. 기준 문서는 URI·버전. 모두 마스킹한다."""
+    b = ctx.bundle
+    where = {s.id: s.location for s in b.sources}
+    objs: dict[str, tuple[str, Any]] = {}
+    for kind, items in (("tool", b.tools), ("principal", b.principals), ("policy", b.policies), ("resource", b.resources)):
+        for o in items:
+            objs[o.id] = (kind, o)
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for f in findings:
+        for eid in f.get("evidence_ids", []):
+            if eid in seen:
+                continue
+            seen.add(eid)
+            if eid in objs:
+                kind, o = objs[eid]
+                out.append(
+                    {
+                        "evidence_id": eid,
+                        "kind": kind,
+                        "source_ref": o.source_ref,
+                        "location": where.get(o.source_ref, ""),
+                        "excerpt": ctx.host.masker.payload(o.model_dump()),
+                    }
+                )
+            else:
+                out.append({"evidence_id": eid, "kind": "source" if eid in where else "other", "location": where.get(eid, "")})
+    out += ctx.host.guidance_reads
+    return out
+
+
+def build_answer(ctx: CloudCtx, state: CState) -> dict[str, Any]:
+    findings = state.get("findings", [])
+    return {
+        "summary": state.get("summary", ""),
+        "findings": findings,
+        "normal": state.get("normal", []),
+        "notChecked": state.get("not_checked", []),
+        "pendingAction": state.get("action") if state.get("action_result") is None else None,
+        "actionResult": state.get("action_result"),
+        "usage": ctx.budget.snapshot(),
+        "llmUsed": ctx.runner is not None,
+        "sources": build_sources(ctx, findings),
+    }
+
+
 async def finalize(state: CState, config: RunnableConfig) -> dict[str, Any]:
     ctx = _ctx(config)
     ctx.budget.pause_clock()
+    if ctx.on_report is not None:  # 보고서 저장이 성공한 뒤에만 DONE 을 보낸다
+        await ctx.on_report(build_answer(ctx, state))
     ctx.emit("DONE", {"usage": ctx.budget.snapshot(), "action_result": state.get("action_result")})
     return {"status": "COMPLETED"}
 
@@ -610,6 +672,21 @@ def _result(ctx: CloudCtx, state: dict[str, Any], status: str, failure: dict[str
     }
 
 
+async def _drive(graph: CompiledStateGraph, inp: Any, rc: RunnableConfig, ctx: CloudCtx) -> dict[str, Any]:  # type: ignore[type-arg]
+    """stream 으로 실행하며 노드 사이마다 이벤트를 flush 한다. 마지막 values 청크(및 interrupt 표식)를 반환."""
+    last: dict[str, Any] = {}
+    interrupted = False
+    async for chunk in graph.astream(inp, rc, stream_mode="values"):
+        if "__interrupt__" in chunk:
+            interrupted = True
+        else:
+            last = dict(chunk)
+        await ctx.flush()
+    if interrupted:
+        last["__interrupt__"] = True
+    return last
+
+
 async def run_cloud_audit(
     ctx: CloudCtx, config_kind: Config = "B", checkpointer: BaseCheckpointSaver | None = None
 ) -> dict[str, Any]:
@@ -617,15 +694,17 @@ async def run_cloud_audit(
     try:
         if config_kind == "A":
             state: dict[str, Any] = dict(await run_single(ctx))
+            await ctx.flush()
             return _result(ctx, state, state.get("status", "COMPLETED"), None)
         graph = build_cloud_graph(checkpointer)
         rc: RunnableConfig = {"configurable": {"ctx": ctx, "thread_id": ctx.task_id}, "recursion_limit": 60}
-        gstate: dict[str, Any] = await graph.ainvoke({}, rc)
+        gstate = await _drive(graph, {}, rc, ctx)
         interrupted = bool(gstate.get("__interrupt__"))
         return _result(ctx, gstate, "WAITING_APPROVAL" if interrupted else gstate.get("status", "COMPLETED"), None)
     except AppError as e:
         code = (e.details or {}).get("code") if e.code == ErrorCode.BUDGET_EXCEEDED else str(e.code)
         ctx.emit("FAILED", {"code": code, "resumable": False})
+        await ctx.flush()
         return _result(ctx, {}, "FAILED", {"code": code, "message": e.message})
 
 
@@ -640,9 +719,10 @@ async def resume_cloud_audit(
     if saved:
         ctx.budget.restore(saved)
     try:
-        rstate: dict[str, Any] = await graph.ainvoke(Command(resume=decision), rc)
+        rstate = await _drive(graph, Command(resume=decision), rc, ctx)
     except AppError as e:
         code = (e.details or {}).get("code") if e.code == ErrorCode.BUDGET_EXCEEDED else str(e.code)
         ctx.emit("FAILED", {"code": code, "resumable": False})
+        await ctx.flush()
         return _result(ctx, {}, "FAILED", {"code": code, "message": e.message})
     return _result(ctx, rstate, rstate.get("status", "COMPLETED"), None)

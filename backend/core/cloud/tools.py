@@ -93,6 +93,7 @@ class ToolHost:
         self.masker = masker or Masker()
         self.exposed = exposed if exposed is not None else set(REGISTRY)
         self.log: list[ToolLogEntry] = []
+        self.guidance_reads: list[dict[str, Any]] = []  # 읽은 기준 문서 (URI·버전) — 보고서 sources 용
         self.max_chars = int(load_config("budget").get("cloud_audit", {}).get("tool_result_max_chars", 8000))
 
     def specs(self) -> list[ToolSpec]:
@@ -143,7 +144,10 @@ class ToolHost:
             uri = str(a.get("uri", ""))
             if uri not in self.allowed_uris:
                 raise AppError(ErrorCode.FORBIDDEN, "resource URI not allowed for this task")
-            return await b.read_resource(uri)
+            doc = await b.read_resource(uri)
+            if not any(g["uri"] == uri for g in self.guidance_reads):
+                self.guidance_reads.append({"evidence_id": uri, "kind": "guidance", "uri": uri, "version": doc.get("version")})
+            return doc
         if name == "business_create_remediation_ticket":
             return await b.create_remediation_ticket(
                 self.task_id,

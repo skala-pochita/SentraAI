@@ -19,6 +19,20 @@ from core.settings import get_settings
 log = logging.getLogger("worker.retry")
 
 
+REAP_INTERVAL_S = 15.0
+
+
+async def _reap() -> None:
+    from workers.cloud import reap_expired
+
+    try:
+        ids = await reap_expired()
+        if ids:
+            log.warning("cloud tasks failed by deadline: %s", ids)
+    except Exception:  # noqa: BLE001 - 정리 실패가 재시도 워커를 멈추면 안 된다 (로그 남김)
+        log.exception("cloud deadline reaper failed")
+
+
 async def run_retry_worker(heartbeat: object = None) -> None:
     consumer = AIOKafkaConsumer(
         "jobs.retry",
@@ -29,10 +43,14 @@ async def run_retry_worker(heartbeat: object = None) -> None:
     )
     await consumer.start()
     log.info("retry worker started")
+    next_reap = 0.0
     try:
         while True:
             if callable(heartbeat):
                 heartbeat()
+            if time.monotonic() >= next_reap:  # 실행 기한이 지난 Cloud 작업 정리 (기획서 6장: 스케줄러 하나)
+                next_reap = time.monotonic() + REAP_INTERVAL_S
+                await _reap()
             batch = await consumer.getmany(timeout_ms=1000, max_records=1)
             for tp, records in batch.items():
                 for rec in records:

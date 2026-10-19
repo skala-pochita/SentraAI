@@ -20,6 +20,8 @@ READ_TOOLS = {
         "get_agent_manifest",
         "get_findings",
         "get_audit_history",
+        "get_audit_evidence",
+        "get_remediation_status",
     },
     "rag": {
         "search_security_standard",
@@ -29,6 +31,7 @@ READ_TOOLS = {
         "get_document",
         "list_documents",
         "list_false_positive_rules",
+        "search_security_guidance",
     },
 }
 EXEC_TOOLS = {"business": {"run_static_scan", "run_agent_rule_check", "run_injection_probe"}}
@@ -42,6 +45,7 @@ MUTATING_TOOLS = {
         "register_risk_acceptance",
         "save_report",
         "merge_fix",
+        "create_remediation_ticket",
     },
     "rag": {"ingest_document", "update_document", "delete_document", "register_false_positive"},
 }
@@ -81,6 +85,8 @@ NODE_ALLOWLIST: dict[str, set[str]] = {
     "mark_manual": {"update_finding_status"},
     "report": {"save_report", "get_findings"},
     "eval_single": {"list_repo_files", "read_repo_file", "get_agent_manifest"},
+    # Agent·Cloud 감사 (core/cloud): 도구 이름은 ToolHost 가 business_/rag_ 접두어로 모델에 노출한다
+    "cloud": {"get_audit_evidence", "get_remediation_status", "create_remediation_ticket", "search_security_guidance"},
     # API 계층(사용자 요청)에서 호출하는 도구 — 역할·소유 검사는 API 가 먼저 한다
     "api": {
         "merge_fix",

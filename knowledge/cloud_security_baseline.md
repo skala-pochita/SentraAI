@@ -1,3 +1,8 @@
+---
+title: 클라우드·에이전트 보안 기준 (v1)
+source_type: policy
+ref_code: CLOUD-BASELINE-V1
+---
 # 클라우드·에이전트 보안 기준 (팀 요약본, v1)
 
 URI: guidance://security-baseline/v1

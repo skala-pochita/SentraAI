@@ -282,3 +282,39 @@ async def register_false_positive(
         f.status = "FALSE_POSITIVE"
         await db.flush()
         return {"fp_rule_id": str(rule.id), "finding_status": f.status}
+
+
+CLOUD_GUIDANCE_URI = "guidance://security-baseline/v1"
+CLOUD_GUIDANCE_FILE = "cloud_security_baseline.md"
+
+
+def read_cloud_guidance() -> str:
+    from core.settings import get_settings
+
+    path = get_settings().knowledge_dir / CLOUD_GUIDANCE_FILE
+    if not path.is_file():
+        raise AppError(ErrorCode.NOT_FOUND, "guidance resource not found")
+    return path.read_text(encoding="utf-8")
+
+
+@mcp.resource(CLOUD_GUIDANCE_URI, name="security-baseline", mime_type="text/markdown")
+def security_baseline_resource() -> str:
+    """클라우드·에이전트 보안 기준 원문 (Resource). Host 가 read_resource 로 읽어 근거 원문으로 쓴다."""
+    return read_cloud_guidance()
+
+
+@mcp_tool(mcp)
+async def search_security_guidance(query: str, k: int = 3, ctx: Context | None = None) -> Any:
+    """클라우드·에이전트 보안 기준 문서 청크를 검색한다 (문서 URI·버전 포함). 업무 데이터는 변경하지 않는다.
+
+    입력: query, k (기본 3)
+    출력: [{chunk_id, doc_title, section, text, score, uri, version}]
+    오류: VALIDATION(k 범위). 부작용: 없음.
+    """
+    rows = await hybrid_search(query, ("policy",), _k(k) * 2)
+    out = [
+        {**r, "uri": CLOUD_GUIDANCE_URI, "version": "v1"}
+        for r in rows
+        if "클라우드" in str(r.get("doc_title", "")) or "CLOUD-BASELINE" in str(r.get("ref_code", ""))
+    ]
+    return out[: _k(k)]
