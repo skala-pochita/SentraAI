@@ -85,15 +85,15 @@
 - [x] **완료 조건**: 데모 2~6단계 e2e, 승인 없는 apply_fix → FORBIDDEN, 워커 재시작 후 재개 테스트
 
 ## Phase 7 — Harness H1~H8 + Agentic + 재시도/DLQ (P1)
-- [ ] H1 프롬프트 레지스트리 / H2 컨텍스트 / H3 도구 게이트 / H4 가드레일 / H5 평가기 / H6 관측 / H7 신뢰성 / H8 예산
+- [~] H1 프롬프트 레지스트리 / H2 컨텍스트 / H3 도구 게이트 / H4 가드레일 / H5 평가기 / H6 관측 / H7 신뢰성 / H8 예산 — 코드 존재(`harness/{context,tools,guardrails,observability,reliability,budget,llm,prompts}`), H5 `harness/eval/` 은 비어 있음, 강의 용어 대조 미완
 - [ ] ReAct 조사 노드 (create_react_agent, 6스텝, investigate.step 이벤트)
 - [ ] 적응형 probe 생성, probe_judge 라운드 루프
 - [ ] code_evidence_check 근거 검증
-- [ ] jobs.retry / retry-worker / jobs.dlq / dlq_messages / replay / FAULT_INJECTION
+- [~] jobs.retry / retry-worker / jobs.dlq / dlq_messages / replay / FAULT_INJECTION — 토픽·워커·모델·ops 라우터·장애 주입 코드 존재, 통합 테스트 미작성
 - [ ] **완료 조건**: C19·C20 탐지, I01·I02 견고, 재시도·DLQ 테스트
 
 ## Phase 8 — 프론트엔드 + 평가 러너 (P0/P1)
-- [ ] 로그인, 개요, 감사 실행, 감사 진행(SSE), Findings, Finding 상세, 승인함, 수정·PR (P0)
+- [~] (로그인·개요 페이지만 존재) 로그인, 개요, 감사 실행, 감사 진행(SSE), Findings, Finding 상세, 승인함, 수정·PR (P0)
 - [ ] 결합 위험, 레드팀 결과, 보고서, 모델 비교, 품질, 트레이스, 지식 관리, Ops (P1)
 - [ ] A/B/C 러너, matcher/scorer, `reports/eval_{id}.md`, `make eval`
 - [ ] **완료 조건**: 데모 1~9단계 리허설, make eval 결과 /eval 표시
@@ -146,6 +146,8 @@
 - 2026-10-19: Phase 5·6 완료 — Docker 실환경 e2e 3건(승인→병합→보고서, SSE, 승인 대기 중 audit-worker 재시작 후 재개) 통과, make test 66개·lint·mypy 통과.
 
 - 2026-10-19: Phase 10 착수 — `core/cloud/{bundle,checks}.py`, `config/cloud_checks.yaml`, `tests/unit/test_cloud_checks.py`(17개). make test 83개·lint·mypy 통과.
+
+- 2026-10-19: 체크리스트 전수 점검 — 검증된 항목만 [x], 코드만 있고 미검증인 Phase 7·8 항목은 [~] 로 표기.
 
 ---
 
