@@ -114,17 +114,17 @@
 - [x] 판단 보류(HOLD): 호출자 접근 정책 누락 시 B1 위험 미확정 + `needs` 로 필요한 증거 명시
 - [ ] D1 감사자 인젝션 방어(도구 설명·파일 속 지시 무시) — 위반 사건 4종(결함 누락/허위 근거/수신자 변경/무단 호출) 판정기
 ### 10-3 그래프·Harness (기획서 6장)
-- [ ] 노드 매핑: load_evidence→plan_audit→collect→assess→build_paths→verify(회귀 1회)→draft_report→approval→execute_action→finalize
-- [ ] 예산: 8 LLM 턴, 활성 120초(승인 대기 제외, 재개 시 초기화 금지), 동일 도구 3회, 429/503 재시도 2회, 남은 30초 이하면 collect/repair 생략 (`config/budget.yaml` `cloud_audit`)
-- [ ] `read_resource` 가상 도구 (허용 URI·버전 검증, 작업당 3회) + rag-mcp `guidance://security-baseline/v1` Resource
-- [ ] 마스킹: 이메일·전화·키·토큰, ID 는 일관 치환으로 B1 연결 유지
-- [ ] 변경 도구 `create_remediation_ticket`: 승인 검증·인수 SHA-256 해시·`taskId+actionId` 멱등 (기존 `fingerprint/idempotency_key` 재사용 여부 점검)
-- [ ] 6개 이벤트(TOKEN/TOOL_START/TOOL_END/APPROVAL_REQUIRED/DONE/FAILED) 매핑, `active_elapsed_ms` 승인 이벤트 포함
+- [x] 노드 매핑 (`core/cloud/pipeline.py` LangGraph, interrupt·같은 thread_id 재개 테스트 포함): load_evidence→plan_audit→collect→assess→build_paths→verify(회귀 1회)→draft_report→approval→execute_action→finalize
+- [x] 예산 (`core/cloud/budget.py`, 재개 시 스냅샷 복원, 429/503 재시도 `core/cloud/llm.py`): 8 LLM 턴, 활성 120초(승인 대기 제외, 재개 시 초기화 금지), 동일 도구 3회, 429/503 재시도 2회, 남은 30초 이하면 collect/repair 생략 (`config/budget.yaml` `cloud_audit`)
+- [~] `read_resource` 가상 도구 (허용 URI·3회 한도) 완료 — 실제 rag-mcp 서버의 `guidance://security-baseline/v1` Resource 노출은 미착수 (모의 백엔드는 `knowledge/cloud_security_baseline.md` 사용)
+- [x] 마스킹 (`core/cloud/masking.py`): 이메일·전화·키·토큰, ID 는 일관 치환으로 B1 연결 유지
+- [~] 변경 도구 `create_remediation_ticket`: 승인 검증·해시·멱등 로직은 `core/cloud/tickets.py` 로 완료·테스트 (DB/business-mcp 도구 연결 미착수) —·인수 SHA-256 해시·`taskId+actionId` 멱등 (기존 `fingerprint/idempotency_key` 재사용 여부 점검)
+- [~] 6개 이벤트: 파이프라인이 TOOL_START/TOOL_END/APPROVAL_REQUIRED/DONE/FAILED 생성(active_elapsed_ms 포함), SSE 변환·TOKEN 미착수 (/TOOL_END/APPROVAL_REQUIRED/DONE/FAILED) 매핑, `active_elapsed_ms` 승인 이벤트 포함
 - [ ] `/api/ai/tasks` 5개 파사드 (DECISIONS #12) + 실행 기한 초과 RUNNING → FAILED 스케줄러
 - [ ] 관측: LangSmith trace 1건 확인(키 필요), 불가 시 JSONL 로그 + trace_id=null 및 미충족 표기
 ### 10-4 평가 (기획서 8~11장)
 - [ ] 개발 3묶음 + 최종 T01~T08 정답셋 `datasets/ground_truth/cloud/*.yaml` (IAM Vulnerable·TerraGoat·DVMCP·MCPTox 선정 사례, 정상 반례·정보 부족 포함, 공개 자료 commit·라이선스 기록)
-- [ ] A(단순 조회 루프)/B(전체 그래프) 공통 실행기 — 같은 도구·마스킹·예산·스키마, 서버 측 모의 저장소
+- [~] A(단순 조회 루프)/B(전체 그래프) 공통 실행기 — `run_cloud_audit(ctx,"A"|"B")` 완료, 서버 측 모의 저장소 `MemoryBackend`, 러너·채점 미착수 — — 같은 도구·마스킹·예산·스키마, 서버 측 모의 저장소
 - [ ] 채점: 정밀도/재현율/F1, 경로 탐지율·정밀도, 근거 정확도, 판단 보류 정확성, 재검증 정확도, 인젝션 실패율, 정상 감사 완료율, 비용·시간 (분모 0 = 해당 없음)
 - [ ] 16회 실행(8묶음×A/B) → 결과 JSON → 정적 비교 화면. 미실행 지표는 "미측정"
 - [ ] 확장(여유 시): 3회 반복 → E1 Agent Audit / E2 Checkov → D1 변형(T01·T06) → 수정본 재검증
@@ -148,6 +148,8 @@
 - 2026-10-19: Phase 10 착수 — `core/cloud/{bundle,checks}.py`, `config/cloud_checks.yaml`, `tests/unit/test_cloud_checks.py`(17개). make test 83개·lint·mypy 통과.
 
 - 2026-10-19: 체크리스트 전수 점검 — 검증된 항목만 [x], 코드만 있고 미검증인 Phase 7·8 항목은 [~] 로 표기.
+
+- 2026-10-19: Phase 10-3 핵심 — Cloud 파이프라인(A/B), 예산, ToolHost(read_resource·3회·마스킹·8000자), 티켓 승인/멱등, 프롬프트 7종, 단위 테스트 15개. make test 98개 통과.
 
 ---
 

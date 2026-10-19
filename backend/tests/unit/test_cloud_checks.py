@@ -113,7 +113,14 @@ def test_network_and_storage_checks() -> None:
             "ingress": [{"cidr": "0.0.0.0/0", "port": 22}, {"cidr": "0.0.0.0/0", "port": 443}],
             "source_ref": "S-TF",
         },
-        {"id": "bkt-open", "type": "storage", "public": True, "sensitivity": "medium", "encrypted": False, "source_ref": "S-TF"},
+        {
+            "id": "bkt-open",
+            "type": "storage",
+            "public": True,
+            "sensitivity": "medium",
+            "encrypted": False,
+            "source_ref": "S-TF",
+        },
     ]
     got = audit_bundle(parse_bundle(d)).findings
     assert [f.reason for f in got if f.area == "C2"] == ["sg-1: ingress 0.0.0.0/0 port 22"]

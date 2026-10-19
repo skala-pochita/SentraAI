@@ -12,7 +12,17 @@ from core.errors import AppError, ErrorCode
 MAX_BUNDLE_BYTES = 1_000_000
 # 결함 여부·등급·정답 경로·스캐너 출력은 입력에 넣을 수 없다 (기획서 5장).
 FORBIDDEN_KEYS = frozenset(
-    {"findings", "severity", "risk", "vulnerable", "expected", "ground_truth", "answer", "scanner_output", "attack_path"}
+    {
+        "findings",
+        "severity",
+        "risk",
+        "vulnerable",
+        "expected",
+        "ground_truth",
+        "answer",
+        "scanner_output",
+        "attack_path",
+    }
 )
 
 SideEffect = Literal["read", "write", "delete", "execute", "external_send"]
