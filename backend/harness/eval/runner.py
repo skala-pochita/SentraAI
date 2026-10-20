@@ -22,6 +22,7 @@ from sqlalchemy import select
 
 from core.db.models import Audit, AuditTarget, EvalResult, EvalRun, Target, User
 from core.db.session import session_scope
+from core.errors import AppError
 from core.graph.build import build_graph
 from core.graph.deps import Deps
 from core.mcp_client import CallCtx, Gateway, http_gateway
@@ -380,16 +381,32 @@ async def run_eval(
             for i in range(repeat):
                 if progress:
                     await progress({"stage": "run", "config": cfg, "repeat": i})
-                res = await (
-                    run_harness(cfg, repo_id, agent_id, admin_id)
-                    if "harness" in cfg
-                    else run_single(cfg, http_gateway(), repo_id, agent_id, admin_id)  # 실행 1회 = 게이트 1개
-                )
+                started = time.monotonic()
+                try:
+                    res = await (
+                        run_harness(cfg, repo_id, agent_id, admin_id)
+                        if "harness" in cfg
+                        else run_single(cfg, http_gateway(), repo_id, agent_id, admin_id)  # 실행 1회 = 게이트 1개
+                    )
+                    run_error = None
+                except AppError as e:
+                    # 출력 스키마 실패 등 실행 실패도 결과다: 빈 결과로 채점하고 실패를 기록한다 (수치 조작 금지)
+                    log.warning("eval %s %s#%d failed: %s", run_id[:8], cfg, i, e.code)
+                    res = {
+                        "output": AuditOutput(),
+                        "usage": [],
+                        "latency_s": time.monotonic() - started,
+                        "audit_id": None,
+                        "input_truncated": False,
+                    }
+                    run_error = f"{e.code}: {e.message[:200]}"
                 metrics, per_case = score(res["output"], truth, actual)
                 tokens = sum(int(u.get("in", 0)) + int(u.get("out", 0)) for u in res["usage"])
                 usd = sum(cost_usd(u.get("model"), int(u.get("in", 0)), int(u.get("out", 0))) for u in res["usage"])
                 metrics = with_cost(metrics, usd, res["latency_s"], tokens)
                 metrics["input_truncated"] = res["input_truncated"]
+                metrics["run_failed"] = 1 if run_error else 0
+                metrics["run_error"] = run_error
                 async with session_scope() as db:
                     db.add(
                         EvalResult(
