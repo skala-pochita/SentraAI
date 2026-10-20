@@ -29,14 +29,20 @@ _CODE = re.compile(r"\b[A-Z0-9]{3,}(?:-[A-Z0-9]{3,}){2,}\b")
 _MIXED = re.compile(r"^(?=.*\d)(?=.*[A-Z])[A-Z0-9]+$")
 
 
+_UUID = re.compile(r"^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$")
+
+
 def _mask_code(m: re.Match[str]) -> str:
     code = m.group(0)
+    if _UUID.match(code):  # 식별자는 비밀값이 아니다
+        return code
     return mask_secret(code) if any(_MIXED.match(seg) for seg in code.split("-")) else code
 
 
 # 개인정보 (Harness Guardrails: 도구 결과의 개인정보 마스킹). 이메일은 도메인을 남겨 유출 경로 근거로 쓸 수 있게 한다.
 _EMAIL = re.compile(r"(?<![\w.+-])([A-Za-z0-9._%+\-]+)@([A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,})")
-_PHONE = re.compile(r"(?<!\d)(01[016789]|0[2-6][0-9]?)[-. ]?(\d{3,4})[-. ]?(\d{4})(?!\d)")
+# 앞뒤가 영숫자·'-' 이면 전화번호가 아니다 (UUID·해시 조각 오인 방지)
+_PHONE = re.compile(r"(?<![\w-])(01[016789]|0[2-6][0-9]?)[-. ]?(\d{3,4})[-. ]?(\d{4})(?![\w-])")
 
 
 def mask_pii(text: str) -> str:

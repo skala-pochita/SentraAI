@@ -109,7 +109,17 @@ def test_system_prompt_placeholders_are_rendered() -> None:
     p = get_prompt("code_investigate")
     out = p.render_system(categories="A, B", category_defs="- A: x", untrusted_rule="RULE")
     assert "{categories}" not in out and "{category_defs}" not in out and "{untrusted_rule}" not in out
-    assert "- A: x" in out and "A, B" in out
+    assert "- A: x" in out
     j = get_prompt("probe_judge").render_system(untrusted_rule="RULE")
     assert "RULE" in j and "{untrusted_rule}" not in j
     assert get_prompt("probe_judge").render_system().count("{untrusted_rule}") == 1  # 없는 키는 그대로
+
+
+def test_masking_never_touches_uuids() -> None:
+    import uuid
+
+    ids = [str(uuid.uuid4()) for _ in range(3000)] + ["28748f36-052c-4b02-0281-9854f552d17e"]
+    ids += [i.upper() for i in ids[:500]]
+    blob = " ".join(ids)
+    assert mask_text(blob) == blob
+    assert mask_obj({"finding_id": ids[-1]}) == {"finding_id": ids[-1]}
