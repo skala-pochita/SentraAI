@@ -30,4 +30,7 @@ frontend/dist/
 *.log
 
 # 평가 실행 결과 (재생성 가능; 필요하면 직접 add -f)
-reports/cloud_eval_*
+
+# 분석 문서는 로컬 전용. 저장소에 올릴 문서만 예외로 허용한다
+docs/*
+!docs/security_QA_ver.01.md
