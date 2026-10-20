@@ -18,17 +18,3 @@ export interface RiskPath { id: string; rule_id: string; severity: Severity; tit
 export interface FixProposal { id: string; diff: string; merge_status: string | null; branch: string | null; patch_check_passed: boolean; finding_ids: string[]; kind: string }
 export interface Approval { id: string; audit_id: string; status: string; summary: string; findings: { id: string; title: string; severity: Severity; category: string }[] }
 
-// Agent·Cloud 감사
-export interface CloudFinding {
-  area: string; category: string; resource_id: string; status: 'CONFIRMED' | 'CONDITIONAL' | 'HOLD'; severity: Severity
-  evidence_ids: string[]; reason: string; conditions: string[]; path: string[]; needs: string[]; fix_hint: string | null
-}
-export interface CloudSource { evidence_id: string; kind: string; location?: string; uri?: string; version?: string; excerpt?: unknown }
-export interface PendingAction { actionId: string; tool: string; args: Record<string, string>; target: string; argsHash: string }
-export interface CloudAnswer {
-  summary: string; findings: CloudFinding[]; normal: string[]; notChecked: string[]
-  pendingAction?: PendingAction | null; actionResult?: { status: string; ticket_id?: string; duplicate?: boolean } | null
-  usage?: Record<string, unknown>; llmUsed?: boolean; partial?: boolean
-}
-export interface CloudTask { status: string; answer: CloudAnswer | null; sources: CloudSource[]; taskId: string; failureCode: string | null }
-export interface CloudEvent { taskId: string; eventSeq: number; type: string; timestamp: string; data: Record<string, unknown> }
