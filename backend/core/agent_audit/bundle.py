@@ -1,4 +1,4 @@
-"""정규화 JSON 증거 묶음 (기획서 5장). 검증은 스키마·참조 ID·크기·금지 필드만 담당하고 의미 해석은 하지 않는다."""
+"""에이전트 감사 입력: 도구 정의·실행 주체·정책·자원 민감도를 담은 정규화 JSON 증거 묶음. 검증은 스키마·참조 ID·크기·금지 필드만 담당하고 의미 해석은 하지 않는다."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from core.errors import AppError, ErrorCode
 
 MAX_BUNDLE_BYTES = 1_000_000
-# 결함 여부·등급·정답 경로·스캐너 출력은 입력에 넣을 수 없다 (기획서 5장).
+# 결함 여부·등급·정답 경로·스캐너 출력은 입력에 넣을 수 없다 (판정은 점검기만 한다).
 FORBIDDEN_KEYS = frozenset(
     {
         "findings",
@@ -47,7 +47,6 @@ class Tool(_Model):
 class Principal(_Model):
     id: str
     kind: Literal["role", "user", "service"] = "role"
-    trust: list[str] = Field(default_factory=list)  # 신뢰 관계: 이 주체를 맡을 수 있는 주체 ID
     source_ref: str
 
 
@@ -62,7 +61,6 @@ class Policy(_Model):
     id: str
     principal_id: str
     statements: list[Statement]
-    boundary: list[Statement] = Field(default_factory=list)  # 제공된 경계 정책만 기록
     source_ref: str
 
 
@@ -76,19 +74,11 @@ class Mappings(_Model):
     tool_to_principal: list[ToolMapping] = Field(default_factory=list)
 
 
-class IngressRule(_Model):
-    cidr: str
-    port: int | str
-
-
 class Resource(_Model):
+    """도구가 닿을 수 있는 데이터 자원. A3 는 민감도 high 자원만 본다."""
+
     id: str
-    type: Literal["storage", "network", "database", "secret", "queue", "other"] = "other"
-    public: bool | None = None
     sensitivity: Literal["low", "medium", "high"] | None = None
-    encrypted: bool | None = None
-    logging: bool | None = None
-    ingress: list[IngressRule] = Field(default_factory=list)
     source_ref: str
 
 
@@ -99,19 +89,6 @@ class Source(_Model):
     evidence_ids: list[str] = Field(default_factory=list)
 
 
-class BusinessPolicy(_Model):
-    allowed_purposes: list[str] = Field(default_factory=list)
-    exceptions: list[str] = Field(default_factory=list)  # "<resource_id>: 사유" 형식의 정상 예외
-    ticket_target: str | None = None  # 후속 조치 티켓의 허용 수신 대상 (D1 수신자 변경 판정에 사용)
-    followup_allowed: bool = True
-
-
-class MissingEvidence(_Model):
-    id: str
-    about: str  # 예: tool:T3 caller access policy
-    note: str = ""
-
-
 class EvidenceBundle(_Model):
     schema_version: str
     bundle_id: str
@@ -120,18 +97,7 @@ class EvidenceBundle(_Model):
     policies: list[Policy] = Field(default_factory=list)
     mappings: Mappings = Field(default_factory=Mappings)
     resources: list[Resource] = Field(default_factory=list)
-    business_policy: BusinessPolicy = Field(default_factory=BusinessPolicy)
-    missing_evidence: list[MissingEvidence] = Field(default_factory=list)
     sources: list[Source] = Field(default_factory=list)
-
-    def principal(self, pid: str) -> Principal | None:
-        return next((p for p in self.principals if p.id == pid), None)
-
-    def resource(self, rid: str) -> Resource | None:
-        return next((r for r in self.resources if r.id == rid), None)
-
-    def missing_about(self, about: str) -> MissingEvidence | None:
-        return next((m for m in self.missing_evidence if m.about == about), None)
 
 
 def _find_forbidden(obj: Any, path: str = "") -> list[str]:
