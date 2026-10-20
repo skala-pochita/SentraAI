@@ -30,7 +30,7 @@ def final(verdicts: list[dict[str, Any]] | None = None, new: list[dict[str, Any]
 
 
 @pytest.fixture
-async def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
+async def repo(db_ready: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
     from api.seed import seed_users
     from core.db.models import Target
     from core.db.session import session_scope

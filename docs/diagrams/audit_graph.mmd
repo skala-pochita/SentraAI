@@ -1,0 +1,28 @@
+%% 감사 그래프 (명세 8.1) — core/graph/build.py 와 1:1
+flowchart TD
+  START([START]) --> intake[intake<br/>대상 로드·계획·락 획득]
+  intake -- Send --> CA
+  intake -- Send --> AA
+  subgraph CA[code_audit 서브그래프]
+    css[code_static_scan<br/>규칙 1차 탐지] --> ci[code_investigate<br/>ReAct·도구 선택] --> cec[code_evidence_check<br/>근거 검증 가드레일]
+  end
+  subgraph AA[agent_audit 서브그래프]
+    asc[agent_static_check<br/>매니페스트 규칙] --> pg[probe_generate<br/>기본 + 적응형] --> pr[probe_run<br/>샌드박스 N회] --> pj[probe_judge<br/>결정론 → LLM 판정]
+    pj -- 판정 불확실 & 라운드 < 2 --> pg
+  end
+  CA --> corr[correlate<br/>결합 위험·심각도 재산정]
+  AA --> corr
+  corr -- 비교 실험 --> report
+  corr -- CRITICAL 있음 --> ha[[human_approval<br/>interrupt]]
+  corr -- 없음 --> fg
+  ha -- 승인 --> fg[fix_generate<br/>수정안·사전 재검사]
+  ha -- 반려 --> ra[risk_accept<br/>위험 수용 등록] --> fg
+  fg -- 수정안 있음 --> af[apply_fix<br/>브랜치·PR] --> wm[[wait_merge<br/>interrupt]]
+  fg -- 0건 --> report
+  fg -- 0건 & 재시도 중 --> mm
+  wm -- 병합 --> rv[re_verify<br/>재스캔·probe 재실행]
+  wm -- 건너뜀 --> report
+  rv -- 해결 --> report
+  rv -- 미해결 & retry < 3 --> fg
+  rv -- 미해결 & retry ≥ 3 --> mm[mark_manual<br/>수동 조치 필요] --> report
+  report[report<br/>보고서·락 해제] --> END([END])

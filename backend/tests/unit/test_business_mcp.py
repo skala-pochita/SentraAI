@@ -205,8 +205,14 @@ async def test_fix_proposal_skips_only_failed_edits(workspace: Path, monkeypatch
     path = "src/main/java/com/demo/shop/config/WebConfig.java"
     edits = [
         {"op": "replace", "path": path, "old": "NOT-IN-FILE", "new": "x", "finding_id": "f-bad"},
-        {"op": "line_regex", "path": path, "line": 13, "pattern": r'allowedOriginPatterns\("\*"\)',
-         "replacement": 'allowedOrigins("https://shop.example")', "finding_id": "f-good"},
+        {
+            "op": "line_regex",
+            "path": path,
+            "line": 13,
+            "pattern": r'allowedOriginPatterns\("\*"\)',
+            "replacement": 'allowedOrigins("https://shop.example")',
+            "finding_id": "f-good",
+        },
     ]
     before, after = patches.apply_edits(root, edits, skipped)
     assert [x["finding_id"] for x in skipped] == ["f-bad"]
@@ -220,8 +226,16 @@ def test_probe_edit_scopes_get_order_to_self() -> None:
     from core.schemas import FindingDraft
 
     text = (REPO_ROOT / "targets/target-agent/manifests/vuln.yaml").read_text()
-    f = FindingDraft(temp_id="p", target_id="t", source="agent", category="PRIVILEGE_ESCALATION", rule_id="PROBE-P09",
-                     title="x", severity="HIGH", confidence=0.9)
+    f = FindingDraft(
+        temp_id="p",
+        target_id="t",
+        source="agent",
+        category="PRIVILEGE_ESCALATION",
+        rule_id="PROBE-P09",
+        title="x",
+        severity="HIGH",
+        confidence=0.9,
+    )
     edits = probe_edits(f, text)
     assert edits and edits[0]["replacement"] == '"orders:read:self"'
     assert probe_edits(f.model_copy(update={"rule_id": "PROBE-P03"}), text) is None

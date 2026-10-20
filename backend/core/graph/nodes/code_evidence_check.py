@@ -10,14 +10,14 @@ from langchain_core.runnables import RunnableConfig
 from core.errors import AppError
 from core.graph.deps import get_deps
 from core.graph.nodes._base import node
-from harness.guardrails import evidence_matches
+from harness.guardrails import evidence_matches, relocate_evidence
 
 
 @node("code_evidence_check")
 async def code_evidence_check(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any]:
     deps = get_deps(config)
     tid = state["target"]["target_id"]
-    checked, failed = [], 0
+    checked, failed, relocated = [], 0, 0
     cache: dict[str, str] = {}
     for f in state.get("investigated", []):
         if f.get("verdict") == "FALSE_POSITIVE":
@@ -35,7 +35,13 @@ async def code_evidence_check(state: dict[str, Any], config: RunnableConfig) -> 
                 except AppError:
                     cache[path] = ""
             if not evidence_matches(cache[path], ev):
-                ok = False
+                fixed = relocate_evidence(cache[path], ev)
+                if fixed is not None:  # 근거 라인 보정 (모델이 라인 번호만 틀린 경우)
+                    span = int(ev.get("line_end") or ev.get("line_start") or fixed) - int(ev.get("line_start") or fixed)
+                    ev["line_start"], ev["line_end"] = fixed, fixed + max(0, span)
+                    relocated += 1
+                else:
+                    ok = False
         if not ok:
             failed += 1
             f = {
@@ -46,6 +52,9 @@ async def code_evidence_check(state: dict[str, Any], config: RunnableConfig) -> 
             }
         checked.append(f)
     await deps.event(
-        state, "guardrail.result", {"checked": len(checked), "evidence_mismatch": failed}, node="code_evidence_check"
+        state,
+        "guardrail.result",
+        {"checked": len(checked), "evidence_mismatch": failed, "relocated": relocated},
+        node="code_evidence_check",
     )
     return {"code_findings": checked}

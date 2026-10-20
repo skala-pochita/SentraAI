@@ -53,3 +53,12 @@ def evidence_matches(content_masked: str, ev: dict[str, Any], tolerance: int = 2
     # 마스킹된 값(****) 이전까지만 비교해 마스킹 차이에 견고하게
     probe = snippet.split("****")[0][:80]
     return probe in window
+
+
+def relocate_evidence(content_masked: str, ev: dict[str, Any]) -> int | None:
+    """근거 라인이 틀렸을 때 snippet 을 파일에서 찾아 실제 라인을 돌려준다 (유일하게 찾을 때만)."""
+    snippet = normalize_snippet(ev.get("snippet_masked")).split("****")[0][:80]
+    if len(snippet) < 8:
+        return None
+    hits = [i for i, ln in enumerate(content_masked.splitlines(), start=1) if snippet in normalize_snippet(ln)]
+    return hits[0] if len(hits) == 1 else None

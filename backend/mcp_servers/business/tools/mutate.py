@@ -40,7 +40,7 @@ def _uuid(v: str, name: str) -> uuid.UUID:
     try:
         return uuid.UUID(str(v))
     except ValueError as e:
-        raise AppError(ErrorCode.VALIDATION, f"{name} must be a UUID") from e
+        raise AppError(ErrorCode.VALIDATION, f"{name} must be a UUID", {"value": str(v)[:60]}) from e
 
 
 def _actor() -> uuid.UUID:

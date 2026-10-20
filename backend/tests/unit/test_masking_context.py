@@ -79,3 +79,23 @@ def test_pii_masking() -> None:
         mask_text("@Component class A; https://api.example-pay.test/v1")
         == "@Component class A; https://api.example-pay.test/v1"
     )
+
+
+def test_relocate_evidence_fixes_wrong_line() -> None:
+    from harness.guardrails import relocate_evidence
+
+    content = "a\nb\n    private final String auth = \"sk_live_\" + \"51FAKE\";\nc"
+    assert relocate_evidence(content, {"line_start": 1, "snippet_masked": 'private final String auth = "sk_live_"'}) == 3
+    assert relocate_evidence(content, {"line_start": 1, "snippet_masked": "zz"}) is None
+
+
+def test_react_new_finding_category_must_be_known() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    from core.graph.nodes.react_investigator import NewFinding
+
+    ok = NewFinding(category="HARDCODED_SECRET", title="t", severity="HIGH", file_path="a", line_start=1)
+    assert ok.category == "HARDCODED_SECRET"
+    with pytest.raises(ValidationError):
+        NewFinding(category="Insecure Secrets Management", title="t", severity="HIGH", file_path="a", line_start=1)

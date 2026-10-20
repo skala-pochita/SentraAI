@@ -62,4 +62,7 @@ def get_deps(config: RunnableConfig) -> Deps:
 
 
 def node_error(node: str, err: AppError) -> dict[str, Any]:
-    return {"node": node, "code": str(err.code), "message": err.message, "retryable": err.retryable}
+    out = {"node": node, "code": str(err.code), "message": err.message, "retryable": err.retryable}
+    if err.details:
+        out["details"] = err.details
+    return out

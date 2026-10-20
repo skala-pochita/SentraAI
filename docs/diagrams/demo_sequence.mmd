@@ -1,0 +1,40 @@
+%% 전체 흐름 (명세 18.2)
+sequenceDiagram
+  actor Admin as 김보안(ADMIN)
+  actor Dev as 이개발(DEV)
+  participant UI as Dashboard
+  participant API
+  participant K as Kafka
+  participant W as audit-worker
+  participant R as Redis
+  participant B as business-mcp
+  participant G as rag-mcp
+  participant T as target-agent
+  Admin->>UI: 로그인, 전체 감사 실행
+  UI->>API: POST /audits
+  API->>K: audit.requested
+  K->>W: consume
+  W->>R: checkpoint 저장 · 이벤트 발행
+  R-->>UI: SSE 진행 상황
+  par 코드 감사
+    W->>B: run_static_scan
+    W->>B: read_repo_file (ReAct 가 선택)
+    W->>G: search_framework_guide
+  and Agent 감사
+    W->>B: get_agent_manifest, run_agent_rule_check
+    W->>B: run_injection_probe ×N
+    B->>T: POST /chat
+  end
+  W->>B: create_finding (결합 위험 포함)
+  W->>B: request_approval
+  W->>R: interrupt · checkpoint
+  Admin->>API: POST /approvals/{id}/decision
+  API->>K: audit.resume
+  K->>W: 재개 (checkpoint 부터)
+  W->>B: create_fix_proposal, apply_fix
+  W->>R: interrupt (병합 대기)
+  Dev->>API: POST /fixes/{id}/merge
+  API->>K: audit.resume
+  W->>B: re_verify: run_static_scan, run_injection_probe
+  W->>B: save_report
+  W->>K: audit.completed

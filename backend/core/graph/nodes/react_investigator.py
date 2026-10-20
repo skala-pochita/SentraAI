@@ -8,13 +8,15 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 from collections import Counter
+from functools import lru_cache
 from typing import Any, Literal
 
 from langchain_core.runnables import RunnableConfig
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from core.errors import AppError, ErrorCode
 from core.graph.deps import Deps, LLMFactory, get_deps
@@ -25,6 +27,8 @@ from harness.context import UNTRUSTED_RULE, compact_observations, estimate_token
 from harness.llm import structured_call
 from harness.prompts import get_prompt
 from harness.tools import read_only_tools_for
+
+TEST_PATH = re.compile(r"(^|/)src/test/")
 
 
 class Action(BaseModel):
@@ -39,8 +43,24 @@ class Verdict(BaseModel):
     reason: str = ""
 
 
+@lru_cache
+def allowed_categories() -> frozenset[str]:
+    from core.rules.models import load_rules
+
+    return frozenset({r.category for r in load_rules("code")})
+
+
 class NewFinding(BaseModel):
     category: str
+
+    @field_validator("category")
+    @classmethod
+    def _known(cls, v: str) -> str:
+        # 자유 문자열 카테고리는 매칭·집계가 안 되므로 거부 → H4 스키마 재요청
+        if v not in allowed_categories():
+            raise ValueError(f"category must be one of {sorted(allowed_categories())}")
+        return v
+
     title: str
     severity: Severity
     file_path: str
@@ -243,6 +263,15 @@ async def investigate(state: dict[str, Any], config: RunnableConfig, llm: tuple[
                 out.append(c)
                 continue
             if c["category"] == "AUDITOR_INJECTION_ATTEMPT":  # 감사기 인젝션 보고는 모델이 기각할 수 없다
+                out.append(c)
+                continue
+            if v.verdict == "FALSE_POSITIVE" and float(c.get("confidence", 0)) >= 0.8 and not TEST_PATH.search(path):
+                # 확정형 정적 규칙(needs_llm_review=false)은 LLM 이 지울 수 없다: '테스트용 값' 주석 같은 회피에 대비해 검토 필요로만
+                c.update(
+                    verdict="NEEDS_REVIEW",
+                    confidence=0.6,
+                    reasoning_summary=f"[정적 확정 규칙 — LLM 기각 보류] {v.reason or ''}"[:400],
+                )
                 out.append(c)
                 continue
             c.update(

@@ -1,0 +1,40 @@
+%% 서비스 구성도 (명세 4.1) — docker-compose 11개 서비스
+flowchart LR
+  subgraph Client
+    UI[Vue Dashboard :5173]
+  end
+  subgraph Core
+    API[api · FastAPI<br/>JWT·RBAC·REST·SSE]
+    AW[audit-worker<br/>LangGraph Runtime]
+    EW[eval-worker<br/>A/B/C 평가기]
+    RW[retry-worker<br/>Retry·DLQ]
+  end
+  subgraph MCP
+    BM[business-mcp :8101<br/>조회·실행·변경 도구]
+    RM[rag-mcp :8102<br/>보안 기준 검색·지식 관리]
+  end
+  subgraph Sandbox Targets
+    REPO[(vuln-spring-app<br/>git working copy)]
+    TA[target-agent :8201<br/>vuln / hardened]
+  end
+  subgraph Infra
+    K[[Kafka KRaft]]
+    R[(Redis Stack<br/>checkpoint·Stream·락·캐시)]
+    PG[(PostgreSQL + pgvector)]
+  end
+  LLM((OpenAI API))
+  LS((LangSmith))
+
+  UI -- REST / SSE --> API
+  API -- produce --> K
+  K -- consume --> AW & EW & RW
+  RW -- republish --> K
+  AW -- MultiServerMCPClient<br/>streamable-http --> BM & RM
+  EW -- MCP --> BM & RM
+  AW -- checkpoint·events --> R
+  API -- subscribe events --> R
+  BM --> PG & REPO
+  BM -- probe (allowlist) --> TA
+  RM -- embeddings --> PG
+  AW & EW & TA -- LLM --> LLM
+  AW -. trace_id .-> LS
