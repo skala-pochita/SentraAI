@@ -19,7 +19,6 @@ from typing import Any, Protocol
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.server.fastmcp import FastMCP
-from pydantic import AnyUrl
 
 from core.errors import AppError, ErrorCode
 from core.settings import get_settings, load_config
@@ -65,8 +64,6 @@ def _first_text(content: Any) -> str:
 class Transport(Protocol):
     async def raw_call(self, server: str, tool: str, args: dict[str, Any], ctx: CallCtx, timeout: float) -> str: ...
 
-    async def raw_read_resource(self, server: str, uri: str, ctx: CallCtx, timeout: float) -> str: ...
-
 
 class HttpTransport:
     def _url(self, server: str) -> str:
@@ -97,24 +94,6 @@ class HttpTransport:
             raise AppError(ErrorCode.UPSTREAM_ERROR, f"MCP {server} unreachable: {type(e).__name__}") from e
 
 
-    async def raw_read_resource(self, server: str, uri: str, ctx: CallCtx, timeout: float) -> str:
-        headers = {"Authorization": f"Bearer {get_settings().mcp_service_token}", "X-Actor-Role": ctx.actor_role}
-
-        async def _do() -> str:
-            async with streamablehttp_client(self._url(server), headers=headers, timeout=timeout) as (r, w, _):
-                async with ClientSession(r, w) as session:
-                    await session.initialize()
-                    res = await session.read_resource(AnyUrl(uri))
-                    return "".join(getattr(c, "text", "") for c in res.contents)
-
-        try:
-            return await asyncio.wait_for(_do(), timeout=timeout)
-        except TimeoutError as e:
-            raise AppError(ErrorCode.UPSTREAM_TIMEOUT, f"MCP {server} resource {uri} timed out") from e
-        except (OSError, ExceptionGroup) as e:
-            raise AppError(ErrorCode.UPSTREAM_ERROR, f"MCP {server} unreachable: {type(e).__name__}") from e
-
-
 class InProcessTransport:
     def __init__(self, servers: dict[str, FastMCP]) -> None:
         self.servers = servers
@@ -132,11 +111,6 @@ class InProcessTransport:
         return _first_text(content)
 
 
-    async def raw_read_resource(self, server: str, uri: str, ctx: CallCtx, timeout: float) -> str:
-        contents = await asyncio.wait_for(self.servers[server].read_resource(AnyUrl(uri)), timeout=timeout)
-        return "".join(str(getattr(c, "content", getattr(c, "text", ""))) for c in contents)
-
-
 @dataclass
 class Gateway:
     transport: Transport
@@ -150,18 +124,6 @@ class Gateway:
         if tool in ("run_static_scan", "run_agent_rule_check"):
             return max(base, 120.0)
         return base
-
-    async def read_resource(self, server: str, uri: str, ctx: CallCtx) -> str:
-        """MCP resources/read. Host 가상 도구 read_resource 의 실제 전송 (허용 URI 검증은 ToolHost 가 먼저 한다)."""
-        if server not in ("business", "rag"):
-            raise AppError(ErrorCode.VALIDATION, "unknown MCP server")
-        timeout = float(load_config("budget").get("mcp", {}).get("call_timeout_s", 30))
-
-        async def once() -> str:
-            async with span("tool", f"{server}.read_resource", node=ctx.node):
-                return await self.transport.raw_read_resource(server, uri, ctx, timeout)
-
-        return await with_retries(once, dep=f"mcp:{server}")
 
     async def call(self, tool: str, args: dict[str, Any], ctx: CallCtx) -> Any:
         server = server_of(tool)
