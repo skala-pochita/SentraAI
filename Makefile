@@ -3,7 +3,7 @@ BACKEND := cd backend &&
 CONFIG ?= A_nano_single,B_nano_harness,C_large_single
 REPEAT ?= 3
 
-.PHONY: up down logs seed demo-reset test test-e2e lint eval fault-on fault-off env
+.PHONY: up down logs seed demo-reset test test-e2e lint fault-on fault-off env
 
 env:
 	@test -f .env || cp .env.example .env
@@ -33,17 +33,6 @@ test-e2e:
 lint:
 	$(BACKEND) uv run ruff check . && uv run mypy core harness mcp_servers
 	cd frontend && pnpm run lint
-
-SET ?= final
-CONFIGS ?= A,B
-REPS ?= 1
-
-# Agent·Cloud 감사 A/B 비교 (LLM 키 없으면 미측정으로 기록). CONFIGS=rules 는 LLM 없는 결정론 자체 점검.
-eval:
-	$(BACKEND) uv run python -m core.cloud.eval_runner --set $(SET) --configs $(CONFIGS) --reps $(REPS)
-
-eval-selfcheck:
-	$(BACKEND) uv run python -m core.cloud.eval_runner --set all --configs rules
 
 fault-on:
 	@grep -q '^FAULT_INJECTION=' .env && sed -i.bak 's/^FAULT_INJECTION=.*/FAULT_INJECTION=github_rate_limit:$(or $(N),2)/' .env && rm -f .env.bak
