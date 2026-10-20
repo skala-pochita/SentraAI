@@ -1,8 +1,0 @@
-bundle: T07
-role: final
-findings: []
-decoys:
-- id: T07-X1
-  area: B1
-  resource_id: bucket-customers
-  why: 명시적 Deny 로 경로가 끊김

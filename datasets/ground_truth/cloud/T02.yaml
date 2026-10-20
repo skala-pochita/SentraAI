@@ -1,8 +1,0 @@
-bundle: T02
-role: final
-findings: []
-decoys:
-- id: T02-X1
-  area: C1
-  resource_id: R-APP
-  why: 별표는 있으나 자원 범위가 한정되고 PassRole 은 조건이 있다
