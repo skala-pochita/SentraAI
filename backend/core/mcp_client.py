@@ -84,8 +84,16 @@ class HttpTransport:
         async def _do() -> str:
             # 명세 9.1: Agent 는 langchain-mcp-adapters MultiServerMCPClient 로 두 MCP 서버에 연결한다.
             # 호출 맥락 헤더가 호출마다 달라 클라이언트는 호출 단위로 만든다 (stateless streamable-http).
-            client = MultiServerMCPClient({server: {"transport": "streamable_http", "url": self._url(server),
-                                                    "headers": headers, "timeout": timeout}})
+            client = MultiServerMCPClient(
+                {
+                    server: {
+                        "transport": "streamable_http",
+                        "url": self._url(server),
+                        "headers": headers,
+                        "timeout": timeout,
+                    }
+                }
+            )
             async with client.session(server) as session:
                 res = await session.call_tool(tool, args)
                 return _first_text(res.content)

@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from api.errors import install_error_handlers
-from api.routers import ai_tasks, audits, auth, knowledge, ops, targets, webhooks
+from api.routers import ai_tasks, audits, auth, eval_runs, knowledge, ops, quality, targets, webhooks
 from api.routers import eval as eval_router
 from core.kafka.producer import close_producer
 
@@ -57,6 +57,8 @@ for r in (
     ops.router,
     webhooks.router,
     eval_router.router,
+    eval_runs.router,
+    quality.router,
 ):
     app.include_router(r, prefix=API_PREFIX)
 
