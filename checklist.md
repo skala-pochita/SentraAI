@@ -1,4 +1,4 @@
-# AI Security Auditor — 개발 진행 체크리스트
+ # AI Security Auditor — 개발 진행 체크리스트
 
 > 원본 명세: `AI_Security_Auditor_SPEC.pdf` (v2, 37p) → `docs/SPEC.md`에 텍스트 사본.
 > **세션이 끊기면**: 이 파일에서 첫 번째 `[ ]` 항목부터 이어서 진행. 진행 중이던 항목은 `[~]`로 표시.

@@ -117,7 +117,16 @@ def mcp_tool(
             finally:
                 _current.reset(token)
 
-        server.add_tool(wrapper, name=fn.__name__, description=fn.__doc__)
+        from mcp.types import ToolAnnotations
+
+        from harness.tools import tool_annotations
+
+        server.add_tool(
+            wrapper,
+            name=fn.__name__,
+            description=fn.__doc__,
+            annotations=ToolAnnotations(title=fn.__name__, **tool_annotations(fn.__name__)),
+        )
         return wrapper
 
     return deco

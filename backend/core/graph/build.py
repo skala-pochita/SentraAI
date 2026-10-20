@@ -45,9 +45,9 @@ MAX_FIX_RETRIES = 3
 
 def build_code_audit() -> CompiledStateGraph:  # type: ignore[type-arg]
     g = StateGraph(CodeAuditState, output_schema=CodeAuditOutput)
-    g.add_node("code_static_scan", code_static_scan)  # type: ignore[call-overload]
-    g.add_node("code_investigate", code_investigate)  # type: ignore[call-overload]
-    g.add_node("code_evidence_check", code_evidence_check)  # type: ignore[call-overload]
+    g.add_node("code_static_scan", code_static_scan)  # type: ignore[call-overload,arg-type]
+    g.add_node("code_investigate", code_investigate)  # type: ignore[call-overload,arg-type]
+    g.add_node("code_evidence_check", code_evidence_check)  # type: ignore[call-overload,arg-type]
     g.add_edge(START, "code_static_scan")
     g.add_edge("code_static_scan", "code_investigate")
     g.add_edge("code_investigate", "code_evidence_check")
@@ -64,10 +64,10 @@ def route_probe_loop(state: dict[str, Any]) -> str:
 
 def build_agent_audit() -> CompiledStateGraph:  # type: ignore[type-arg]
     g = StateGraph(AgentAuditState, output_schema=AgentAuditOutput)
-    g.add_node("agent_static_check", agent_static_check)  # type: ignore[call-overload]
-    g.add_node("probe_generate", probe_generate)  # type: ignore[call-overload]
-    g.add_node("probe_run", probe_run)  # type: ignore[call-overload]
-    g.add_node("probe_judge", probe_judge)  # type: ignore[call-overload]
+    g.add_node("agent_static_check", agent_static_check)  # type: ignore[call-overload,arg-type]
+    g.add_node("probe_generate", probe_generate)  # type: ignore[call-overload,arg-type]
+    g.add_node("probe_run", probe_run)  # type: ignore[call-overload,arg-type]
+    g.add_node("probe_judge", probe_judge)  # type: ignore[call-overload,arg-type]
     g.add_edge(START, "agent_static_check")
     g.add_edge("agent_static_check", "probe_generate")
     g.add_edge("probe_generate", "probe_run")
@@ -128,18 +128,18 @@ def route_verify(state: dict[str, Any]) -> str:
 
 def build_graph(checkpointer: BaseCheckpointSaver | None = None) -> CompiledStateGraph:  # type: ignore[type-arg]
     g = StateGraph(AuditState)
-    g.add_node("intake", intake)  # type: ignore[call-overload]
+    g.add_node("intake", intake)  # type: ignore[call-overload,arg-type]
     g.add_node("code_audit", build_code_audit())
     g.add_node("agent_audit", build_agent_audit())
-    g.add_node("correlate", correlate)  # type: ignore[call-overload]
-    g.add_node("human_approval", human_approval)  # type: ignore[call-overload]
-    g.add_node("risk_accept", risk_accept)  # type: ignore[call-overload]
-    g.add_node("fix_generate", fix_generate)  # type: ignore[call-overload]
-    g.add_node("apply_fix", apply_fix)  # type: ignore[call-overload]
-    g.add_node("wait_merge", wait_merge)  # type: ignore[call-overload]
-    g.add_node("re_verify", re_verify)  # type: ignore[call-overload]
-    g.add_node("mark_manual", mark_manual)  # type: ignore[call-overload]
-    g.add_node("report", report)  # type: ignore[call-overload]
+    g.add_node("correlate", correlate)  # type: ignore[call-overload,arg-type]
+    g.add_node("human_approval", human_approval)  # type: ignore[call-overload,arg-type]
+    g.add_node("risk_accept", risk_accept)  # type: ignore[call-overload,arg-type]
+    g.add_node("fix_generate", fix_generate)  # type: ignore[call-overload,arg-type]
+    g.add_node("apply_fix", apply_fix)  # type: ignore[call-overload,arg-type]
+    g.add_node("wait_merge", wait_merge)  # type: ignore[call-overload,arg-type]
+    g.add_node("re_verify", re_verify)  # type: ignore[call-overload,arg-type]
+    g.add_node("mark_manual", mark_manual)  # type: ignore[call-overload,arg-type]
+    g.add_node("report", report)  # type: ignore[call-overload,arg-type]
 
     g.add_edge(START, "intake")
     g.add_conditional_edges("intake", route_audits, ["code_audit", "agent_audit", "correlate"])

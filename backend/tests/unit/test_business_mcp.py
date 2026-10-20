@@ -176,3 +176,22 @@ async def test_probe_upstream_timeout_is_retryable(workspace: Path, monkeypatch:
     res = await execute.run_injection_probe(target_id=AGENT_ID, probe_id="P01", attempts=1)
     assert res["error"]["code"] == "UPSTREAM_TIMEOUT" and res["error"]["retryable"] is True
     get_settings.cache_clear()
+
+
+async def test_tool_annotations_mark_destructive() -> None:
+    from mcp_servers.rag import tools as _rt  # noqa: F401
+    from mcp_servers.rag.app import mcp as rag_mcp
+
+    tools = {t.name: t for t in [*await mcp.list_tools(), *await rag_mcp.list_tools()]}
+    for name in (
+        "apply_fix",
+        "create_finding",
+        "merge_fix",
+        "save_report",
+        "delete_document",
+        "register_false_positive",
+    ):
+        assert tools[name].annotations and tools[name].annotations.destructiveHint is True, name
+    for name in ("read_repo_file", "search_security_standard", "get_findings"):
+        assert tools[name].annotations and tools[name].annotations.readOnlyHint is True, name
+    assert tools["run_injection_probe"].annotations.openWorldHint is True  # type: ignore[union-attr]

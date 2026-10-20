@@ -27,7 +27,7 @@ from core.kafka.producer import publish
 from core.mcp_client import Gateway, http_gateway
 from core.redis.locks import release_target_lock
 from harness.events import emit
-from harness.observability import set_trace_context
+from harness.observability import langsmith_config, set_trace_context, trace_id_for
 
 log = logging.getLogger("worker.audit")
 
@@ -65,7 +65,11 @@ class AuditRunner:
     def _config(self, audit_id: str) -> dict[str, Any]:
         gw: Gateway = self.gateway_factory()
         deps = self.deps_factory(gw) if self.deps_factory else Deps(gateway=gw)
-        return {"configurable": {"thread_id": f"audit:{audit_id}", "deps": deps}, "recursion_limit": 200}
+        return {
+            "configurable": {"thread_id": f"audit:{audit_id}", "deps": deps},
+            "recursion_limit": 200,
+            **langsmith_config(audit_id),
+        }
 
     async def _initial(self, audit: Audit) -> dict[str, Any]:
         async with session_scope() as db:
@@ -174,7 +178,11 @@ class AuditRunner:
         )
         await emit(audit_id, "audit.completed", summary, progress=1.0)
         await publish(
-            "audit.completed", audit_id, Envelope(type="audit.completed", payload={"audit_id": audit_id, **summary})
+            "audit.completed",
+            audit_id,
+            Envelope(
+                type="audit.completed", trace_id=trace_id_for(audit_id), payload={"audit_id": audit_id, **summary}
+            ),
         )
         return "COMPLETED"
 
@@ -206,6 +214,7 @@ async def webhook_to_resume(msg: Message) -> None:
         audit_id,
         Envelope(
             type="audit.resume",
+            trace_id=trace_id_for(audit_id),
             payload={"audit_id": audit_id, "kind": "merge", "resume_value": {"merged": True, "source": "github"}},
         ),
     )

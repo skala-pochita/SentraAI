@@ -34,6 +34,17 @@ def _mask_code(m: re.Match[str]) -> str:
     return mask_secret(code) if any(_MIXED.match(seg) for seg in code.split("-")) else code
 
 
+# 개인정보 (Harness Guardrails: 도구 결과의 개인정보 마스킹). 이메일은 도메인을 남겨 유출 경로 근거로 쓸 수 있게 한다.
+_EMAIL = re.compile(r"(?<![\w.+-])([A-Za-z0-9._%+\-]+)@([A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,})")
+_PHONE = re.compile(r"(?<!\d)(01[016789]|0[2-6][0-9]?)[-. ]?(\d{3,4})[-. ]?(\d{4})(?!\d)")
+
+
+def mask_pii(text: str) -> str:
+    """kim@shop.example → k***@shop.example, 010-1234-5678 → 010-****-5678."""
+    text = _EMAIL.sub(lambda m: f"{m.group(1)[:1]}***@{m.group(2)}", text)
+    return _PHONE.sub(lambda m: f"{m.group(1)}-****-{m.group(3)}", text)
+
+
 _PEM = re.compile(r"-----BEGIN ([A-Z ]*PRIVATE KEY)-----.*?-----END \1-----", re.DOTALL)
 
 
@@ -50,6 +61,7 @@ def mask_text(text: str) -> str:
         return text
     text = _PEM.sub(lambda m: f"-----BEGIN {m.group(1)}-----{MASK}-----END {m.group(1)}-----", text)
     text = _CODE.sub(_mask_code, text)
+    text = mask_pii(text)
     for pat in _PATTERNS:
         text = pat.sub(lambda m: m.group(0).replace(m.group(1), mask_secret(m.group(1))), text)
     return text

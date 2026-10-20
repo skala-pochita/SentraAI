@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import html
+from typing import Any
 
 from harness.masking import mask_text
 
@@ -69,3 +70,24 @@ def select_files(
         else:
             dropped.append(path)
     return chosen, dropped
+
+
+def truncate_tool_result(text: str, max_chars: int) -> str:
+    """Tools: 도구 결과는 길이를 잘라 넘긴다. 잘렸는지 모델이 알 수 있게 표시한다."""
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + f"\n…[truncated {len(text) - max_chars} chars — 필요하면 범위를 좁혀 다시 조회]"
+
+
+async def compact_observations(
+    obs: list[str], budget_tokens: int, summarize: Any, keep_last: int = 2
+) -> tuple[list[str], bool]:
+    """Context: 관찰 누적이 토큰 예산을 넘으면 오래된 관찰을 요약 1개로 바꾼다 (최근 keep_last 개는 원문 유지).
+
+    summarize(old: list[str]) -> str. 반환: (새 관찰 목록, 요약했는지).
+    """
+    if sum(estimate_tokens(o) for o in obs) <= budget_tokens or len(obs) <= keep_last:
+        return obs, False
+    old, recent = obs[:-keep_last], obs[-keep_last:]
+    summary = await summarize(old)
+    return [f"[이전 관찰 요약 — 원문 {len(old)}개 압축]\n{summary}", *recent], True

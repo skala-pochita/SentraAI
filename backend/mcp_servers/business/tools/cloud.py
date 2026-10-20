@@ -104,7 +104,9 @@ async def create_remediation_ticket(
     async with session_scope() as db:
         existing = (
             await db.execute(
-                select(RemediationTicket).where(RemediationTicket.task_id == tid, RemediationTicket.action_id == action_id)
+                select(RemediationTicket).where(
+                    RemediationTicket.task_id == tid, RemediationTicket.action_id == action_id
+                )
             )
         ).scalar_one_or_none()
         if existing is not None:
@@ -137,7 +139,9 @@ async def create_remediation_ticket(
         created = (await db.execute(stmt)).scalar_one_or_none()
         row = (
             await db.execute(
-                select(RemediationTicket).where(RemediationTicket.task_id == tid, RemediationTicket.action_id == action_id)
+                select(RemediationTicket).where(
+                    RemediationTicket.task_id == tid, RemediationTicket.action_id == action_id
+                )
             )
         ).scalar_one()
         return _ticket_out(row, duplicate=created is None)

@@ -44,3 +44,38 @@ def test_select_files_priority() -> None:
 def test_code_masking_spares_reference_codes() -> None:
     assert mask_text("ref OWASP-LLM-2025 SEC-SPRING-001") == "ref OWASP-LLM-2025 SEC-SPRING-001"
     assert "7F3A" not in mask_text("code CANARY-7F3A-INTERNAL-DISCOUNT")
+
+
+def test_truncate_tool_result() -> None:
+    from harness.context import truncate_tool_result
+
+    assert truncate_tool_result("abc", 10) == "abc"
+    out = truncate_tool_result("x" * 100, 10)
+    assert out.startswith("x" * 10) and "truncated 90 chars" in out
+
+
+async def test_compact_observations_summarizes_old() -> None:
+    from harness.context import compact_observations
+
+    calls: list[int] = []
+
+    async def summ(old: list[str]) -> str:
+        calls.append(len(old))
+        return "요약"
+
+    obs = ["a" * 4000, "b" * 4000, "c" * 40, "d" * 40]
+    out, done = await compact_observations(obs, budget_tokens=500, summarize=summ)
+    assert done and calls == [2] and out[0].startswith("[이전 관찰 요약") and out[1:] == obs[2:]
+    same, done2 = await compact_observations(["x"], budget_tokens=500, summarize=summ)
+    assert not done2 and same == ["x"]
+
+
+def test_pii_masking() -> None:
+    out = mask_text("메일 kim.cs@shop.example 또는 attacker@evil.test, 전화 010-1234-5678 / 02-555-1234")
+    assert "kim.cs@" not in out and "k***@shop.example" in out and "a***@evil.test" in out
+    assert "1234-5678" not in out and "010-****-5678" in out and "02-****-1234" in out
+    # 코드 애너테이션·URL 은 건드리지 않는다
+    assert (
+        mask_text("@Component class A; https://api.example-pay.test/v1")
+        == "@Component class A; https://api.example-pay.test/v1"
+    )

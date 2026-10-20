@@ -16,6 +16,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from langchain_mcp_adapters.client import MultiServerMCPClient
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 from mcp.server.fastmcp import FastMCP
@@ -81,11 +82,13 @@ class HttpTransport:
             headers["X-Audit-Id"] = ctx.audit_id
 
         async def _do() -> str:
-            async with streamablehttp_client(self._url(server), headers=headers, timeout=timeout) as (r, w, _):
-                async with ClientSession(r, w) as session:
-                    await session.initialize()
-                    res = await session.call_tool(tool, args)
-                    return _first_text(res.content)
+            # 명세 9.1: Agent 는 langchain-mcp-adapters MultiServerMCPClient 로 두 MCP 서버에 연결한다.
+            # 호출 맥락 헤더가 호출마다 달라 클라이언트는 호출 단위로 만든다 (stateless streamable-http).
+            client = MultiServerMCPClient({server: {"transport": "streamable_http", "url": self._url(server),
+                                                    "headers": headers, "timeout": timeout}})
+            async with client.session(server) as session:
+                res = await session.call_tool(tool, args)
+                return _first_text(res.content)
 
         try:
             return await asyncio.wait_for(_do(), timeout=timeout)
@@ -95,7 +98,6 @@ class HttpTransport:
             raise
         except (OSError, ExceptionGroup) as e:  # 연결 실패 등 전송 오류
             raise AppError(ErrorCode.UPSTREAM_ERROR, f"MCP {server} unreachable: {type(e).__name__}") from e
-
 
     async def raw_read_resource(self, server: str, uri: str, ctx: CallCtx, timeout: float) -> str:
         headers = {"Authorization": f"Bearer {get_settings().mcp_service_token}", "X-Actor-Role": ctx.actor_role}
@@ -130,7 +132,6 @@ class InProcessTransport:
         finally:
             default_call.reset(token)
         return _first_text(content)
-
 
     async def raw_read_resource(self, server: str, uri: str, ctx: CallCtx, timeout: float) -> str:
         contents = await asyncio.wait_for(self.servers[server].read_resource(AnyUrl(uri)), timeout=timeout)

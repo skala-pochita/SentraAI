@@ -39,7 +39,9 @@ def deadline_for(remaining_s: float) -> datetime:
 
 
 class CloudRunner:
-    def __init__(self, checkpointer: BaseCheckpointSaver, gateway_factory: Any = http_gateway, runner_factory: Any = make_runner) -> None:
+    def __init__(
+        self, checkpointer: BaseCheckpointSaver, gateway_factory: Any = http_gateway, runner_factory: Any = make_runner
+    ) -> None:
         self.checkpointer = checkpointer
         self.gateway_factory = gateway_factory
         self.runner_factory = runner_factory
@@ -145,7 +147,13 @@ class CloudRunner:
                 a = res["action"]
                 await db.execute(
                     insert(CloudApproval)
-                    .values(task_id=task.id, action_id=a["action_id"], tool=a["tool"], args=a["args"], args_hash=a["args_hash"])
+                    .values(
+                        task_id=task.id,
+                        action_id=a["action_id"],
+                        tool=a["tool"],
+                        args=a["args"],
+                        args_hash=a["args_hash"],
+                    )
                     .on_conflict_do_nothing(constraint="uq_cloud_approval_action")
                 )
                 values["deadline_at"] = None  # 승인 대기는 실행 기한에서 제외
@@ -205,10 +213,13 @@ async def reap_expired(now: datetime | None = None) -> list[str]:
             seq = (await db.execute(select(CloudTask.last_event_seq).where(CloudTask.id == tid))).scalar_one() + 1
             await db.execute(
                 insert(CloudTaskEvent)
-                .values(task_id=tid, event_seq=seq, type="FAILED", data={"code": "EXECUTION_DEADLINE_EXCEEDED", "resumable": False})
+                .values(
+                    task_id=tid,
+                    event_seq=seq,
+                    type="FAILED",
+                    data={"code": "EXECUTION_DEADLINE_EXCEEDED", "resumable": False},
+                )
                 .on_conflict_do_nothing(constraint="uq_cloud_event_seq")
             )
             await db.execute(update(CloudTask).where(CloudTask.id == tid).values(last_event_seq=seq))
     return [str(i) for i in ids]
-
-

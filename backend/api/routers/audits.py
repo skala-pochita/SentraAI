@@ -37,6 +37,7 @@ from core.kafka.envelope import Envelope
 from core.kafka.producer import publish
 from core.mcp_client import CallCtx, http_gateway
 from core.redis.client import get_redis
+from harness.observability import trace_id_for
 
 router = APIRouter(tags=["audits"])
 
@@ -103,6 +104,7 @@ async def create_audit(
         str(audit_id),
         Envelope(
             type="audit.requested",
+            trace_id=trace_id_for(str(audit_id)),
             payload={
                 "audit_id": str(audit_id),
                 "requested_by": str(user.id),
@@ -472,7 +474,9 @@ async def decide(
         "audit.resume",
         str(a.audit_id),
         Envelope(
-            type="audit.resume", payload={"audit_id": str(a.audit_id), "kind": "approval", "resume_value": resume}
+            type="audit.resume",
+            trace_id=trace_id_for(str(a.audit_id)),
+            payload={"audit_id": str(a.audit_id), "kind": "approval", "resume_value": resume},
         ),
     )
     return {"approval_id": str(a.id), "status": a.status}
@@ -549,6 +553,7 @@ async def merge_fix(
             str(p.audit_id),
             Envelope(
                 type="audit.resume",
+                trace_id=trace_id_for(str(p.audit_id)),
                 payload={
                     "audit_id": str(p.audit_id),
                     "kind": "merge",
@@ -614,6 +619,7 @@ async def traces(
             "latency_ms": s.latency_ms,
             "status": s.status,
             "error_code": s.error_code,
+            "trace_id": s.trace_id,
             "started_at": _iso(s.started_at),
         }
         for s in (await db.execute(q.limit(5000))).scalars()

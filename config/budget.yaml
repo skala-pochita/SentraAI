@@ -4,6 +4,12 @@ audit:
   max_cost_usd: 2.0
 react:
   max_steps: 6
+  # Harness Agent Loop (강의 표 6-3): LLM 8턴, 작업 120초, 같은 도구 3회
+  max_llm_turns: 8
+  max_seconds: 120
+  max_same_tool_calls: 3
+  tool_result_max_chars: 8000   # Tools: 도구 결과는 잘라서 넘긴다
+  context_tokens: 6000          # Context: 관찰 누적이 넘으면 오래된 관찰을 요약
   max_tokens_per_file: 12000
   risky_file_top_k: 8
   risky_name_keywords: [Config, Client, Security, Payment, Auth]

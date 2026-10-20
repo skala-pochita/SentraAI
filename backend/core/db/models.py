@@ -242,6 +242,9 @@ class TraceSpan(Base):
     id: Mapped[uuid.UUID] = _pk()
     audit_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     eval_run_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    trace_id: Mapped[str | None] = mapped_column(
+        Text
+    )  # (인덱스는 0003)  감사 1건 = trace_id 1개 (Kafka·span·LangSmith)
     parent_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     kind: Mapped[str] = mapped_column(Text, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)

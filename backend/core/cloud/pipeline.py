@@ -532,7 +532,12 @@ def build_sources(ctx: CloudCtx, findings: list[dict[str, Any]]) -> list[dict[st
     b = ctx.bundle
     where = {s.id: s.location for s in b.sources}
     objs: dict[str, tuple[str, Any]] = {}
-    for kind, items in (("tool", b.tools), ("principal", b.principals), ("policy", b.policies), ("resource", b.resources)):
+    for kind, items in (
+        ("tool", b.tools),
+        ("principal", b.principals),
+        ("policy", b.policies),
+        ("resource", b.resources),
+    ):
         for o in items:
             objs[o.id] = (kind, o)
     out: list[dict[str, Any]] = []
@@ -554,7 +559,9 @@ def build_sources(ctx: CloudCtx, findings: list[dict[str, Any]]) -> list[dict[st
                     }
                 )
             else:
-                out.append({"evidence_id": eid, "kind": "source" if eid in where else "other", "location": where.get(eid, "")})
+                out.append(
+                    {"evidence_id": eid, "kind": "source" if eid in where else "other", "location": where.get(eid, "")}
+                )
     out += ctx.host.guidance_reads
     return out
 

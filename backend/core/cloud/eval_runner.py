@@ -89,7 +89,13 @@ async def run_one(bid: str, config_key: str, rep: int, runner_factory: Any = mak
     kind = "A" if config_key == "A" else "B"
     res = await run_cloud_audit(ctx, kind)  # type: ignore[arg-type]
     if (res.get("failure") or {}).get("code") == "UNAUTHORIZED":  # 키가 거부되면 성능이 아니라 환경 문제다
-        return {"bundle_id": bid, "config": config_key, "rep": rep, "skipped": "LLM 인증 실패(401): 키 확인 필요", "status": "SKIPPED"}
+        return {
+            "bundle_id": bid,
+            "config": config_key,
+            "rep": rep,
+            "skipped": "LLM 인증 실패(401): 키 확인 필요",
+            "status": "SKIPPED",
+        }
     res.update({"config": config_key, "rep": rep, "model": model, "wall_ms": int((time.monotonic() - started) * 1000)})
     return res
 

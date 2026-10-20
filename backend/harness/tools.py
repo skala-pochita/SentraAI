@@ -146,3 +146,38 @@ class ToolGate:
     def _deny(self, node: str, tool: str, reason: str) -> None:
         self.denied.append({"node": node, "tool": tool, "reason": reason})
         raise AppError(ErrorCode.FORBIDDEN, f"H3 tool gate: {reason}", {"node": node, "tool": tool})
+
+
+# 같은 입력 재호출이 같은 결과인 변경 도구 (fingerprint·idempotency_key·upsert)
+IDEMPOTENT_MUTATING = {
+    "create_finding",
+    "request_approval",
+    "apply_fix",
+    "merge_fix",
+    "save_report",
+    "update_finding_status",
+    "register_risk_acceptance",
+    "create_fix_proposal",
+    "ingest_document",
+    "update_document",
+}
+
+
+def tool_annotations(tool: str) -> dict[str, bool]:
+    """MCP ToolAnnotations: 조회 readOnlyHint, 변경 destructiveHint (강의 표 6-13 '승인')."""
+    if is_mutating(tool):
+        return {
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": tool in IDEMPOTENT_MUTATING,
+            "openWorldHint": False,
+        }
+    if tool in EXEC_TOOLS["business"]:
+        # 실행 도구: 감사 대상은 바꾸지 않지만 probe 는 샌드박스 에이전트(외부)를 호출한다
+        return {
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": tool != "run_injection_probe",
+            "openWorldHint": tool == "run_injection_probe",
+        }
+    return {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}

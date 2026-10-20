@@ -130,8 +130,24 @@ async def test_step_cap_forces_final_after_six_steps(repo: dict[str, Any]) -> No
 
     out, deps = await run(repo, script, state(repo, risky=[PAY_CFG]))
     steps = [p for t, p in deps.captured if t == "investigate.step"]  # type: ignore[attr-defined]
-    assert len(steps) == 6  # 최대 6 스텝, 이후 final 만 요구
+    assert len(steps) == 3  # 같은 도구는 파일당 3회까지 (Harness Agent Loop), 이후는 거부 관찰
     assert out["investigated"] == []
+
+
+async def test_timeout_forces_final(repo: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    import core.graph.nodes.react_investigator as ri
+
+    real = ri.limits
+
+    def short() -> dict[str, Any]:
+        cfg = real()
+        return {**cfg, "react": {**cfg["react"], "max_seconds": 0}}
+
+    monkeypatch.setattr(ri, "limits", short)
+    out, deps = await run(repo, [final()], state(repo, risky=[PAY_CFG]))
+    limits_ev = [p for t, p in deps.captured if t == "loop.limit"]  # type: ignore[attr-defined]
+    assert limits_ev and limits_ev[0]["reason"] == "timeout"
+    assert not [p for t, p in deps.captured if t == "investigate.step"]  # type: ignore[attr-defined]
 
 
 async def test_disallowed_tool_is_refused_by_gate_and_loop_continues(repo: dict[str, Any]) -> None:

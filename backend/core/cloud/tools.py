@@ -146,7 +146,9 @@ class ToolHost:
                 raise AppError(ErrorCode.FORBIDDEN, "resource URI not allowed for this task")
             doc = await b.read_resource(uri)
             if not any(g["uri"] == uri for g in self.guidance_reads):
-                self.guidance_reads.append({"evidence_id": uri, "kind": "guidance", "uri": uri, "version": doc.get("version")})
+                self.guidance_reads.append(
+                    {"evidence_id": uri, "kind": "guidance", "uri": uri, "version": doc.get("version")}
+                )
             return doc
         if name == "business_create_remediation_ticket":
             return await b.create_remediation_ticket(
