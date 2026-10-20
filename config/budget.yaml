@@ -20,15 +20,3 @@ mcp:
 reliability:
   circuit_fail_threshold: 5
   circuit_open_s: 60
-# Agent·Cloud 감사 (기획서 6장). A/B 구성에 동일하게 적용한다.
-cloud_audit:
-  max_llm_turns: 8            # 논리적 LLM 의사결정 호출 상한 (같은 턴의 429/503 재시도는 provider_request_count)
-  max_active_seconds: 120     # 승인 대기 제외 활성 실행 누적
-  min_remaining_for_collect_s: 30   # 이 이하면 추가 collect/repair 생략
-  max_same_tool_calls: 3
-  provider_retries: 2         # 429/503 최초 요청 뒤 최대 2회
-  retry_backoff_s: [1.0, 2.0] # Retry-After 없을 때
-  repair_rounds: 1
-  tool_result_max_chars: 8000
-  max_output_tokens: 4000
-  max_cost_usd: 0.5
