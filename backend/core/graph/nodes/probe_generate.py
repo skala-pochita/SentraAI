@@ -29,6 +29,28 @@ class AdaptiveProbes(BaseModel):
 @node("probe_generate")
 async def probe_generate(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any]:
     deps = get_deps(config)
+    manifest = state.get("manifest", {})
+    if manifest.get("_source") == "upload":
+        from core.project_probes import uploaded_probe_set
+
+        ps = uploaded_probe_set(state["audit_id"], manifest, manifest.get("_runtime_protocol", "atlas"))
+        runtime = state.get("runtime", {})
+        ready = runtime.get("status") == "READY"
+        selected = [{"probe_id": p.id, "category": p.category, "adaptive": False} for p in ps.probes] if ready else []
+        return {
+            "probes": selected,
+            "agent_coverage": [
+                {
+                    "target_id": state["target"]["target_id"],
+                    "static": "COMPLETED",
+                    "runtime": runtime,
+                    "attacks": "PLANNED" if selected else "NOT_RUN",
+                    "reason": runtime.get("reason")
+                    or ("지원되는 프로젝트 공격 세트가 없습니다." if ready and not selected else ""),
+                    "probe_count": len(selected),
+                }
+            ],
+        }
     ps = load_probe_set()
     rnd = int(state.get("probe_round", 0))
     max_adaptive = int(limits().get("probe", {}).get("max_adaptive_per_round", 4))

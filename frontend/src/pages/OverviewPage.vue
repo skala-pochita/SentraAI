@@ -6,7 +6,7 @@ import { PieChart } from 'echarts/charts'
 import { TooltipComponent, LegendComponent, GraphicComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { get } from '../api/client'
-import type { Audit, Paged, Approval } from '../api/types'
+import type { Audit, Paged } from '../api/types'
 import Stat from '../components/Stat.vue'
 import Icon from '../components/Icon.vue'
 import Sev from '../components/Sev.vue'
@@ -17,14 +17,12 @@ use([PieChart, TooltipComponent, LegendComponent, GraphicComponent, CanvasRender
 const auth = useAuth()
 const { isDark } = useTheme()
 const audits = ref<Audit[]>([])
-const approvals = ref<Approval[]>([])
 const error = ref('')
 const loaded = ref(false)
 
 onMounted(async () => {
   try {
     audits.value = (await get<Paged<Audit>>('/audits?size=50')).items
-    if (auth.isAdmin) approvals.value = await get<Approval[]>('/approvals')
   } catch (e) { error.value = (e as Error).message } finally { loaded.value = true }
 })
 const ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']
@@ -73,9 +71,9 @@ const canRun = computed(() => auth.role === 'ADMIN' || auth.role === 'DEVELOPER'
 
   <div class="grid cols-4">
     <Stat label="전체 감사" :value="audits.length" icon="history" color="var(--accent-2)" :hint="`완료 ${completed}건`" />
-    <Stat label="진행 중" :value="running" icon="radio" color="var(--accent)" hint="대기·실행·승인·병합 대기" />
+    <Stat label="진행 중" :value="running" icon="radio" color="var(--accent)" hint="대기·실행 중" />
     <Stat label="CRITICAL" :value="sev.CRITICAL ?? 0" icon="alert" color="var(--critical)" hint="누적 Finding 기준" />
-    <Stat label="승인 대기" :value="approvals.length" icon="approval" color="var(--warn)" hint="ADMIN 만 표시" />
+    <Stat label="완료" :value="completed" icon="check-circle" color="var(--accent-2)" hint="분석 및 보고서 생성 완료" />
   </div>
 
   <div class="grid split mt">

@@ -12,7 +12,7 @@ react:
   context_tokens: 6000          # Context: 관찰 누적이 넘으면 오래된 관찰을 요약
   max_tokens_per_file: 12000
   risky_file_top_k: 8
-  risky_name_keywords: [Config, Client, Security, Payment, Auth]
+  risky_name_keywords: [Config, Client, Security, Payment, Auth, Controller, Service, Repository, engine, tools, main, permissions]
 probe:
   max_adaptive_per_round: 4
   max_rounds: 2

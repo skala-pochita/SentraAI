@@ -14,6 +14,9 @@ x-backend: &backend
     RAG_MCP_URL: http://rag-mcp:8102/mcp
     TARGET_AGENT_URL: http://target-agent:8201
     PROBE_ALLOWLIST: http://target-agent:8201
+    WORKSPACE_DIR: /workspace
+    VAULT_DATA_DIR: /var/lib/audit-vault/data
+    VAULT_KEY_FILE: /var/lib/audit-vault/keys/master.key
   restart: unless-stopped
 
 x-worker-health: &worker-health
@@ -24,6 +27,39 @@ x-worker-health: &worker-health
   start_period: 20s
 
 services:
+  llm-proxy:
+    <<: *backend
+    command: ["uvicorn", "llm_proxy.server:app", "--host", "0.0.0.0", "--port", "8400"]
+    env_file: []
+    environment:
+      DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
+      REDIS_URL: redis://redis:6379/0
+      VAULT_DATA_DIR: /var/lib/audit-vault/data
+      VAULT_KEY_FILE: /var/lib/audit-vault/keys/master.key
+      LLM_PROXY_UPSTREAM: https://api.openai.com/v1/chat/completions
+    volumes: ["vault-data:/var/lib/audit-vault/data:ro", "vault-keys:/var/lib/audit-vault/keys:ro"]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8400/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  sandbox-runner:
+    <<: *backend
+    command: ["uvicorn", "sandbox.server:app", "--host", "0.0.0.0", "--port", "8300"]
+    env_file: []
+    environment:
+      MCP_SERVICE_TOKEN: ${MCP_SERVICE_TOKEN:-change-me}
+      WORKSPACE_DIR: /workspace
+    volumes: ["sandbox-projects:/workspace", "/var/run/docker.sock:/var/run/docker.sock"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8300/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   postgres:
     image: pgvector/pgvector:pg16
     environment:
@@ -79,7 +115,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        for t in audit.requested audit.resume audit.completed github.webhook eval.requested eval.tasks jobs.retry jobs.dlq; do
+        for t in audit.requested audit.resume audit.completed eval.requested eval.tasks jobs.retry jobs.dlq; do
           /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic $$t --partitions 3 --replication-factor 1
         done
     restart: "no"
@@ -114,8 +150,9 @@ services:
     <<: *backend
     command: ["python", "-m", "mcp_servers.business.server"]
     ports: ["8101:8101"]
-    volumes: ["workspace:/workspace"]
+    volumes: ["workspace:/workspace", "vault-data:/var/lib/audit-vault/data:ro", "vault-keys:/var/lib/audit-vault/keys:ro"]
     depends_on:
+      sandbox-runner: {condition: service_healthy}
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
       target-agent: {condition: service_healthy}
@@ -140,7 +177,7 @@ services:
 
   api:
     <<: *backend
-    volumes: ["reports:/app/reports"]
+    volumes: ["reports:/app/reports", "workspace:/workspace", "vault-data:/var/lib/audit-vault/data", "vault-keys:/var/lib/audit-vault/keys"]
     command: ["sh", "-c", "alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port 8000"]
     ports: ["8000:8000"]
     depends_on:
@@ -172,7 +209,7 @@ services:
 
   eval-worker:
     <<: *backend
-    volumes: ["reports:/app/reports"]
+    volumes: ["reports:/app/reports", "workspace:/workspace", "vault-data:/var/lib/audit-vault/data", "vault-keys:/var/lib/audit-vault/keys"]
     command: ["python", "-m", "workers.main", "--role", "eval"]
     environment:
       WORKER_ROLE: eval
@@ -209,6 +246,9 @@ services:
       retries: 20
 
 volumes:
+  sandbox-projects:
+  vault-data:
+  vault-keys:
   pgdata:
   workspace:
   reports:

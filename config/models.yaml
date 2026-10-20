@@ -15,8 +15,6 @@ nodes:
 eval_configs:
   A_nano_single: {model: "${LLM_SMALL_MODEL}", mode: single, prompt: audit_single@v1}
   B_nano_harness: {model: "${LLM_SMALL_MODEL}", mode: harness}
-  C_large_single: {model: "${LLM_LARGE_MODEL}", mode: single, prompt: audit_single@v1}
-  D_large_harness: {model: "${LLM_LARGE_MODEL}", mode: harness}
 
 embedding:
   model: "${EMBEDDING_MODEL}"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 명세 16장 '모델 비교': A/B/C 지표 표, 카테고리별 재현율, F1 vs 비용(토큰) 산점도, 감사기 인젝션 견고성, 케이스별 차이
+// 명세 16장 '모델 비교': A/B 지표 표, 카테고리별 재현율, F1 vs 비용(토큰) 산점도, 감사기 인젝션 견고성, 케이스별 차이
 import { computed, onMounted, ref } from 'vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -24,7 +24,7 @@ const runs = ref<Run[]>([])
 const detail = ref<Detail | null>(null)
 const busy = ref(false)
 const msg = ref('')
-const CONFIGS = ['A_nano_single', 'B_nano_harness', 'C_large_single']
+const CONFIGS = ['A_nano_single', 'B_nano_harness']
 const METRICS = ['code_recall', 'code_precision', 'code_f1', 'static_evasion_recall', 'agent_recall', 'probe_accuracy',
   'severity_accuracy', 'evidence_accuracy', 'auditor_robustness', 'fp_count_on_decoys', 'tokens', 'cost_usd', 'latency_s']
 const LOWER_BETTER = new Set(['fp_count_on_decoys', 'tokens', 'cost_usd', 'latency_s'])
@@ -35,8 +35,7 @@ const LABELS: Record<string, string> = {
 }
 const CFG_INFO: Record<string, { tag: string; title: string; desc: string }> = {
   A_nano_single: { tag: 'A', title: '작은 모델 · 단일 프롬프트', desc: '기준선' },
-  B_nano_harness: { tag: 'B', title: '작은 모델 + Harness', desc: 'LangGraph + MCP + 가드레일' },
-  C_large_single: { tag: 'C', title: '큰 모델 · 단일 프롬프트', desc: '상한선' },
+  B_nano_harness: { tag: 'B', title: '작은 모델 + AI Agent', desc: 'LangGraph + MCP + 가드레일' },
 }
 
 async function load(id?: string) {
@@ -55,7 +54,7 @@ async function start() {
   } catch (e) { msg.value = String(e) } finally { busy.value = false }
 }
 
-const cfgs = computed(() => Object.keys(detail.value?.summary ?? {}))
+const cfgs = computed(() => CONFIGS.filter((c) => c in (detail.value?.summary ?? {})))
 const round = (n: number) => (Math.abs(n) >= 100 ? Math.round(n).toLocaleString() : String(Math.round(n * 100) / 100))
 const fmtMean = (s?: Stat) => (s?.mean == null ? '-' : round(s.mean))
 const fmtStd = (s?: Stat) => (s?.std ? `± ${round(s.std)}` : '')
@@ -114,22 +113,22 @@ const f1 = (c: string) => detail.value?.summary[c]?.code_f1
     <div class="card">
       <div class="row" style="justify-content:space-between; gap:16px">
         <div style="min-width:0">
-          <h3 style="font-size:16px">A/B/C 비교 실험 <span class="muted" style="font-weight:400">· 코드·Agent 감사</span></h3>
-          <p class="muted small" style="margin:0">같은 정답셋으로 세 구성을 반복 실행합니다. 결과는 그대로 기록합니다.</p>
+          <h3 style="font-size:16px">A/B 비교 실험 <span class="muted" style="font-weight:400">· 코드·Agent 감사</span></h3>
+          <p class="muted small" style="margin:0">같은 정답셋으로 두 구성을 반복 실행합니다. 결과는 그대로 기록합니다.</p>
         </div>
         <div class="row">
           <select v-if="runs.length" :value="detail?.id" aria-label="실험 선택" style="width:auto; min-width:240px" @change="load(($event.target as HTMLSelectElement).value)">
             <option v-for="r in runs" :key="r.id" :value="r.id">{{ r.id.slice(0, 8) }} · {{ r.status }} · {{ r.created_at.slice(0, 16).replace('T', ' ') }}</option>
           </select>
           <button class="btn" @click="load(detail?.id)"><Icon name="refresh" :size="15" />새로고침</button>
-          <button v-if="auth.isAdmin" class="btn primary" :disabled="busy" @click="start"><Icon name="play" :size="15" />실험 실행 (A·B·C × 1)</button>
+          <button v-if="auth.isAdmin" class="btn primary" :disabled="busy" @click="start"><Icon name="play" :size="15" />실험 실행 (A·B × 1)</button>
         </div>
       </div>
       <p v-if="msg" class="callout info mt small"><Icon name="clock" :size="16" />{{ msg }}</p>
       <div v-if="!runs.length" class="empty"><Icon name="flask" /><b>아직 실험이 없습니다</b></div>
     </div>
 
-    <div v-if="detail && cfgs.length" class="grid cols-3">
+    <div v-if="detail && cfgs.length" class="grid cols-2">
       <div v-for="c in cfgs" :key="c" class="card cfg" :class="{ hero2: c === 'B_nano_harness' }" :style="{ '--c': color(c) }">
         <div class="row"><span class="tag">{{ short(c) }}</span><span style="min-width:0"><b>{{ CFG_INFO[c]?.title ?? c }}</b><span class="muted small" style="display:block">{{ CFG_INFO[c]?.desc }}</span></span></div>
         <div class="row mt" style="align-items:baseline; gap:8px"><span class="big num">{{ fmtMean(f1(c)) }}</span><span class="muted small">code F1 {{ fmtStd(f1(c)) }}</span></div>

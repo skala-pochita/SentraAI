@@ -184,9 +184,7 @@ async def test_tool_annotations_mark_destructive() -> None:
 
     tools = {t.name: t for t in [*await mcp.list_tools(), *await rag_mcp.list_tools()]}
     for name in (
-        "apply_fix",
         "create_finding",
-        "merge_fix",
         "save_report",
         "delete_document",
         "register_false_positive",

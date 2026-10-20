@@ -91,8 +91,8 @@ async def agent_static_check(state: dict[str, Any], config: RunnableConfig) -> d
         node="agent_static_check",
     )
     return {
-        "agent_findings": [d.model_dump() for d in drafts],
-        "manifest": manifest["manifest"],
+        "agent_findings": [d.model_dump() for d in drafts] + res.get("source_findings", []),
+        "manifest": manifest["manifest"] | {"_source": manifest.get("source"), "_runtime_protocol": manifest.get("runtime_protocol", "auditor")},
         "token_usage": usage,
         "errors": errors,
     }

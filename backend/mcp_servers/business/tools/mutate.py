@@ -12,7 +12,7 @@ from mcp.server.fastmcp import Context
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
-from core.db.models import Approval, Finding, FixProposalRow, Report, RiskAcceptance, RiskPath
+from core.db.models import Approval, Audit, AuditTarget, Finding, FixProposalRow, Report, RiskAcceptance, RiskPath
 from core.db.session import session_scope
 from core.errors import AppError, ErrorCode
 from core.redis.client import get_redis
@@ -50,7 +50,20 @@ def _actor() -> uuid.UUID:
     return _uuid(call.actor_id, "X-Actor-Id")
 
 
-@mcp_tool(mcp, roles=("ADMIN",))
+async def _ensure_audit_writer(db: Any, aid: uuid.UUID, target_id: uuid.UUID | None = None) -> None:
+    call = current_call()
+    if call.role == "ADMIN":
+        return
+    audit = await db.get(Audit, aid)
+    if audit is None or str(audit.requested_by) != call.actor_id:
+        raise AppError(ErrorCode.FORBIDDEN, "다른 사용자의 감사 결과를 저장할 수 없습니다.")
+    if target_id is not None:
+        linked = await db.get(AuditTarget, (aid, target_id))
+        if linked is None:
+            raise AppError(ErrorCode.FORBIDDEN, "감사에 등록되지 않은 대상입니다.")
+
+
+@mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
 async def create_finding(audit_id: str, finding: dict[str, Any], ctx: Context | None = None) -> Any:
     """FindingDraft 를 저장한다. fingerprint = hash(target, category, path, normalized_snippet) 중복이면 기존 ID 반환 (멱등).
 
@@ -66,6 +79,7 @@ async def create_finding(audit_id: str, finding: dict[str, Any], ctx: Context | 
     aid = _uuid(audit_id, "audit_id")
     fp = finding_fingerprint(f)
     async with session_scope() as db:
+        await _ensure_audit_writer(db, aid, _uuid(f.target_id, "target_id"))
         stmt = (
             insert(Finding)
             .values(
@@ -144,7 +158,6 @@ async def update_finding_status(finding_id: str, status: str, reason: str = "", 
         return {"finding_id": finding_id, "status": status, "previous": prev}
 
 
-@mcp_tool(mcp, roles=("ADMIN",))
 async def request_approval(audit_id: str, finding_ids: list[str], summary: str, ctx: Context | None = None) -> Any:
     """CRITICAL Finding 수정 적용에 대한 보안관리자 승인을 요청한다. 같은 감사·같은 Finding 집합이면 기존 요청 반환(멱등).
 
@@ -176,7 +189,6 @@ async def _agent_precheck(after: dict[str, str | None], categories: set[str]) ->
     return [h.model_dump() for h in hits if h.category in categories]
 
 
-@mcp_tool(mcp, roles=("ADMIN",))
 async def create_fix_proposal(
     audit_id: str,
     finding_ids: list[str],
@@ -272,7 +284,6 @@ def _fault_count() -> int:
         return 0
 
 
-@mcp_tool(mcp, roles=("ADMIN",))
 async def apply_fix(
     proposal_id: str, idempotency_key: str, approval_id: str | None = None, ctx: Context | None = None
 ) -> Any:
@@ -327,8 +338,6 @@ async def apply_fix(
             )
 
     t = await get_target(target_id)
-    if get_settings().git_mode == "github":
-        raise AppError(ErrorCode.VALIDATION, "GIT_MODE=github is not implemented in MVP (Phase 9)")
     branch = f"fix/{str(audit_id)[:8]}-{proposal_id[:8]}"
     await git(t.root, "checkout", "-q", "main")
     exists = (await git(t.root, "rev-parse", "--verify", "--quiet", branch, check=False)).returncode == 0
@@ -349,7 +358,6 @@ async def apply_fix(
     return {"branch": branch, "pr_url": pr_url, "reused": False}
 
 
-@mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
 async def merge_fix(proposal_id: str, ctx: Context | None = None) -> Any:
     """GIT_MODE=local 병합 시뮬레이션: fix 브랜치를 main 에 merge 한다 (대시보드 Merge 버튼).
 
@@ -382,7 +390,6 @@ async def merge_fix(proposal_id: str, ctx: Context | None = None) -> Any:
     return {"merged": True, "commit_sha": sha, "reused": False}
 
 
-@mcp_tool(mcp, roles=("ADMIN",))
 async def register_risk_acceptance(finding_id: str, reason: str, expires_at: str, ctx: Context | None = None) -> Any:
     """반려된 Finding 을 위험 수용으로 등록한다 (사유, 만료일). Finding 상태 → ACCEPTED_RISK.
 
@@ -415,7 +422,7 @@ async def register_risk_acceptance(finding_id: str, reason: str, expires_at: str
         return {"acceptance_id": str(ra.id)}
 
 
-@mcp_tool(mcp, roles=("ADMIN",))
+@mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
 async def save_report(audit_id: str, report_json: dict[str, Any], report_md: str, ctx: Context | None = None) -> Any:
     """감사 보고서를 저장한다 (감사당 1개, 재호출 시 갱신). 저장 전 비밀값을 다시 마스킹한다.
 
@@ -427,6 +434,7 @@ async def save_report(audit_id: str, report_json: dict[str, Any], report_md: str
     body_json = mask_obj(report_json)
     body_md = mask_text(report_md)
     async with session_scope() as db:
+        await _ensure_audit_writer(db, aid)
         stmt = (
             insert(Report)
             .values(audit_id=aid, report_json=body_json, report_md=body_md)

@@ -5,12 +5,12 @@ from __future__ import annotations
 import uuid
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps import Admin, CurrentUser, LoggedIn, accessible_target_ids
+from api.deps import Admin, CurrentUser, LoggedIn, accessible_target_ids, require_roles
 from api.errors import Page, page_params, paged
 from core.db.models import Target
 from core.db.session import get_db
@@ -65,6 +65,8 @@ async def list_targets(
 
 @router.post("/targets", response_model=TargetOut, status_code=201)
 async def create_target(body: TargetCreate, _: CurrentUser = Admin, db: AsyncSession = Depends(get_db)) -> TargetOut:
+    if body.type == "repo":
+        raise AppError(ErrorCode.VALIDATION, "코드 프로젝트는 ZIP 업로드로 등록하세요.")
     if body.linked_target_id and await db.get(Target, body.linked_target_id) is None:
         raise AppError(ErrorCode.VALIDATION, "linked_target_id not found")
     t = Target(**body.model_dump())
@@ -76,3 +78,93 @@ async def create_target(body: TargetCreate, _: CurrentUser = Admin, db: AsyncSes
         if other is not None and other.linked_target_id is None:
             other.linked_target_id = t.id
     return TargetOut.of(t)
+
+
+@router.post("/targets/upload", response_model=TargetOut, status_code=201)
+async def upload_project(
+    file: UploadFile,
+    user: CurrentUser = Depends(require_roles("ADMIN", "DEVELOPER")),
+    db: AsyncSession = Depends(get_db),
+) -> TargetOut:
+    """Upload a ZIP snapshot; register a private, read-only code audit target."""
+    import asyncio
+    import shutil
+
+    from core.project_upload import MAX_UPLOAD_BYTES, extract_project
+    from core.settings import get_settings
+
+    if not file.filename or not file.filename.lower().endswith(".zip"):
+        raise AppError(ErrorCode.VALIDATION, "프로젝트를 ZIP 파일로 업로드하세요.")
+    data = await file.read(MAX_UPLOAD_BYTES + 1)
+    await file.close()
+    target_id = uuid.uuid4()
+    destination = get_settings().workspace_dir / "uploads" / str(target_id)
+    root = await asyncio.to_thread(extract_project, data, destination)
+    try:
+        from core.agent_project import discover_agent
+
+        profile = await asyncio.to_thread(discover_agent, root)
+        agent_id = uuid.uuid4() if profile else None
+        runtime = {"supported": False, "reason": "에이전트 정의 없음"}
+        if profile:
+            from core.runtime_spec import runtime_spec
+
+            try:
+                runtime_spec(root)
+                from core.project_probes import uploaded_probe_set
+
+                if not uploaded_probe_set(
+                    "preflight", profile["manifest"], profile.get("runtime_protocol", "auditor")
+                ).probes:
+                    raise AppError(
+                        ErrorCode.VALIDATION,
+                        "이 에이전트에는 audit-runtime.yaml 및 audit-probes.yaml 공격 정의가 필요합니다.",
+                    )
+                runtime = {"supported": True, "reason": ""}
+            except AppError as exc:
+                runtime = {"supported": False, "reason": exc.message}
+
+        t = Target(
+            id=target_id,
+            type="repo",
+            name=file.filename.rsplit("/", 1)[-1][:-4][:200] or "project",
+            ref=str(root),
+            owner_user_id=user.id,
+            config={
+                "source": "upload",
+                "read_only": True,
+                "agent_detected": bool(profile),
+                "runtime": runtime,
+                "agent_discovery": profile["discovery"] if profile else None,
+            },
+        )
+        db.add(t)
+        await db.flush()
+        if agent_id and profile:
+            agent = Target(
+                id=agent_id,
+                type="agent",
+                name=t.name + " · Agent",
+                ref="",
+                owner_user_id=user.id,
+                linked_target_id=t.id,
+                config={
+                    "source": "upload",
+                    "config_dir": str(root),
+                    "read_only": True,
+                    "discovery": profile["discovery"],
+                    "runtime_status": "PENDING" if runtime["supported"] else "UNSUPPORTED",
+                    "runtime_reason": runtime["reason"],
+                    "runtime_protocol": profile.get("runtime_protocol", "auditor"),
+                },
+            )
+            db.add(agent)
+            await db.flush()
+            t.linked_target_id = agent.id
+            await db.flush()
+        await db.refresh(t)
+        await db.commit()
+        return TargetOut.of(t)
+    except Exception:
+        await asyncio.to_thread(shutil.rmtree, destination, True)
+        raise

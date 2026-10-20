@@ -1,6 +1,6 @@
 export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO'
 export interface Paged<T> { items: T[]; total: number; page: number; size: number }
-export interface Target { id: string; type: 'repo' | 'agent'; name: string; ref: string }
+export interface Target { id: string; type: 'repo' | 'agent'; name: string; ref: string; linked_target_id?: string | null; config?: { runtime?: { supported: boolean; reason: string }; agent_detected?: boolean } }
 export interface Audit {
   id: string; status: string; mode: string; current_node: string | null; progress: number
   created_at: string; started_at: string | null; finished_at: string | null

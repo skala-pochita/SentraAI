@@ -5,6 +5,9 @@ description = "AI Security Auditor backend (api, workers, MCP servers, harness)"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi",
+    "docker",
+    "cryptography",
+    "python-multipart",
     "uvicorn[standard]",
     "sse-starlette",
     "pydantic>=2",
@@ -51,7 +54,7 @@ markers = [
     "llm: requires real LLM API",
     "infra: requires docker compose infra (postgres/redis/kafka)",
 ]
-addopts = "-m 'not llm'"
+addopts = "-m 'not llm and not infra'"
 
 [tool.ruff]
 line-length = 120

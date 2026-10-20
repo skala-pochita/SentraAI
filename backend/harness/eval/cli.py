@@ -1,4 +1,4 @@
-"""python -m harness.eval.cli --configs A_nano_single,B_nano_harness,C_large_single --repeat 1"""
+"""python -m harness.eval.cli --configs A_nano_single,B_nano_harness --repeat 1"""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from harness.eval.runner import run_eval
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--configs", default="A_nano_single,B_nano_harness,C_large_single")
+    ap.add_argument("--configs", default="A_nano_single,B_nano_harness")
     ap.add_argument("--repeat", type=int, default=1)
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")

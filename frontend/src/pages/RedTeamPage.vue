@@ -7,7 +7,7 @@ import AuditTabs from '../components/AuditTabs.vue'
 interface Run { id: string; attempt: number; success: boolean; reply_masked: string; tool_calls: unknown[]; judged_by: string }
 interface Row { probe_id: string; category: string; channel: string; runs: Run[] }
 const id = useRoute().params.id as string
-const data = ref<{ probes: Row[]; asr_by_category: Record<string, number> } | null>(null)
+const data = ref<{ probes: Row[]; asr_by_category: Record<string, number>; coverage: { target_id: string; static: string; attacks: string; reason: string; model_verification?: string; runtime: { status: string; mode?: string; reason?: string } }[] } | null>(null)
 const open = ref<Run | null>(null)
 const openProbe = ref('')
 onMounted(async () => { data.value = await get(`/audits/${id}/probes`) })
@@ -16,6 +16,12 @@ function pick(p: Row, r: Run) { open.value = r; openProbe.value = p.probe_id }
 </script>
 <template>
   <AuditTabs :id="id" />
+  <div v-for="c in data?.coverage ?? []" :key="c.target_id" class="callout info mb">
+    <div><b>권한 검사 {{ c.static }} · 격리 실행 {{ c.runtime.status }} · 공격 검사 {{ c.attacks }}</b>
+      <p class="muted small">{{ c.reason || c.runtime.reason }} · 실행 모드: {{ c.runtime.mode ?? '미실행' }} · 모델 검증: {{ c.model_verification ?? '미확인' }}</p>
+      <p v-if="c.runtime.mode === 'mock'" class="muted small">모의 에이전트의 도구 실행 검증입니다. 실제 LLM의 방어 성능을 의미하지 않습니다.</p>
+    </div>
+  </div>
   <div v-if="data" class="grid side">
     <div class="card">
       <div class="card-head"><h3><Icon name="crosshair" :size="16" />카테고리별 공격 성공률</h3></div>

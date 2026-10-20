@@ -1,4 +1,4 @@
-"""/audits, /findings, /approvals, /fixes, 보고서·트레이스·SSE (명세 14장)."""
+"""Read-only audits, findings, reports, traces and progress SSE."""
 
 from __future__ import annotations
 
@@ -19,12 +19,10 @@ from sse_starlette.sse import EventSourceResponse
 from api.deps import Admin, CurrentUser, LoggedIn, accessible_target_ids, ensure_target_access, require_roles
 from api.errors import Page, page_params, paged
 from core.db.models import (
-    Approval,
     Audit,
     AuditEvent,
     AuditTarget,
     Finding,
-    FixProposalRow,
     ProbeRun,
     Report,
     RiskPath,
@@ -59,7 +57,7 @@ def audit_out(a: Audit, target_ids: list[str], live: dict[str, str] | None = Non
         "started_at": _iso(a.started_at),
         "finished_at": _iso(a.finished_at),
         "created_at": _iso(a.created_at),
-        "summary": a.summary,
+        "summary": a.summary if a.status == "COMPLETED" else {},
         "target_ids": target_ids,
     }
 
@@ -81,6 +79,12 @@ async def load_audit(db: AsyncSession, user: CurrentUser, audit_id: uuid.UUID) -
     return a, tids
 
 
+async def require_completed(db: AsyncSession, user: CurrentUser, audit_id: uuid.UUID) -> None:
+    audit, _ = await load_audit(db, user, audit_id)
+    if audit.status != "COMPLETED":
+        raise AppError(ErrorCode.CONFLICT, "감사 완료 후 결과를 확인할 수 있습니다.")
+
+
 class AuditCreate(BaseModel):
     target_ids: list[uuid.UUID] = Field(min_length=1)
     mode: Literal["full", "code", "agent"] = "full"
@@ -88,11 +92,53 @@ class AuditCreate(BaseModel):
 
 @router.post("/audits", status_code=202)
 async def create_audit(
-    body: AuditCreate, user: CurrentUser = Admin, db: AsyncSession = Depends(get_db)
+    body: AuditCreate,
+    user: CurrentUser = Depends(require_roles("ADMIN", "DEVELOPER")),
+    db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     targets = list((await db.execute(select(Target).where(Target.id.in_(body.target_ids)))).scalars())
     if len(targets) != len(set(body.target_ids)):
         raise AppError(ErrorCode.NOT_FOUND, "some targets not found")
+    await ensure_target_access(user, db, {t.id for t in targets})
+    if body.mode == "full":
+        linked = {t.linked_target_id for t in targets if t.config.get("source") == "upload" and t.linked_target_id}
+        present = {t.id for t in targets}
+        for tid in linked - present:
+            other = await db.get(Target, tid)
+            if other is not None:
+                targets.append(other)
+        await ensure_target_access(user, db, {t.id for t in targets})
+    lock_ids = {t.id for t in targets} | {t.linked_target_id for t in targets if t.linked_target_id}
+    await db.execute(select(Target.id).where(Target.id.in_(lock_ids)).order_by(Target.id).with_for_update())
+    if body.mode in {"full", "agent"}:
+        from pathlib import Path
+
+        from core.execution_config import readiness, settings_for_agent
+
+        for target in targets:
+            if target.type == "agent" and target.config.get("source") == "upload":
+                row = await settings_for_agent(db, target)
+                ready = readiness(Path(target.config["config_dir"]), row)
+                if not ready["ready"]:
+                    raise AppError(
+                        ErrorCode.VALIDATION, "전체 검사 준비 조건을 확인하세요.", {"criteria": ready["criteria"]}
+                    )
+        if body.mode == "agent" and not any(t.type == "agent" for t in targets):
+            raise AppError(ErrorCode.VALIDATION, "에이전트 타깃을 선택하세요.")
+        if (
+            body.mode == "full"
+            and any(t.config.get("source") == "upload" for t in targets)
+            and not any(t.type == "agent" for t in targets)
+        ):
+            raise AppError(
+                ErrorCode.VALIDATION,
+                "전체 검사에는 에이전트 정의가 필요합니다. 소스 검사만 하려면 코드 모드를 선택하세요.",
+            )
+    uploaded_roots = {
+        t.config.get("config_dir", t.ref) for t in targets if t.config.get("source") == "upload" and t.type == "agent"
+    }
+    if body.mode in {"full", "agent"} and len(uploaded_roots) > 1:
+        raise AppError(ErrorCode.VALIDATION, "격리 실행 감사는 한 번에 업로드 프로젝트 하나를 선택하세요.")
     audit_id = uuid.uuid4()
     a = Audit(id=audit_id, requested_by=user.id, mode=body.mode, status="QUEUED", thread_id=f"audit:{audit_id}")
     db.add(a)
@@ -149,12 +195,6 @@ async def get_audit(
     a, tids = await load_audit(db, user, audit_id)
     live = await get_redis().hgetall(f"audit:{a.id}:status")
     out = audit_out(a, tids, live)  # type: ignore[arg-type]
-    pending = (
-        (await db.execute(select(Approval).where(Approval.audit_id == a.id, Approval.status == "PENDING")))
-        .scalars()
-        .first()
-    )
-    out["pending_approval_id"] = str(pending.id) if pending else None
     return out
 
 
@@ -170,6 +210,14 @@ async def cancel_audit(
     for t in tids:
         if await r.get(f"lock:audit:target:{t}") == str(a.id):
             await r.delete(f"lock:audit:target:{t}")
+    from core.sandbox_client import sandbox_call
+
+    try:
+        await sandbox_call("/stop/" + str(a.id), timeout=30)
+    except AppError:
+        import logging
+
+        logging.getLogger(__name__).warning("sandbox cleanup deferred to TTL reaper: %s", a.id)
     return {"audit_id": str(a.id), "status": a.status}
 
 
@@ -209,7 +257,7 @@ async def _event_stream(request: Request, audit_id: str, last_id: str | None) ->
                         "type": e.type,
                         "node": e.node,
                         "ts": e.ts.isoformat(),
-                        "payload": e.payload,
+                        "payload": {},
                     },
                     ensure_ascii=False,
                 ),
@@ -217,7 +265,7 @@ async def _event_stream(request: Request, audit_id: str, last_id: str | None) ->
         if finished:
             return
     while not await request.is_disconnected():
-        res = await r.xread({key: cursor}, block=15000, count=100)
+        res: Any = await r.xread({key: cursor}, block=15000, count=100)
         if not res:
             yield {"event": "ping", "data": "{}"}
             continue
@@ -225,7 +273,10 @@ async def _event_stream(request: Request, audit_id: str, last_id: str | None) ->
             for entry_id, fields in entries:
                 cursor = entry_id
                 data = fields.get("data", "{}")
-                etype = json.loads(data).get("type", "message")
+                event = json.loads(data)
+                event["payload"] = {}
+                data = json.dumps(event, ensure_ascii=False)
+                etype = event.get("type", "message")
                 yield {"id": entry_id, "event": etype, "data": data}
                 if etype in TERMINAL_EVENTS:
                     return
@@ -282,7 +333,7 @@ async def audit_findings(
     user: CurrentUser = LoggedIn,
     db: AsyncSession = Depends(get_db),
 ) -> list[dict[str, Any]]:
-    await load_audit(db, user, audit_id)
+    await require_completed(db, user, audit_id)
     q = select(Finding).where(Finding.audit_id == audit_id)
     for col, val in ((Finding.severity, severity), (Finding.status, status), (Finding.source, source)):
         if val:
@@ -300,9 +351,8 @@ async def get_finding(
     if f is None:
         raise AppError(ErrorCode.NOT_FOUND, "finding not found")
     await ensure_target_access(user, db, {f.target_id})
+    await require_completed(db, user, f.audit_id)
     out = finding_out(f)
-    props = (await db.execute(select(FixProposalRow).where(FixProposalRow.audit_id == f.audit_id))).scalars()
-    out["fix_proposals"] = [fix_out(p) for p in props if f.id in p.finding_ids]
     probe_ids = [e.get("probe_transcript_ref") for e in f.evidence if e.get("probe_transcript_ref")]
     if probe_ids:
         runs = (await db.execute(select(ProbeRun).where(ProbeRun.id.in_([uuid.UUID(x) for x in probe_ids])))).scalars()
@@ -363,7 +413,7 @@ def risk_out(r: RiskPath) -> dict[str, Any]:
 async def risk_paths(
     audit_id: uuid.UUID, user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)
 ) -> list[dict[str, Any]]:
-    await load_audit(db, user, audit_id)
+    await require_completed(db, user, audit_id)
     rows = (await db.execute(select(RiskPath).where(RiskPath.audit_id == audit_id))).scalars()
     return [risk_out(r) for r in rows]
 
@@ -390,7 +440,7 @@ async def probes(
     audit_id: uuid.UUID, user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)
 ) -> dict[str, Any]:
     """probe × 시도 매트릭스."""
-    await load_audit(db, user, audit_id)
+    await require_completed(db, user, audit_id)
     rows = list(
         (
             await db.execute(select(ProbeRun).where(ProbeRun.audit_id == audit_id).order_by(ProbeRun.created_at))
@@ -407,7 +457,9 @@ async def probes(
         c = cats.setdefault(m["category"], {"attempts": 0, "successes": 0})
         c["attempts"] += len(m["runs"])
         c["successes"] += sum(1 for x in m["runs"] if x["success"])
+    report = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
     return {
+        "coverage": report.report_json.get("agent_coverage", []) if report else [],
         "probes": list(matrix.values()),
         "asr_by_category": {
             k: round(v["successes"] / v["attempts"], 3) if v["attempts"] else 0 for k, v in cats.items()
@@ -415,164 +467,11 @@ async def probes(
     }
 
 
-# ---------------- Approvals ----------------
-
-
-@router.get("/approvals")
-async def list_approvals(
-    status: str | None = "PENDING", _: CurrentUser = Admin, db: AsyncSession = Depends(get_db)
-) -> list[dict[str, Any]]:
-    q = select(Approval).order_by(Approval.created_at.desc())
-    if status:
-        q = q.where(Approval.status == status)
-    out = []
-    for a in (await db.execute(q.limit(100))).scalars():
-        fs = (await db.execute(select(Finding).where(Finding.id.in_(a.finding_ids)))).scalars()
-        out.append(
-            {
-                "id": str(a.id),
-                "audit_id": str(a.audit_id),
-                "status": a.status,
-                "summary": a.summary,
-                "comment": a.comment,
-                "decided_at": _iso(a.decided_at),
-                "created_at": _iso(a.created_at),
-                "findings": [
-                    {"id": str(f.id), "title": f.title, "severity": f.severity, "category": f.category} for f in fs
-                ],
-            }
-        )
-    return out
-
-
-class Decision(BaseModel):
-    decision: Literal["APPROVE", "REJECT"]
-    comment: str = ""
-
-
-@router.post("/approvals/{approval_id}/decision")
-async def decide(
-    approval_id: uuid.UUID, body: Decision, user: CurrentUser = Admin, db: AsyncSession = Depends(get_db)
-) -> dict[str, Any]:
-    a = await db.get(Approval, approval_id)
-    if a is None:
-        raise AppError(ErrorCode.NOT_FOUND, "approval not found")
-    if a.status != "PENDING":
-        raise AppError(ErrorCode.CONFLICT, f"approval already {a.status}")
-    now = datetime.now(UTC)
-    a.status = "APPROVED" if body.decision == "APPROVE" else "REJECTED"
-    a.decided_by, a.comment, a.decided_at = user.id, body.comment, now
-    await db.commit()
-    resume = {
-        "approval_id": str(a.id),
-        "decision": body.decision,
-        "decided_by": str(user.id),
-        "comment": body.comment,
-        "decided_at": now.isoformat(),
-    }
-    await publish(
-        "audit.resume",
-        str(a.audit_id),
-        Envelope(
-            type="audit.resume",
-            trace_id=trace_id_for(str(a.audit_id)),
-            payload={"audit_id": str(a.audit_id), "kind": "approval", "resume_value": resume},
-        ),
-    )
-    return {"approval_id": str(a.id), "status": a.status}
-
-
-# ---------------- Fixes ----------------
-
-
-def fix_out(p: FixProposalRow) -> dict[str, Any]:
-    from harness.masking import mask_text
-
-    return {
-        "id": str(p.id),
-        "audit_id": str(p.audit_id),
-        "finding_ids": [str(x) for x in p.finding_ids],
-        "kind": p.kind,
-        "diff": mask_text(p.diff),
-        "patch_check_passed": p.patch_check_passed,
-        "approval_id": str(p.approval_id) if p.approval_id else None,
-        "branch": p.branch,
-        "pr_url": p.pr_url,
-        "merge_status": p.merge_status,
-        "attempt": p.attempt,
-        "created_at": _iso(p.created_at),
-    }
-
-
-@router.get("/audits/{audit_id}/fixes")
-async def audit_fixes(
-    audit_id: uuid.UUID, user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)
-) -> list[dict[str, Any]]:
-    await load_audit(db, user, audit_id)
-    rows = (
-        await db.execute(
-            select(FixProposalRow).where(FixProposalRow.audit_id == audit_id).order_by(FixProposalRow.created_at)
-        )
-    ).scalars()
-    return [fix_out(p) for p in rows]
-
-
-@router.post("/fixes/{proposal_id}/merge")
-async def merge_fix(
-    proposal_id: uuid.UUID,
-    user: CurrentUser = Depends(require_roles("ADMIN", "DEVELOPER")),
-    db: AsyncSession = Depends(get_db),
-) -> dict[str, Any]:
-    """GIT_MODE=local 병합 시뮬레이션 → 감사의 모든 PR 이 병합되면 audit.resume."""
-    p = await db.get(FixProposalRow, proposal_id)
-    if p is None:
-        raise AppError(ErrorCode.NOT_FOUND, "proposal not found")
-    tids = set((await db.execute(select(Finding.target_id).where(Finding.id.in_(p.finding_ids)))).scalars())
-    await ensure_target_access(user, db, tids)
-    res = await http_gateway().call(
-        "merge_fix", {"proposal_id": str(p.id)}, CallCtx("api", user.role, str(user.id), str(p.audit_id))
-    )
-    await db.refresh(p)
-    pending = (
-        (
-            await db.execute(
-                select(FixProposalRow).where(
-                    FixProposalRow.audit_id == p.audit_id,
-                    FixProposalRow.branch.is_not(None),
-                    FixProposalRow.merge_status != "MERGED",
-                )
-            )
-        )
-        .scalars()
-        .first()
-    )
-    resumed = False
-    if pending is None:
-        await publish(
-            "audit.resume",
-            str(p.audit_id),
-            Envelope(
-                type="audit.resume",
-                trace_id=trace_id_for(str(p.audit_id)),
-                payload={
-                    "audit_id": str(p.audit_id),
-                    "kind": "merge",
-                    "resume_value": {"merged": True, "by": str(user.id), "commit_sha": res.get("commit_sha")},
-                },
-            ),
-        )
-        resumed = True
-    return {"proposal_id": str(p.id), "merged": True, "commit_sha": res.get("commit_sha"), "audit_resumed": resumed}
-
-
-# ---------------- Report / traces ----------------
-
-
 @router.get("/audits/{audit_id}/report")
 async def report_json(
     audit_id: uuid.UUID, user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)
 ) -> dict[str, Any]:
-    await load_audit(db, user, audit_id)
+    await require_completed(db, user, audit_id)
     r = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
     if r is None:
         raise AppError(ErrorCode.NOT_FOUND, "report not ready")
@@ -583,7 +482,7 @@ async def report_json(
 async def report_md(
     audit_id: uuid.UUID, user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)
 ) -> PlainTextResponse:
-    await load_audit(db, user, audit_id)
+    await require_completed(db, user, audit_id)
     r = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
     if r is None:
         raise AppError(ErrorCode.NOT_FOUND, "report not ready")

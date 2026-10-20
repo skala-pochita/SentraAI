@@ -23,7 +23,7 @@ router = APIRouter(prefix="/eval-runs", tags=["eval"])
 
 
 class EvalCreate(BaseModel):
-    configs: list[str] = Field(default_factory=lambda: ["A_nano_single", "B_nano_harness", "C_large_single"])
+    configs: list[str] = Field(default_factory=lambda: ["A_nano_single", "B_nano_harness"])
     repeat: int = Field(default=1, ge=1, le=5)
     dataset_version: str | None = None
 

@@ -151,6 +151,12 @@ async def search_repo(
 
 async def load_agent_files(target_id: str) -> dict[str, Any]:
     t = await get_target(target_id, "agent")
+    if t.config.get("source") == "upload":
+        from core.agent_project import discover_agent
+        profile = await asyncio.to_thread(discover_agent, t.root)
+        if profile is None:
+            raise AppError(ErrorCode.NOT_FOUND, "업로드 프로젝트에서 에이전트 정의를 찾을 수 없습니다.")
+        return {"target": t, **profile}
     manifest_p = safe_path(t.root, "manifest.yaml")
     prompt_p = safe_path(t.root, "system_prompt.md")
     if not manifest_p.is_file():
@@ -176,10 +182,14 @@ async def get_agent_manifest(target_id: str, ctx: Context | None = None) -> Any:
     a = await load_agent_files(target_id)
     return {
         "manifest": a["manifest"],
-        "manifest_path": "manifest.yaml",
+        "manifest_path": a.get("manifest_path", "manifest.yaml"),
         "manifest_text_masked": mask_text(a["manifest_text"]),
         "system_prompt_masked": mask_text(a["system_prompt"]),
-        "system_prompt_path": "system_prompt.md",
+        "system_prompt_path": a.get("prompt_path", "system_prompt.md"),
+        "discovery": a.get("discovery", "explicit_manifest"),
+        "runtime_status": a["target"].config.get("runtime_status", "CONFIGURED"),
+        "source": a["target"].config.get("source"),
+        "runtime_protocol": a["target"].config.get("runtime_protocol", "auditor"),
         "linked_target_id": a["target"].linked_target_id,
     }
 

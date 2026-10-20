@@ -1,0 +1,24 @@
+# Run this stack on a dedicated execution host, behind a TLS reverse proxy.
+name: audit-executor
+services:
+  sandbox-runner:
+    image: ${AUDITOR_RUNTIME_IMAGE:-ai-security-auditor/backend:dev}
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    command: ["uvicorn", "sandbox.server:app", "--host", "0.0.0.0", "--port", "8300"]
+    environment:
+      MCP_SERVICE_TOKEN: ${SANDBOX_SERVICE_TOKEN:?Set a dedicated random service token}
+      WORKSPACE_DIR: /workspace
+      SANDBOX_CONTROL_NETWORK: bridge
+      SANDBOX_RELAY_IMAGE: ${AUDITOR_RUNTIME_IMAGE:-ai-security-auditor/backend:dev}
+    ports: ["127.0.0.1:8300:8300"]
+    volumes: ["projects:/workspace", "/var/run/docker.sock:/var/run/docker.sock"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8300/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+volumes:
+  projects:

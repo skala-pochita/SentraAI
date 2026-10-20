@@ -1,8 +1,8 @@
-"""H5 평가기 — A/B/C 비교 실험 러너 (명세 17장).
+"""H5 평가기 — A/B 비교 실험 러너 (명세 17장).
 
-A_nano_single / C_large_single: 단일 프롬프트 audit_single@v1 (모든 파일 + 매니페스트 + 시스템 프롬프트 → JSON).
+A_nano_single: 단일 프롬프트 audit_single@v1 (모든 파일 + 매니페스트 + 시스템 프롬프트 → JSON).
   실제 probe 실행 없이 매니페스트만 보고 인젝션 취약 여부를 예측한다. Harness H2~H4·H6~H8 효과는 받지 않는다.
-B_nano_harness (D_large_harness): 8장 그래프 전체 (eval_config 설정 → 승인·수정 없이 report 까지).
+B_nano_harness: 8장 그래프 전체 (eval_config 설정 → 승인·수정 없이 report 까지).
 같은 데이터셋 버전, 같은 파일 집합, 프롬프트 버전 고정. 결과는 그대로 기록한다 (수치 조작 금지).
 """
 
@@ -37,7 +37,7 @@ from harness.prompts import get_prompt
 
 log = logging.getLogger("eval")
 
-CONFIGS = ("A_nano_single", "B_nano_harness", "C_large_single", "D_large_harness")
+CONFIGS = ("A_nano_single", "B_nano_harness")
 SINGLE_MAX_CHARS = 200_000  # A/C 입력 상한 (초과분은 잘림을 기록)
 AGENT_CATEGORIES = [
     "TOOL_NO_APPROVAL",
@@ -79,7 +79,7 @@ class SingleAuditOutput(BaseModel):
 def config_model(cfg: str) -> str:
     m = str(load_config("models")["eval_configs"][cfg].get("model") or "")
     if not m:
-        raise ValueError(f"{cfg}: model not configured (LLM_SMALL_MODEL / LLM_LARGE_MODEL)")
+        raise ValueError(f"{cfg}: model not configured (LLM_SMALL_MODEL)")
     return m
 
 
@@ -303,7 +303,7 @@ def render_report(
         "f1_per_dollar",
     ]
     lines = [
-        f"# A/B/C 비교 실험 — {run_id[:8]}",
+        f"# A/B 비교 실험 — {run_id[:8]}",
         "",
         f"- 데이터셋: {dataset_version()}",
         f"- 구성: {', '.join(configs)} · 반복 {len(next(iter(by_cfg.values())))}회 (평균 ± 표준편차)",
@@ -341,10 +341,6 @@ def render_report(
     if "B_nano_harness" in agg and "A_nano_single" in agg:
         b, a = agg["B_nano_harness"]["code_f1"]["mean"], agg["A_nano_single"]["code_f1"]["mean"]
         lines.append(f"- 같은 작은 모델에서 Harness 적용 시 code F1: A {a} → B {b}.")
-    if "B_nano_harness" in agg and "C_large_single" in agg:
-        b2, c2 = agg["B_nano_harness"]["code_f1"]["mean"], agg["C_large_single"]["code_f1"]["mean"]
-        bt, ct = agg["B_nano_harness"]["tokens"]["mean"], agg["C_large_single"]["tokens"]["mean"]
-        lines.append(f"- B 대 상한선 C: code F1 {b2} vs {c2}, 토큰 {bt} vs {ct}.")
     if any(by_cfg[c][0]["metrics"].get("cost_usd") == 0 for c in by_cfg):
         lines.append("- 비용 0 은 config/pricing.yaml 가격 미기입 때문이다 (토큰 수로 비교).")
     return "\n".join(lines) + "\n"

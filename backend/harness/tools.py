@@ -31,7 +31,7 @@ READ_TOOLS = {
         "list_false_positive_rules",
     },
 }
-EXEC_TOOLS = {"business": {"run_static_scan", "run_agent_rule_check", "run_injection_probe"}}
+EXEC_TOOLS = {"business": {"run_static_scan", "run_agent_rule_check", "run_injection_probe", "prepare_agent_sandbox", "stop_agent_sandbox"}}
 MUTATING_TOOLS = {
     "business": {
         "create_finding",
@@ -62,6 +62,7 @@ NODE_ALLOWLIST: dict[str, set[str]] = {
     },
     "code_evidence_check": {"read_repo_file"},
     "agent_static_check": {"run_agent_rule_check", "get_agent_manifest"},
+    "prepare_sandbox": {"prepare_agent_sandbox"},
     "probe_generate": {"search_security_standard", "get_agent_manifest"},
     "probe_run": {"run_injection_probe"},
     "probe_judge": set(),
@@ -79,7 +80,7 @@ NODE_ALLOWLIST: dict[str, set[str]] = {
         "get_findings",
     },
     "mark_manual": {"update_finding_status"},
-    "report": {"save_report", "get_findings"},
+    "report": {"save_report", "get_findings", "stop_agent_sandbox"},
     "eval_single": {"list_repo_files", "read_repo_file", "get_agent_manifest"},
     # API 계층(사용자 요청)에서 호출하는 도구 — 역할·소유 검사는 API 가 먼저 한다
     "api": {
@@ -96,7 +97,7 @@ NODE_ALLOWLIST: dict[str, set[str]] = {
 }
 
 DEFAULT_MAX_CALLS = 60
-DEVELOPER_MUTATING = {"register_false_positive", "merge_fix", "update_finding_status"}
+DEVELOPER_MUTATING = {"register_false_positive", "update_finding_status", "create_finding", "save_report"}
 
 
 SERVER_TOOLS: dict[str, set[str]] = {
@@ -128,6 +129,8 @@ class ToolGate:
     denied: list[dict[str, str]] = field(default_factory=list)
 
     def check(self, node: str, tool: str, actor_role: str) -> None:
+        if tool in {"request_approval", "create_fix_proposal", "apply_fix", "merge_fix", "register_risk_acceptance"}:
+            raise AppError(ErrorCode.FORBIDDEN, "수정·승인·병합 기능은 제공하지 않습니다.")
         allowed = NODE_ALLOWLIST.get(node)
         if allowed is None or tool not in allowed:
             self._deny(node, tool, "tool not allowed for node")

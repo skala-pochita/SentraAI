@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from api.errors import install_error_handlers
-from api.routers import audits, auth, eval_runs, knowledge, ops, quality, targets, webhooks
+from api.routers import audits, auth, eval_runs, execution, knowledge, ops, quality, targets
 from core.kafka.producer import close_producer
 
 API_PREFIX = "/api/v1"
@@ -51,10 +51,10 @@ install_error_handlers(app)
 for r in (
     auth.router,
     targets.router,
+    execution.router,
     audits.router,
     knowledge.router,
     ops.router,
-    webhooks.router,
     eval_runs.router,
     quality.router,
 ):

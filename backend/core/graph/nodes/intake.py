@@ -16,7 +16,7 @@ from harness.budget import limits
 def risky_files(files: list[dict[str, Any]], keywords: list[str], top_k: int) -> list[str]:
     def score(path: str) -> int:
         name = path.rsplit("/", 1)[-1]
-        return sum(2 if k in name else 0 for k in keywords) + (1 if name.endswith(".java") else 0)
+        return sum(2 if k.lower() in name.lower() else 0 for k in keywords) + (1 if name.endswith(".java") else 0)
 
     ranked = sorted((f["path"] for f in files if score(f["path"]) >= 2), key=lambda p: (-score(p), p))
     return ranked[:top_k]
@@ -56,6 +56,8 @@ async def intake(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any
             plan["agents"][t["target_id"]] = {
                 "tools": [x["name"] for x in m["manifest"].get("tools", [])],
                 "backend_api": m["manifest"].get("backend_api"),
+                "runtime_status": m.get("runtime_status", "CONFIGURED"),
+                "discovery": m.get("discovery", "explicit_manifest"),
             }
     await deps.event(
         state,

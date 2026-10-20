@@ -28,7 +28,7 @@ async def _heartbeat_loop(role: str) -> None:
 
 
 async def run_audit() -> None:
-    from workers.audit import AuditRunner, make_checkpointer, webhook_to_resume
+    from workers.audit import AuditRunner, make_checkpointer
 
     async with await make_checkpointer() as saver:
         await saver.asetup()
@@ -37,13 +37,7 @@ async def run_audit() -> None:
         async def on_audit(msg):  # type: ignore[no-untyped-def]
             await runner.handle(msg)
 
-        async def on_webhook(msg):  # type: ignore[no-untyped-def]
-            await webhook_to_resume(msg)
-
-        await asyncio.gather(
-            run_consumer(["audit.requested", "audit.resume"], "cg-audit", on_audit),
-            run_consumer(["github.webhook"], "cg-webhook", on_webhook),
-        )
+        await run_consumer(["audit.requested"], "cg-audit", on_audit)
 
 
 async def run_eval() -> None:

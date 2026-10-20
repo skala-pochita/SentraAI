@@ -24,6 +24,25 @@ from mcp_servers.business.tools.query import load_agent_files
 from mcp_servers.business.workspace import _overrides, commit_sha, get_target
 from mcp_servers.common import current_call, mcp_tool
 
+
+async def _sandbox_access(target: Any) -> None:
+    if target.config.get("source") != "upload":
+        return
+    from core.db.models import Audit, AuditTarget
+
+    call = current_call()
+    if not call.audit_id or not call.actor_id:
+        raise AppError(ErrorCode.FORBIDDEN, "audit context required")
+    async with session_scope() as db:
+        aid = uuid.UUID(call.audit_id)
+        audit = await db.get(Audit, aid)
+        linked = await db.get(AuditTarget, (aid, uuid.UUID(target.id)))
+        if audit is None or linked is None or audit.status != "RUNNING":
+            raise AppError(ErrorCode.FORBIDDEN, "active audit target required")
+        if call.role != "ADMIN" and (str(audit.requested_by) != call.actor_id or target.owner_user_id != call.actor_id):
+            raise AppError(ErrorCode.FORBIDDEN, "sandbox target ownership mismatch")
+
+
 SCAN_CACHE_TTL_S = 24 * 3600
 PROBE_TIMEOUT_S = 30.0
 MAX_ATTEMPTS = 10
@@ -76,7 +95,17 @@ async def run_agent_rule_check(target_id: str, ctx: Context | None = None) -> An
     if linked:
         code_hits, _, _ = await static_scan(linked)
         names = secret_names_from_hits(code_hits)
-    hits = check_manifest(a["manifest"], a["manifest_text"], a["system_prompt"], names)
+    if a.get("kind") == "source":
+        from core.agent_project import source_drafts
+
+        return {"hits": [], "code_secret_names": sorted(names), "source_findings": source_drafts(a, target_id)}
+    hits = check_manifest(
+        a["manifest"],
+        a["manifest_text"],
+        a["system_prompt"],
+        names,
+        manifest_path=a.get("manifest_path", "manifest.yaml"),
+    )
     return {"hits": [h.model_dump() for h in hits], "code_secret_names": sorted(names)}
 
 
@@ -117,7 +146,7 @@ async def _persist(rows: list[ProbeRun]) -> None:
         db.add_all(rows)
 
 
-@mcp_tool(mcp, roles=("ADMIN",))
+@mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
 async def run_injection_probe(
     target_id: str,
     probe_id: str | None = None,
@@ -142,7 +171,17 @@ async def run_injection_probe(
         raise AppError(ErrorCode.VALIDATION, f"attempts must be 1..{MAX_ATTEMPTS}")
     if not probe_id and not payload:
         raise AppError(ErrorCode.VALIDATION, "probe_id or payload required")
-    ps = load_probe_set()
+    t = await get_target(target_id, "agent")
+    await _sandbox_access(t)
+    call = current_call()
+    uploaded = t.config.get("source") == "upload"
+    if uploaded:
+        from core.project_probes import uploaded_probe_set
+
+        a = await load_agent_files(target_id)
+        ps = uploaded_probe_set(call.audit_id or "", a["manifest"], t.config.get("runtime_protocol", "atlas"))
+    else:
+        ps = load_probe_set()
     base = ps.get(probe_id) if probe_id else None
     if probe_id and base is None and not payload:
         raise AppError(ErrorCode.NOT_FOUND, f"probe {probe_id} not found")
@@ -159,9 +198,7 @@ async def run_injection_probe(
             kb_docs=kb_docs,
             success=ProbeSuccess(type="canary"),
         )
-    t = await get_target(target_id, "agent")
-    url = _check_allowlist(t.ref)
-    call = current_call()
+    url = "" if uploaded else _check_allowlist(t.ref)
 
     results: list[dict[str, Any]] = []
     rows: list[ProbeRun] = []
@@ -170,8 +207,32 @@ async def run_injection_probe(
             session_id = f"probe-{probe.id}-{uuid.uuid4().hex[:8]}"
             started = time.monotonic()
             data: dict[str, Any] = {"reply": "", "tool_calls": []}
+            replies: list[str] = []
+            all_calls: list[dict[str, Any]] = []
             for turn in probe.turns:
-                data = await _chat(client, url, session_id, turn, probe.kb_docs)
+                if uploaded:
+                    from core.sandbox_client import sandbox_call
+
+                    data = await sandbox_call(
+                        "/chat",
+                        {
+                            "audit_id": call.audit_id,
+                            "session_id": session_id,
+                            "message": turn,
+                            "kb_docs": probe.kb_docs,
+                            "protocol": t.config.get("runtime_protocol", "atlas"),
+                        },
+                        timeout=300,
+                    )
+                else:
+                    data = await _chat(client, url, session_id, turn, probe.kb_docs)
+                replies.append(str(data.get("reply", "")))
+                all_calls.extend(data.get("tool_calls", []))
+            data = {"reply": "\n".join(replies), "tool_calls": all_calls}
+            if uploaded:
+                from core.runtime_redaction import redact_runtime
+
+                data = await redact_runtime(t, call.audit_id or "", data)
             reply = str(data.get("reply", ""))
             tool_calls = list(data.get("tool_calls", []))
             sig = signals(reply, tool_calls, ps)
@@ -217,3 +278,65 @@ async def run_injection_probe(
         "probe_run_ids": [r["probe_run_id"] for r in results],
         "attempts": results,
     }
+
+
+@mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
+async def prepare_agent_sandbox(target_id: str, ctx: Context | None = None) -> Any:
+    from core.sandbox_client import sandbox_call
+
+    t = await get_target(target_id, "agent")
+    if t.config.get("source") != "upload":
+        return {"status": "EXTERNAL", "mode": "existing-target"}
+    await _sandbox_access(t)
+    call = current_call()
+    if not call.audit_id:
+        raise AppError(ErrorCode.VALIDATION, "audit id required for sandbox")
+    from core.execution_config import ExecutionConfig, environment_for, readiness, settings_for_agent
+    from core.project_transfer import encode_project
+    from core.proxy_sessions import issue, revoke
+    from core.settings import get_settings
+
+    async with session_scope() as db:
+        row = await settings_for_agent(db, t)
+        ready = await asyncio.to_thread(readiness, t.root, row)
+        if not ready["ready"]:
+            return {
+                "status": "UNSUPPORTED",
+                "reason": "; ".join(c["detail"] for c in ready["criteria"] if c["met"] is False),
+            }
+        execution = ExecutionConfig.model_validate(row.config if row else {})
+        environment = await asyncio.to_thread(environment_for, row, reveal=True)
+        grant = None
+        if execution.mode == "live" and row is not None:
+            grant = await issue(call.audit_id, str(row.target_id), execution, row.secret_refs["provider"])
+            for service in ["agent", "target-agent"]:
+                environment[service][execution.api_key_variable] = grant
+        transferred = await asyncio.to_thread(encode_project, t.root)
+    try:
+        result = await sandbox_call(
+            "/start",
+            {
+                "audit_id": call.audit_id,
+                **transferred,
+                "environment": environment,
+                "proxy": {"token": grant, "url": get_settings().llm_proxy_url} if grant else None,
+            },
+            timeout=1100,
+        )
+        return result | {"requested_mode": execution.mode}
+    except AppError:
+        await revoke(call.audit_id)
+        raise
+
+
+@mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
+async def stop_agent_sandbox(target_id: str, ctx: Context | None = None) -> Any:
+    from core.sandbox_client import sandbox_call
+
+    t = await get_target(target_id, "agent")
+    if t.config.get("source") != "upload":
+        return {"status": "EXTERNAL"}
+    call = current_call()
+    if call.audit_id:
+        return await sandbox_call("/stop/" + call.audit_id)
+    return {"status": "NOT_STARTED"}

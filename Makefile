@@ -1,7 +1,7 @@
 COMPOSE := docker compose
 BACKEND := cd backend &&
 REPEAT ?= 3
-CODE_CONFIGS ?= A_nano_single,B_nano_harness,C_large_single
+CODE_CONFIGS ?= A_nano_single,B_nano_harness
 
 .PHONY: up down logs seed demo-reset test test-e2e lint eval eval-code fault-on fault-off env
 

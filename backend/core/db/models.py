@@ -336,3 +336,15 @@ class DlqMessage(Base):
     error_message: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'NEW'"))
     created_at: Mapped[datetime] = _created()
+
+
+class ExecutionSettings(Base):
+    """Public execution configuration and opaque references to encrypted secrets."""
+
+    __tablename__ = "execution_settings"
+    target_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("targets.id"), primary_key=True)
+    config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    secret_refs: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

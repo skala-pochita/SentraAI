@@ -31,6 +31,7 @@ class AuditState(TypedDict, total=False):
     probe_results: Annotated[list[ProbeResultD], operator.add]
     probe_round: int
     correlated: list[FindingD]  # 결합 위험 포함 최종 목록
+    agent_coverage: Annotated[list[dict[str, Any]], operator.add]
     risk_paths: list[dict[str, Any]]
     # 승인·수정
     needs_approval: bool
@@ -80,6 +81,8 @@ class AgentAuditState(TypedDict, total=False):
     requested_by: str
     target: dict[str, Any]
     plan: dict[str, Any]
+    runtime: dict[str, Any]
+    agent_coverage: list[dict[str, Any]]
     manifest: dict[str, Any]
     agent_findings: list[FindingD]
     probes: list[dict[str, Any]]  # 이번 라운드에 실행할 probe [{probe_id, payload?, kb_docs?, adaptive, base}]
@@ -91,6 +94,7 @@ class AgentAuditState(TypedDict, total=False):
 
 
 class AgentAuditOutput(TypedDict, total=False):
+    agent_coverage: list[dict[str, Any]]
     agent_findings: list[FindingD]
     probe_results: list[ProbeResultD]
     probe_round: int

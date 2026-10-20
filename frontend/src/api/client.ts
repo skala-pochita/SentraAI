@@ -35,7 +35,7 @@ async function tryRefresh(): Promise<boolean> {
 
 export async function api<T = unknown>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const headers = new Headers(init.headers)
-  if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   if (tokens.access) headers.set('Authorization', `Bearer ${tokens.access}`)
   const res = await fetch(`${BASE}${path}`, { ...init, headers })
   if (res.status === 401 && retry && (await tryRefresh())) return api<T>(path, init, false)

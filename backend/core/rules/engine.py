@@ -10,6 +10,7 @@ from typing import Any
 
 from core.rules.detectors import DETECTORS, hit, shannon_entropy
 from core.rules.models import Rule, RuleHit, load_rules
+from core.source_paths import excluded_source_path
 from harness.masking import mask_text
 
 SKIP_DIRS = {".git", "build", "target", "node_modules", ".gradle", ".idea", "out"}
@@ -47,7 +48,9 @@ def glob_match(path: str, globs: Iterable[str]) -> bool:
 def iter_repo_files(root: Path) -> Iterable[tuple[str, Path]]:
     for p in sorted(root.rglob("*")):
         rel = p.relative_to(root)
-        if any(part in SKIP_DIRS for part in rel.parts) or not p.is_file():
+        if excluded_source_path(rel.as_posix()) or not p.is_file() or p.is_symlink():
+            continue
+        if not p.resolve().is_relative_to(root.resolve()):
             continue
         if p.stat().st_size > MAX_FILE_BYTES:
             continue

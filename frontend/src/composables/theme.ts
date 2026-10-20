@@ -30,7 +30,6 @@ export const SEV_COLORS: Record<string, string> = {
   CRITICAL: '#f43f5e', HIGH: '#fb923c', MEDIUM: '#fbbf24', LOW: '#38bdf8', INFO: '#94a3b8',
 }
 export const CONFIG_COLORS: Record<string, string> = {
-  A_nano_single: '#94a3b8', B_nano_harness: '#22d39b', C_large_single: '#818cf8',
 }
 
 export function chartBase() {

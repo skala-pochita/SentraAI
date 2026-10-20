@@ -128,8 +128,10 @@ class Gateway:
 
     def _timeout(self, tool: str, args: dict[str, Any]) -> float:
         base = float(load_config("budget").get("mcp", {}).get("call_timeout_s", 30))
+        if tool == "prepare_agent_sandbox":
+            return 1200.0
         if tool == "run_injection_probe":
-            return max(base, 35.0 * int(args.get("attempts", 3)) * 2)
+            return max(base, 330.0 * int(args.get("attempts", 3)))
         if tool in ("run_static_scan", "run_agent_rule_check"):
             return max(base, 120.0)
         return base

@@ -100,7 +100,10 @@ async def list_dlq(
     r = get_redis()
     retrying = 0
     async for _k in r.scan_iter(match="kafka:processed:*", count=500):
-        retrying += 1 if (await r.get(_k) or "").startswith("processing") else 0
+        value = await r.get(_k)
+        if isinstance(value, bytes):
+            value = value.decode()
+        retrying += 1 if (value or "").startswith("processing") else 0
     new = (
         await db.execute(select(func.count()).select_from(DlqMessage).where(DlqMessage.status == "NEW"))
     ).scalar_one()

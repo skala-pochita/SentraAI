@@ -10,8 +10,9 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
@@ -62,14 +63,17 @@ class AuditRunner:
         self.gateway_factory = gateway_factory
         self.deps_factory = deps_factory
 
-    def _config(self, audit_id: str) -> dict[str, Any]:
+    def _config(self, audit_id: str) -> RunnableConfig:
         gw: Gateway = self.gateway_factory()
         deps = self.deps_factory(gw) if self.deps_factory else Deps(gateway=gw)
-        return {
-            "configurable": {"thread_id": f"audit:{audit_id}", "deps": deps},
-            "recursion_limit": 200,
-            **langsmith_config(audit_id),
-        }
+        return cast(
+            RunnableConfig,
+            {
+                "configurable": {"thread_id": f"audit:{audit_id}", "deps": deps},
+                "recursion_limit": 200,
+                **langsmith_config(audit_id),
+            },
+        )
 
     async def _initial(self, audit: Audit) -> dict[str, Any]:
         async with session_scope() as db:
@@ -187,6 +191,11 @@ class AuditRunner:
         return "COMPLETED"
 
     async def _fail(self, audit_id: str, e: AppError) -> None:
+        from core.sandbox_client import sandbox_call
+        try:
+            await sandbox_call('/stop/' + audit_id, timeout=30)
+        except AppError:
+            log.warning("sandbox cleanup unavailable for failed audit %s; TTL reaper will retry", audit_id)
         await _set_audit(audit_id, status="FAILED", finished_at=datetime.now(UTC))
         await emit(audit_id, "audit.failed", {"code": str(e.code), "message": e.message})
         async with session_scope() as db:
@@ -197,24 +206,3 @@ class AuditRunner:
             ).scalars()
             for t in list(tids):
                 await release_target_lock(str(t), audit_id)
-
-
-async def webhook_to_resume(msg: Message) -> None:
-    """github.webhook (pull_request.closed + merged) → audit.resume. 브랜치 이름 fix/<audit8>-<proposal8>."""
-    p = msg.envelope.payload
-    pr = p.get("pull_request", {})
-    if p.get("action") != "closed" or not pr.get("merged"):
-        return
-    audit_id = p.get("audit_id")
-    if not audit_id:
-        log.info("webhook without audit mapping; ignored")
-        return
-    await publish(
-        "audit.resume",
-        audit_id,
-        Envelope(
-            type="audit.resume",
-            trace_id=trace_id_for(audit_id),
-            payload={"audit_id": audit_id, "kind": "merge", "resume_value": {"merged": True, "source": "github"}},
-        ),
-    )
