@@ -12,11 +12,16 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from core.errors import AppError
-from core.fixes import agent_edits, code_edits
+from core.fixes import agent_edits, code_edits, probe_edits
 from core.graph.deps import get_deps, node_error
 from core.graph.nodes._base import node
 from core.probes import load_probe_set
 from core.schemas import FindingDraft, FixProposal
+
+
+def tag(edits: list[dict[str, Any]], finding_id: str | None) -> list[dict[str, Any]]:
+    """edit 에 finding_id 를 붙인다 — 서버가 edit 가 모두 실패한 Finding 만 수정안에서 뺄 수 있게."""
+    return [{**e, "finding_id": finding_id} for e in edits]
 
 
 def select_targets(state: dict[str, Any]) -> list[FindingDraft]:
@@ -68,7 +73,7 @@ async def fix_generate(state: dict[str, Any], config: RunnableConfig) -> dict[st
                 m = manifests[f.target_id]
                 res = agent_edits(f, m["manifest_text_masked"], m["system_prompt_masked"], domain)
                 if res and res[1]:
-                    groups[(f.target_id, res[0])]["edits"].extend(res[1])
+                    groups[(f.target_id, res[0])]["edits"].extend(tag(res[1], f.finding_id))
                     groups[(f.target_id, res[0])]["finding_ids"].append(f.finding_id)
                     continue
             else:
@@ -82,7 +87,7 @@ async def fix_generate(state: dict[str, Any], config: RunnableConfig) -> dict[st
                         file_cache[key] = r["content_masked"]
                     edits = code_edits(f, file_cache[key])
                     if edits:
-                        groups[(f.target_id, "code_patch")]["edits"].extend(edits)
+                        groups[(f.target_id, "code_patch")]["edits"].extend(tag(edits, f.finding_id))
                         groups[(f.target_id, "code_patch")]["finding_ids"].append(f.finding_id)
                         continue
         except AppError as e:
@@ -101,6 +106,18 @@ async def fix_generate(state: dict[str, Any], config: RunnableConfig) -> dict[st
 
     # probe 로 확인된 취약점은 같은 에이전트의 manifest/prompt 수정안에 묶는다 (재검증 시 probe 재실행)
     for pf in probe_findings:
+        if pf.target_id not in manifests:
+            try:
+                manifests[pf.target_id] = await deps.call(
+                    state, "fix_generate", "get_agent_manifest", target_id=pf.target_id
+                )
+            except AppError as e:
+                errors.append(node_error("fix_generate", e))
+        pe = probe_edits(pf, manifests[pf.target_id]["manifest_text_masked"]) if pf.target_id in manifests else None
+        if pe:  # 결정론 수정이 있는 probe (예: 다른 고객 조회 → get_order 본인 한정 스코프)
+            groups[(pf.target_id, "manifest_patch")]["edits"].extend(tag(pe, pf.finding_id))
+            groups[(pf.target_id, "manifest_patch")]["finding_ids"].append(pf.finding_id)
+            continue
         agent_keys = [k for k in groups if k[0] == pf.target_id]
         gkey = next((k for k in agent_keys if k[1] == "manifest_patch"), agent_keys[0] if agent_keys else None)
         if gkey:
@@ -131,12 +148,14 @@ async def fix_generate(state: dict[str, Any], config: RunnableConfig) -> dict[st
         if not res["patch_check_passed"]:
             feedback.append(f"{kind}@{tid[:8]}: git apply --check 실패: {res.get('check_error')}")
             continue
+        for sk in res.get("skipped_edits") or []:
+            feedback.append(f"{kind}@{tid[:8]}: edit 건너뜀 {sk.get('path')} ({sk.get('error')})")
         if res["precheck_remaining"]:
             feedback.append(f"{kind}@{tid[:8]}: 패치 후에도 규칙 탐지 {res['precheck_remaining']}")
         proposals.append(
             FixProposal(
                 proposal_id=res["proposal_id"],
-                finding_ids=g["finding_ids"],
+                finding_ids=res.get("finding_ids") or g["finding_ids"],
                 kind=kind,
                 diff=res["diff_masked"],
                 patch_check_passed=True,

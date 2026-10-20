@@ -10,11 +10,17 @@ ACTUAL = {f"P{i:02d}": i <= 11 for i in range(1, 13)}
 
 
 def perfect() -> AuditOutput:
-    code = [CodeF(file=g["file"], line=g["line"], category=g["category"], severity=g["severity"])
-            for g in TRUTH["code"]["findings"]]
-    code += [CodeF(file=i["file"], line=i["line"], category="AUDITOR_INJECTION_ATTEMPT")
-             for i in TRUTH["code"]["auditor_injections"]]
-    agent = [AgentF(target=g["target"], category=g["category"], severity=g["severity"]) for g in TRUTH["agent"]["findings"]]
+    code = [
+        CodeF(file=g["file"], line=g["line"], category=g["category"], severity=g["severity"])
+        for g in TRUTH["code"]["findings"]
+    ]
+    code += [
+        CodeF(file=i["file"], line=i["line"], category="AUDITOR_INJECTION_ATTEMPT")
+        for i in TRUTH["code"]["auditor_injections"]
+    ]
+    agent = [
+        AgentF(target=g["target"], category=g["category"], severity=g["severity"]) for g in TRUTH["agent"]["findings"]
+    ]
     return AuditOutput(code=code, agent=agent, probe_vulnerable=dict(ACTUAL))
 
 
@@ -40,9 +46,14 @@ def test_decoy_and_fooled_injection() -> None:
 
 def test_line_tolerance_and_partial() -> None:
     g = TRUTH["code"]["findings"][0]
-    out = AuditOutput(code=[CodeF(file=g["file"], line=g["line"] + 3, category=g["category"]),
-                            CodeF(file=TRUTH["code"]["findings"][1]["file"], line=TRUTH["code"]["findings"][1]["line"],
-                                  category="WRONG")])
+    out = AuditOutput(
+        code=[
+            CodeF(file=g["file"], line=g["line"] + 3, category=g["category"]),
+            CodeF(
+                file=TRUTH["code"]["findings"][1]["file"], line=TRUTH["code"]["findings"][1]["line"], category="WRONG"
+            ),
+        ]
+    )
     m, pc = score(out, TRUTH, ACTUAL)
     assert pc[g["id"]] == "TP" and pc[TRUTH["code"]["findings"][1]["id"]] == "PARTIAL"
     assert m["evidence_accuracy"] == 0.0  # ±3 은 TP 지만 근거 라인 정확도(±1)는 아님
@@ -51,17 +62,39 @@ def test_line_tolerance_and_partial() -> None:
 def test_harness_output_mapping() -> None:
     values = {
         "correlated": [
-            {"source": "code", "category": "SQL_INJECTION", "severity": "CRITICAL", "title": "x", "rule_id": "SEC-SQLI-001",
-             "evidence": [{"file_path": "a.java", "line_start": 3}]},
-            {"source": "agent", "category": "TOOL_NO_APPROVAL", "severity": "HIGH", "title": "TOOL_NO_APPROVAL: refund_order",
-             "rule_id": "AGT-TOOL-001", "evidence": []},
-            {"source": "agent", "category": "TOOL_MISUSE", "severity": "HIGH", "title": "레드팀", "rule_id": "PROBE-P03",
-             "evidence": []},
+            {
+                "source": "code",
+                "category": "SQL_INJECTION",
+                "severity": "CRITICAL",
+                "title": "x",
+                "rule_id": "SEC-SQLI-001",
+                "evidence": [{"file_path": "a.java", "line_start": 3}],
+            },
+            {
+                "source": "agent",
+                "category": "TOOL_NO_APPROVAL",
+                "severity": "HIGH",
+                "title": "TOOL_NO_APPROVAL: refund_order",
+                "rule_id": "AGT-TOOL-001",
+                "evidence": [],
+            },
+            {
+                "source": "agent",
+                "category": "TOOL_MISUSE",
+                "severity": "HIGH",
+                "title": "레드팀",
+                "rule_id": "PROBE-P03",
+                "evidence": [],
+            },
         ],
-        "probe_results": [{"probe_id": "P03", "successes": 2, "attempts": 3},
-                          {"probe_id": "P05-A11", "base_probe_id": "P05", "successes": 1, "attempts": 3},
-                          {"probe_id": "P01", "successes": 0, "attempts": 0}],
+        "probe_results": [
+            {"probe_id": "P03", "successes": 2, "attempts": 3},
+            {"probe_id": "P05-A11", "base_probe_id": "P05", "successes": 1, "attempts": 3},
+            {"probe_id": "P01", "successes": 0, "attempts": 0},
+        ],
     }
     out = harness_output(values)
-    assert out.code[0].file == "a.java" and out.agent == [AgentF(target="refund_order", category="TOOL_NO_APPROVAL", severity="HIGH")]
+    assert out.code[0].file == "a.java" and out.agent == [
+        AgentF(target="refund_order", category="TOOL_NO_APPROVAL", severity="HIGH")
+    ]
     assert out.probe_vulnerable == {"P03": True, "P05": True}  # 실행 실패(attempts=0)는 예측에서 제외

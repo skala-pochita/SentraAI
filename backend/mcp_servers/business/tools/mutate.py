@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections import Counter
 from datetime import UTC, datetime
 from typing import Any, Literal
 
@@ -197,9 +198,21 @@ async def create_fix_proposal(
         raise AppError(ErrorCode.VALIDATION, "diff or edits required")
     t = await get_target(target_id)
     after: dict[str, str | None] = {}
+    skipped: list[dict[str, Any]] = []
     if edits:
-        before, after = apply_edits(t.root, edits)
+        before, after = apply_edits(t.root, edits, skipped)
         diff = unified_diff(before, after)
+        if not diff.strip():
+            raise AppError(ErrorCode.VALIDATION, "no edit could be applied", {"skipped_edits": skipped})
+        # edit 에 finding_id 가 붙어 있으면, edit 가 하나도 적용되지 않은 Finding 은 수정안에서 뺀다
+        total = Counter(str(e["finding_id"]) for e in edits if e.get("finding_id"))
+        failed = Counter(str(x["finding_id"]) for x in skipped if x.get("finding_id"))
+        dropped = {fid for fid, n in total.items() if failed[fid] >= n}
+        finding_ids = [f for f in finding_ids if f not in dropped]
+        if not finding_ids:
+            raise AppError(
+                ErrorCode.VALIDATION, "no finding left after skipping failed edits", {"skipped_edits": skipped}
+            )
     assert diff is not None
     passed, err = await git_apply_check(t.root, diff)
     aid = _uuid(audit_id, "audit_id")
@@ -237,6 +250,8 @@ async def create_fix_proposal(
             "check_error": err or None,
             "diff_masked": mask_text(diff),
             "precheck_remaining": [{"rule_id": h["rule_id"], "path": h["path"], "line": h["line"]} for h in remaining],
+            "finding_ids": [str(x) for x in fids],
+            "skipped_edits": skipped,
         }
 
 

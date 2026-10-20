@@ -79,7 +79,11 @@ async def llm_edits(
             )
         except AppError:
             continue
-        edits = [e.model_dump(exclude_none=True) for e in plan.edits if _safe(e) and e.path == ev.file_path]
+        edits = [
+            {**e.model_dump(exclude_none=True), "finding_id": f.finding_id}
+            for e in plan.edits
+            if _safe(e) and e.path == ev.file_path
+        ]
         if edits:
             out[(f.target_id, "code_patch")]["edits"].extend(edits)
             out[(f.target_id, "code_patch")]["finding_ids"].append(f.finding_id)

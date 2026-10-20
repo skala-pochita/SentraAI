@@ -251,8 +251,11 @@ async def investigate(state: dict[str, Any], config: RunnableConfig, llm: tuple[
                 reasoning_summary=(v.reason or c["reasoning_summary"])[:400],
             )
             out.append(c)
+        known_lines = [int((c.get("evidence") or [{}])[0].get("line_start") or 0) for c in base]
         for nf in final.new_findings:
             if nf.file_path != path and path:
+                continue
+            if any(abs(nf.line_start - ln) <= 3 for ln in known_lines):  # 정적 후보와 같은 위치의 재보고는 중복
                 continue
             out.append(
                 FindingDraft(

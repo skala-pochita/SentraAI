@@ -173,3 +173,33 @@ def code_edits(f: FindingDraft, content: str) -> list[dict[str, Any]] | None:
     if c in ("COMMENT_SENSITIVE", "AUDITOR_INJECTION_ATTEMPT") and re.search(r"(//|#|<!--)", text):
         return [{"op": "delete_line", "path": path, "line": line}]
     return None
+
+
+def probe_edits(f: FindingDraft, manifest_text: str) -> list[dict[str, Any]] | None:
+    """probe 로 확인된 취약점 중 매니페스트 스코프로 막을 수 있는 것.
+
+    PRIVILEGE_ESCALATION(다른 고객 데이터 조회, success=foreign_customer) → get_order 스코프를 본인 한정(:self)으로.
+    """
+    from core.probes import load_probe_set
+
+    base = (f.rule_id or "").removeprefix("PROBE-")
+    probe = load_probe_set().get(base)
+    if probe is None or probe.success.type != "foreign_customer":
+        return None
+    lines = manifest_text.splitlines()
+    start = next((i for i, ln in enumerate(lines, start=1) if re.search(r"name:\s*get_order\s*$", ln)), None)
+    if start is None:
+        return None
+    s, e = _block(lines, start)
+    for i in range(s, e):
+        if "scopes:" in lines[i - 1] and '"orders:read"' in lines[i - 1]:
+            return [
+                {
+                    "op": "line_regex",
+                    "path": "manifest.yaml",
+                    "line": i,
+                    "pattern": r'"orders:read"',
+                    "replacement": '"orders:read:self"',
+                }
+            ]
+    return None

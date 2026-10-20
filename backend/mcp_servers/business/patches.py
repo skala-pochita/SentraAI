@@ -53,8 +53,13 @@ def _apply_one(content: str | None, e: dict[str, Any]) -> str | None:
     raise AppError(ErrorCode.VALIDATION, f"unknown edit op {op}")
 
 
-def apply_edits(root: Path, edits: list[dict[str, Any]]) -> tuple[dict[str, str | None], dict[str, str | None]]:
-    """(원본 {path: content|None}, 결과 {path: content|None}). 같은 파일의 edit 는 순서대로 누적."""
+def apply_edits(
+    root: Path, edits: list[dict[str, Any]], skipped: list[dict[str, Any]] | None = None
+) -> tuple[dict[str, str | None], dict[str, str | None]]:
+    """(원본 {path: content|None}, 결과 {path: content|None}). 같은 파일의 edit 는 순서대로 누적.
+
+    skipped 리스트를 주면 실패한 edit 만 건너뛰고 기록한다 (한 edit 실패가 수정안 전체를 버리지 않게).
+    """
     before: dict[str, str | None] = {}
     after: dict[str, str | None] = {}
 
@@ -71,7 +76,12 @@ def apply_edits(root: Path, edits: list[dict[str, Any]]) -> tuple[dict[str, str 
         if path not in before:
             before[path] = full.read_text(encoding="utf-8") if full.is_file() else None
             after[path] = before[path]
-        after[path] = _apply_one(after[path], e)
+        try:
+            after[path] = _apply_one(after[path], e)
+        except AppError as err:
+            if skipped is None:
+                raise
+            skipped.append({"finding_id": e.get("finding_id"), "path": path, "op": e.get("op"), "error": err.message})
     return before, after
 
 
