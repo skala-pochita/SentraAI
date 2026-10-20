@@ -6,6 +6,7 @@ get_prompt("probe_judge") → 최신 버전, get_prompt("probe_judge@v1") → �
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,17 @@ class PromptSpec(BaseModel):
 
     def render(self, **kwargs: Any) -> str:
         return self.user_template.format(**kwargs)
+
+    def render_system(self, **kwargs: Any) -> str:
+        """system 의 {이름} 자리표시자를 채운다. 없는 키·${...}·JSON 중괄호는 그대로, {{ }} 는 { } 로."""
+
+        def sub(m: re.Match[str]) -> str:
+            key = m.group(1)
+            return str(kwargs[key]) if key in kwargs else m.group(0)
+
+        text = self.system.replace("{{", "\x00").replace("}}", "\x01")
+        text = re.sub(r"(?<!\$)\{([A-Za-z_][A-Za-z0-9_]*)\}", sub, text)
+        return text.replace("\x00", "{").replace("\x01", "}")
 
 
 @lru_cache

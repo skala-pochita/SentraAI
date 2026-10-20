@@ -50,6 +50,16 @@ def allowed_categories() -> frozenset[str]:
     return frozenset({r.category for r in load_rules("code")})
 
 
+@lru_cache
+def category_defs() -> str:
+    from core.rules.models import load_rules
+
+    names: dict[str, list[str]] = {}
+    for r in load_rules("code"):
+        names.setdefault(r.category, []).append(r.name)
+    return "\n    ".join(f"- {c}: {' / '.join(n)}" for c, n in sorted(names.items()))
+
+
 class NewFinding(BaseModel):
     category: str
 
@@ -162,9 +172,13 @@ async def _investigate_file(
             candidates=cand_text,
             steps_left=steps_left,
             observations="\n".join(obs) if obs else "(없음)",
+            categories=", ".join(sorted(allowed_categories())),
+            category_defs=category_defs(),
+            untrusted_rule=UNTRUSTED_RULE,
         )
 
     stop_reason = "steps"
+    forced_read = False
     for step in range(max_steps):
         if turns >= max_turns - 1:  # 마지막 1턴은 final 용으로 남긴다
             stop_reason = "llm_turns"
@@ -179,6 +193,11 @@ async def _investigate_file(
             )
         step_out = await ask(max_steps - step)
         if step_out.final is not None:
+            if not brief and "read_repo_file" not in used and not forced_read:
+                # Harness: 정적 후보 없는 위험 파일을 읽지 않고 결론 내는 것을 막는다 (1회)
+                forced_read = True
+                obs.append("[규칙] 이 파일은 아직 읽지 않았다. read_repo_file 로 파일을 읽은 뒤 final 을 낸다.")
+                continue
             return step_out.final, used
         act = step_out.action
         if act is None:

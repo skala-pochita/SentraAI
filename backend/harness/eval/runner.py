@@ -370,12 +370,11 @@ async def run_eval(
         run.status = "RUNNING"
         run_id = str(run.id)
     set_trace_context(None, run_id)
-    gw = http_gateway()
     truth = load_truth()
     try:
         if progress:
             await progress({"stage": "measure_probes"})
-        actual = await measure_probes(gw, agent_id, admin_id)
+        actual = await measure_probes(http_gateway(), agent_id, admin_id)
         by_cfg: dict[str, list[dict[str, Any]]] = {}
         for cfg in configs:
             for i in range(repeat):
@@ -384,7 +383,7 @@ async def run_eval(
                 res = await (
                     run_harness(cfg, repo_id, agent_id, admin_id)
                     if "harness" in cfg
-                    else run_single(cfg, gw, repo_id, agent_id, admin_id)
+                    else run_single(cfg, http_gateway(), repo_id, agent_id, admin_id)  # 실행 1회 = 게이트 1개
                 )
                 metrics, per_case = score(res["output"], truth, actual)
                 tokens = sum(int(u.get("in", 0)) + int(u.get("out", 0)) for u in res["usage"])

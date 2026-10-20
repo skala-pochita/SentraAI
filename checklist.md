@@ -190,3 +190,10 @@
 
 ### 막힌 것
 - `OPENAI_API_KEY` 없음 → 실 LLM 경로(target-agent probe, ReAct, LLM 판정, A/B/C 비교) 미검증. `.env` 에 키·`LLM_SMALL_MODEL`·`LLM_LARGE_MODEL` 기입 필요.
+
+- 2026-10-20: **evaluateCheck 보강 (Cloud 제외)** — 유효 키 확보(OPENAI·LangSmith, LLM_LARGE_MODEL=gpt-5.4-mini).
+  - Harness: ReAct 8턴·120초·같은 도구 3회·도구 결과 8000자·관찰 요약(context_summarize@v1), 이메일·전화 마스킹, MCP ToolAnnotations(destructiveHint), trace_id=uuid5(audit) Kafka·span·LangSmith 공통, MultiServerMCPClient 전송, investigate 프롬프트 v2(카테고리 고정·'가짜 값' 주석 회피), 확정형 정적 규칙은 LLM 이 기각 불가, 근거 라인 보정 가드레일, 수정안 부분 적용(skipped_edits), probe 스코프 수정기(get_order :self).
+  - 평가: `harness/eval/{scorer,runner,cli}.py`, `/eval-runs`, eval-worker(eval.requested), `make eval-code`, `/quality`(ISO 25010), CodeEvalPage(/eval), QualityPage.
+  - 실 LLM 검증: probe 스모크 vuln 통과·hardened 통과 (취약 샘플 프롬프트 보강, DECISIONS #20), 감사 1건 Kafka 전체 흐름 COMPLETED(ReAct 26스텝, 해결 22·MANUAL 1), LangSmith root run 3개가 trace_id 1개로 묶임.
+  - 문서: `docs/HARNESS.md`, `docs/diagrams/*.mmd`, DECISIONS #20~#28.
+  - 남은 것: config/pricing.yaml 가격 기입(f1_per_dollar), `make fault-on` 실환경, 외부 MCP 클라이언트, Cloud e2e(범위 제외, 키 생긴 뒤 실패 — 미조사).

@@ -84,8 +84,10 @@ def test_pii_masking() -> None:
 def test_relocate_evidence_fixes_wrong_line() -> None:
     from harness.guardrails import relocate_evidence
 
-    content = "a\nb\n    private final String auth = \"sk_live_\" + \"51FAKE\";\nc"
-    assert relocate_evidence(content, {"line_start": 1, "snippet_masked": 'private final String auth = "sk_live_"'}) == 3
+    content = 'a\nb\n    private final String auth = "sk_live_" + "51FAKE";\nc'
+    assert (
+        relocate_evidence(content, {"line_start": 1, "snippet_masked": 'private final String auth = "sk_live_"'}) == 3
+    )
     assert relocate_evidence(content, {"line_start": 1, "snippet_masked": "zz"}) is None
 
 
@@ -99,3 +101,15 @@ def test_react_new_finding_category_must_be_known() -> None:
     assert ok.category == "HARDCODED_SECRET"
     with pytest.raises(ValidationError):
         NewFinding(category="Insecure Secrets Management", title="t", severity="HIGH", file_path="a", line_start=1)
+
+
+def test_system_prompt_placeholders_are_rendered() -> None:
+    from harness.prompts import get_prompt
+
+    p = get_prompt("code_investigate")
+    out = p.render_system(categories="A, B", category_defs="- A: x", untrusted_rule="RULE")
+    assert "{categories}" not in out and "{category_defs}" not in out and "{untrusted_rule}" not in out
+    assert "- A: x" in out and "A, B" in out
+    j = get_prompt("probe_judge").render_system(untrusted_rule="RULE")
+    assert "RULE" in j and "{untrusted_rule}" not in j
+    assert get_prompt("probe_judge").render_system().count("{untrusted_rule}") == 1  # 없는 키는 그대로

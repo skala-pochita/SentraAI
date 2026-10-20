@@ -150,7 +150,9 @@ async def test_full_flow_approve_merge_reverify(env: dict[str, Any]) -> None:
     assert snap.next == ("wait_merge",)
     proposals = snap.values["fix_proposals"]
     assert {p["kind"] for p in proposals} >= {"code_patch", "manifest_patch"}, (
-        snap.values.get("fix_feedback"), [e for e in snap.values.get("errors", []) if e.get("node") == "fix_generate"])
+        snap.values.get("fix_feedback"),
+        [e for e in snap.values.get("errors", []) if e.get("node") == "fix_generate"],
+    )
     assert all(p["branch"] for p in proposals)
 
     await merge_all(env)
