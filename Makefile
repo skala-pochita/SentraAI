@@ -1,6 +1,5 @@
 COMPOSE := docker compose
 BACKEND := cd backend &&
-CONFIG ?= A_nano_single,B_nano_harness,C_large_single
 REPEAT ?= 3
 CODE_CONFIGS ?= A_nano_single,B_nano_harness,C_large_single
 
@@ -35,19 +34,11 @@ lint:
 	$(BACKEND) uv run ruff check . && uv run mypy core harness mcp_servers
 	cd frontend && pnpm run lint
 
-SET ?= final
-CONFIGS ?= A,B
-REPS ?= 1
-
-# Agent·Cloud 감사 A/B 비교 (LLM 키 없으면 미측정으로 기록). CONFIGS=rules 는 LLM 없는 결정론 자체 점검.
+# 코드·Agent 감사 A/B/C 비교 실험 (명세 17장). 예: make eval CODE_CONFIGS=A_nano_single,B_nano_harness REPEAT=1
 eval:
-	$(BACKEND) uv run python -m core.cloud.eval_runner --set $(SET) --configs $(CONFIGS) --reps $(REPS)
-
-eval-code:  ## 코드·Agent 감사 A/B/C 비교 (명세 17장). 예: make eval-code CODE_CONFIGS=A_nano_single,B_nano_harness REPEAT=1
 	$(COMPOSE) exec eval-worker python -m harness.eval.cli --configs $(CODE_CONFIGS) --repeat $(REPEAT)
 
-eval-selfcheck:
-	$(BACKEND) uv run python -m core.cloud.eval_runner --set all --configs rules
+eval-code: eval
 
 fault-on:
 	@grep -q '^FAULT_INJECTION=' .env && sed -i.bak 's/^FAULT_INJECTION=.*/FAULT_INJECTION=github_rate_limit:$(or $(N),2)/' .env && rm -f .env.bak

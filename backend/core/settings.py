@@ -50,9 +50,7 @@ class Settings(BaseSettings):
     probe_allowlist: str = "http://localhost:8201"
 
     # Git
-    git_mode: Literal["local", "github"] = "local"
-    github_token: str = ""
-    github_repo: str = ""
+    git_mode: Literal["local", "github"] = "local"  # github 모드는 미구현 (Phase 9)
     github_webhook_secret: str = ""
 
     # Demo

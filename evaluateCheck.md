@@ -10,7 +10,7 @@
 | 순위 | 최초 점검의 부족한 부분 | 지금 상태 | 근거 |
 |---|---|---|---|
 | 1 | 실 LLM 경로 미검증 | **[x] 검증** | probe 스모크 vuln·hardened 통과, Kafka 경유 감사 1건 COMPLETED(ReAct 26스텝, 해결 22·수동 1) |
-| 2 | 코드 감사 A/B/C 비교 실험 없음 | **[x] 구현·실측 (반복 3회)** | `docs/eval/eval_b582d34a.md` — B code F1 0.88 vs A 0.53 vs C 0.75 |
+| 2 | 코드 감사 A/B/C 비교 실험 없음 | **[x] 구현·실측 (반복 3회)** | `reports/eval_b582d34a.md` — B code F1 0.88 vs A 0.53 vs C 0.75 |
 | 3 | Agent Loop 120초·같은 도구 3회 없음 | **[x]** | `react_investigator.py`, `config/budget.yaml` react, 테스트 2개 |
 | 4 | 변경 도구 destructiveHint 없음 | **[x]** | MCP ToolAnnotations 자동 부여, `test_tool_annotations_mark_destructive` |
 | 5 | 개인정보 마스킹 없음 | **[x]** | 이메일·전화 마스킹(UUID 오인 방지 포함), `test_pii_masking`, `test_masking_never_touches_uuids` |

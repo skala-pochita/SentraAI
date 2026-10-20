@@ -1,0 +1,36 @@
+{
+  "api_health": {
+    "status_code": 200
+  },
+  "business_health": {
+    "status_code": 200
+  },
+  "rag_health": {
+    "status_code": 200
+  },
+  "target_health": {
+    "status_code": 200
+  },
+  "business_unauthenticated": {
+    "status_code": 401
+  },
+  "rag_unauthenticated": {
+    "status_code": 401
+  },
+  "business_handshake": {
+    "ok": true,
+    "tool_count": 18
+  },
+  "rag_handshake": {
+    "ok": true,
+    "tool_count": 11
+  },
+  "business_read_tool": {
+    "ok": true,
+    "item_count": 2
+  },
+  "rag_read_tool": {
+    "ok": true,
+    "item_count": 6
+  }
+}
