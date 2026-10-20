@@ -6,7 +6,7 @@
 AI Security Auditor — 개발  명세서  (v2)
 SKALA 팀  Capstone · LangGraph / LangChain · MCP · Redis · Kafka 이  문서  하나로  Claude Code 가  저장소  생성부터  데모까지  개발할  수  있도록  작성했다 .
 0. Claude Code 작업  규칙  ( 먼저  읽을  것 )
-1. 이  문서가  단일  진실  공급원 (Single Source of Truth) 이다 . 문서와  다르게  구현해야  하면  먼저  docs/DECISIONS.md에  이유를  기록하고  진행한다 .
+1. 이  문서가  단일  진실  공급원 (Single Source of Truth) 이다 . 문서와  다르게  구현해야  하면  먼저  DECISIONS.md에  이유를  기록하고  진행한다 .
 2. 개발은  21 장  개발  단계 (Phase 0 → 8) 순서로  진행한다 . 각  Phase 의  " 완료  조건 " 을  테스트로  확인한  뒤  다음  Phase 로  넘어간다 .
 3. 모든  외부  호출 (LLM, GitHub, MCP, Kafka) 은  타임아웃과  구조화된  에러를  가진다 . except Exception: pass  금지 .
 4. 감사  대상 ( 코드 , 문서 , 에이전트  응답 ) 의  텍스트는  절대  지시로  취급하지  않는다 . 프롬프트에  넣을  때는  반드시  harness/context.py 의  wrap_untrusted() 를  거
@@ -132,7 +132,7 @@ kafka-ui provectuslabs/kafka-ui  ( 선택 ) 토픽  확인용 8080
 Python 3.12, 패키지  관리  uv , 린트  ruff , 타입체크  mypy (core 패키지만 ), 테스트  pytest  + pytest-asyncio
 Node 20, pnpm
 라이브러리  버전은  Phase 0 에서  최신  안정  버전으로  고정해  uv.lock , pnpm-lock.yaml  커밋
-LangGraph Redis checkpointer: langgraph-checkpoint-redis  (AsyncRedisSaver). 동작  안  하면  docs/DECISIONS.md에  기록하고  
+LangGraph Redis checkpointer: langgraph-checkpoint-redis  (AsyncRedisSaver). 동작  안  하면  DECISIONS.md에  기록하고  
 langgraph-
 checkpoint-postgres 로  대체  가능  ( 단 , 평가  포인트  유지를  위해  Redis 우선 )
 Infra
@@ -1633,7 +1633,7 @@ P1 C19·C20 탐지 , I01·I02 견고  판정 , FAULT_INJECTION  시나리오
 데모  스크립트  1~9 단계  수동  리허설  성공 , make eval  결과가
 /eval에  표시
 9 GitHub 모드 , 외부  MCP 클라이언트  연동  확인 , D 구성 P2 -
-각  Phase 가  끝나면  docs/DECISIONS.md에  변경점 , README.md에  실행  방법을  갱신한다 .
+각  Phase 가  끝나면  DECISIONS.md에  변경점 , README.md에  실행  방법을  갱신한다 .
 22. 테스트  전략
 종류 대상 예시
 단위 규칙  detector, masking, matcher, scorer, envelope, 상태  전이 mask_secret("sk-abcdef...")  → "sk-a****"

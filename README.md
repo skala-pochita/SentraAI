@@ -3,9 +3,9 @@
 사내 AI 에이전트를 배포 전에 직접 공격해보고, 에이전트가 쓰는 코드까지 함께 감사해서 수정·재검증까지 닫아주는 보안감사 에이전트.
 (SKALA 팀 Capstone · LangGraph / LangChain · MCP · Redis · Kafka)
 
-- 명세: [`docs/SPEC.md`](docs/SPEC.md) (원본 `AI_Security_Auditor_SPEC.pdf`)
+- 명세: [`SPEC.md`](SPEC.md) (원본 `AI_Security_Auditor_SPEC.pdf`)
 - 진행 상황: [`checklist.md`](checklist.md)
-- 설계 변경: [`docs/DECISIONS.md`](docs/DECISIONS.md)
+- 설계 변경: [`DECISIONS.md`](DECISIONS.md)
 
 > ⚠️ `targets/` 아래 샘플 코드의 모든 키·비밀번호는 **테스트용 가짜 값**이다. 실제 서비스에서 유효하지 않다.
 
