@@ -286,6 +286,7 @@ def render_report(
     run_id: str, configs: list[str], by_cfg: dict[str, list[dict[str, Any]]], actual: dict[str, bool]
 ) -> str:
     cols = [
+        "run_failed",
         "code_recall",
         "code_precision",
         "code_f1",

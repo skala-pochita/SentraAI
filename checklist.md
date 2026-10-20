@@ -197,3 +197,4 @@
   - 실 LLM 검증: probe 스모크 vuln 통과·hardened 통과 (취약 샘플 프롬프트 보강, DECISIONS #20), 감사 1건 Kafka 전체 흐름 COMPLETED(ReAct 26스텝, 해결 22·MANUAL 1), LangSmith root run 3개가 trace_id 1개로 묶임.
   - 문서: `docs/HARNESS.md`, `docs/diagrams/*.mmd`, DECISIONS #20~#28.
   - 남은 것: config/pricing.yaml 가격 기입(f1_per_dollar), `make fault-on` 실환경, 외부 MCP 클라이언트, Cloud e2e(범위 제외, 키 생긴 뒤 실패 — 미조사).
+- 2026-10-20: A/B/C 비교 실측 (반복 3회, `docs/eval/eval_b582d34a.md`): code F1 A 0.53 / **B 0.88** / C 0.75, B 함정 오탐 0, Agent 재현율 1.0. 정적 회피 B 0.67 < C 0.83. /quality 미달 2건(재현율 0.88<0.9, 견고성 0.83<1). 실측 중 버그 7건 수정(evaluateCheck.md '실측 중 발견해 고친 문제'). reports 볼륨 api·eval-worker 공유.
