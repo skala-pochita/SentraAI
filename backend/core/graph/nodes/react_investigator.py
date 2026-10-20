@@ -1,4 +1,4 @@
-"""ReAct 조사 (명세 8.5 (1); DECISIONS #17).
+"""ReAct 조사 (명세 8.5 (1); DECISIONS #13).
 
 정적 후보가 있는 파일 + 위험 파일 휴리스틱 상위 K 개를 파일마다 최대 `react.max_steps`(6) 스텝으로 조사한다.
 파일 원문은 처음부터 주지 않고 에이전트가 read_repo_file 로 필요한 범위를 읽는다(도구 선택 증거).
@@ -64,7 +64,13 @@ def _summ(args: dict[str, Any]) -> str:
 
 
 async def _investigate_file(
-    deps: Deps, state: dict[str, Any], model: Any, model_name: str, path: str, cands: list[dict[str, Any]], usage: list[dict[str, Any]]
+    deps: Deps,
+    state: dict[str, Any],
+    model: Any,
+    model_name: str,
+    path: str,
+    cands: list[dict[str, Any]],
+    usage: list[dict[str, Any]],
 ) -> tuple[Final | None, list[str]]:
     cfg = limits().get("react", {})
     max_steps = int(cfg.get("max_steps", 6))
@@ -76,16 +82,29 @@ async def _investigate_file(
     used: list[str] = []
     spent = 0
     brief = [
-        {"temp_id": c["temp_id"], "rule_id": c.get("rule_id"), "category": c["category"],
-         "line": (c.get("evidence") or [{}])[0].get("line_start"), "snippet": (c.get("evidence") or [{}])[0].get("snippet_masked")}
+        {
+            "temp_id": c["temp_id"],
+            "rule_id": c.get("rule_id"),
+            "category": c["category"],
+            "line": (c.get("evidence") or [{}])[0].get("line_start"),
+            "snippet": (c.get("evidence") or [{}])[0].get("snippet_masked"),
+        }
         for c in cands
     ]
     for step in range(max_steps):
         left = max_steps - step
         step_out = await structured_call(
-            model, prompt, ReactStep, node="code_investigate", model_name=model_name, budget=deps.budget, usage=usage,
+            model,
+            prompt,
+            ReactStep,
+            node="code_investigate",
+            model_name=model_name,
+            budget=deps.budget,
+            usage=usage,
             path=path,
-            candidates=wrap_untrusted(json.dumps(brief, ensure_ascii=False), "static_candidates") if brief else "(없음 — 위험 파일 휴리스틱으로 선택됨)",
+            candidates=wrap_untrusted(json.dumps(brief, ensure_ascii=False), "static_candidates")
+            if brief
+            else "(없음 — 위험 파일 휴리스틱으로 선택됨)",
             steps_left=left,
             observations="\n".join(obs) if obs else "(없음)",
         )
@@ -97,9 +116,15 @@ async def _investigate_file(
         if act.tool not in allowed:
             obs.append(f"[도구 거부] {act.tool} 는 이 노드에서 허용되지 않는다. 허용: {sorted(allowed)}")
             continue
-        args = {**act.args, "target_id": tid} if act.tool in ("read_repo_file", "search_repo", "list_repo_files") else dict(act.args)
+        args = (
+            {**act.args, "target_id": tid}
+            if act.tool in ("read_repo_file", "search_repo", "list_repo_files")
+            else dict(act.args)
+        )
         await deps.event(
-            state, "investigate.step", {"file": path, "tool": act.tool, "args_summary": _summ(act.args), "why": step_out.why[:200]},
+            state,
+            "investigate.step",
+            {"file": path, "tool": act.tool, "args_summary": _summ(act.args), "why": step_out.why[:200]},
             node="code_investigate",
         )
         try:
@@ -118,16 +143,22 @@ async def _investigate_file(
     # 스텝 소진: 마지막으로 final 만 요구
     obs.append("[스텝 소진] final 을 지금 낸다.")
     last = await structured_call(
-        model, prompt, ReactStep, node="code_investigate", model_name=model_name, budget=deps.budget, usage=usage,
-        path=path, candidates=wrap_untrusted(json.dumps(brief, ensure_ascii=False), "static_candidates") if brief else "(없음)",
-        steps_left=0, observations="\n".join(obs),
+        model,
+        prompt,
+        ReactStep,
+        node="code_investigate",
+        model_name=model_name,
+        budget=deps.budget,
+        usage=usage,
+        path=path,
+        candidates=wrap_untrusted(json.dumps(brief, ensure_ascii=False), "static_candidates") if brief else "(없음)",
+        steps_left=0,
+        observations="\n".join(obs),
     )
     return last.final, used
 
 
-async def investigate(
-    state: dict[str, Any], config: RunnableConfig, llm: tuple[Any, str]
-) -> dict[str, Any]:
+async def investigate(state: dict[str, Any], config: RunnableConfig, llm: tuple[Any, str]) -> dict[str, Any]:
     deps = get_deps(config)
     model, model_name = llm
     candidates: list[dict[str, Any]] = state.get("candidates", [])
@@ -148,7 +179,9 @@ async def investigate(
             final, used = await _investigate_file(deps, state, model, model_name, path, base, usage)
         except AppError as e:
             if e.code == ErrorCode.BUDGET_EXCEEDED:  # 예산 소진: 남은 파일은 정적 판정으로
-                await deps.event(state, "budget.exceeded", {"node": "code_investigate", "file": path}, node="code_investigate")
+                await deps.event(
+                    state, "budget.exceeded", {"node": "code_investigate", "file": path}, node="code_investigate"
+                )
                 out.extend(base)
                 continue
             errors.append({"node": "code_investigate", "file": path, "code": str(e.code), "message": e.message})
@@ -167,19 +200,36 @@ async def investigate(
             if c["category"] == "AUDITOR_INJECTION_ATTEMPT":  # 감사기 인젝션 보고는 모델이 기각할 수 없다
                 out.append(c)
                 continue
-            c.update(verdict=v.verdict, confidence=round(max(0.05, min(0.99, v.confidence)), 2),
-                     reasoning_summary=(v.reason or c["reasoning_summary"])[:400])
+            c.update(
+                verdict=v.verdict,
+                confidence=round(max(0.05, min(0.99, v.confidence)), 2),
+                reasoning_summary=(v.reason or c["reasoning_summary"])[:400],
+            )
             out.append(c)
         for nf in final.new_findings:
             if nf.file_path != path and path:
                 continue
             out.append(
                 FindingDraft(
-                    temp_id=f"r-{uuid.uuid4().hex[:8]}", target_id=tid, source="code", category=nf.category,
-                    rule_id="LLM-REACT", title=nf.title[:200], severity=nf.severity, confidence=0.75,
-                    evidence=[Evidence(kind="code", file_path=nf.file_path, line_start=nf.line_start,
-                                       line_end=nf.line_end or nf.line_start, snippet_masked=nf.snippet[:300])],
-                    reasoning_summary=nf.reasoning[:400], tools_used=sorted({*used, "read_repo_file"}),
+                    temp_id=f"r-{uuid.uuid4().hex[:8]}",
+                    target_id=tid,
+                    source="code",
+                    category=nf.category,
+                    rule_id="LLM-REACT",
+                    title=nf.title[:200],
+                    severity=nf.severity,
+                    confidence=0.75,
+                    evidence=[
+                        Evidence(
+                            kind="code",
+                            file_path=nf.file_path,
+                            line_start=nf.line_start,
+                            line_end=nf.line_end or nf.line_start,
+                            snippet_masked=nf.snippet[:300],
+                        )
+                    ],
+                    reasoning_summary=nf.reasoning[:400],
+                    tools_used=sorted({*used, "read_repo_file"}),
                     verdict="TRUE_POSITIVE",
                 ).model_dump()
             )

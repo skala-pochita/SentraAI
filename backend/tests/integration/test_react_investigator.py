@@ -13,7 +13,7 @@ from core.graph.nodes.react_investigator import investigate
 from core.mcp_client import inprocess_gateway
 from core.settings import REPO_ROOT, get_settings
 from mcp_servers.business.demo_reset import reset
-from tests.fakes_cloud import ScriptedModel
+from tests.fakes_llm import ScriptedModel
 
 pytestmark = pytest.mark.usefixtures("db_ready")
 
