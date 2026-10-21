@@ -109,6 +109,7 @@ a:hover { color: var(--accent-strong); }
   background: linear-gradient(145deg, rgba(52, 227, 168, .18), rgba(34, 166, 240, .12));
   box-shadow: inset 0 0 0 1px rgba(52, 227, 168, .35), 0 0 24px -6px rgba(52, 227, 168, .55);
 }
+.brand-mark img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: #f2f6f9; letter-spacing: -.01em; }
 .brand-sub { font-size: 11px; color: #7d8a99; letter-spacing: .08em; text-transform: uppercase; }
 .nav { position: relative; flex: 1; overflow-y: auto; padding: 4px 12px 12px; }
