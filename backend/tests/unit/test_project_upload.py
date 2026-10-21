@@ -58,3 +58,13 @@ def test_rejects_invalid_empty_and_limits(tmp_path: Path, monkeypatch: pytest.Mo
     monkeypatch.setattr(upload, "MAX_FILES", 1)
     with pytest.raises(AppError):
         extract_project(archive({"a": "", "b": ""}), tmp_path / "upload")
+
+
+def test_failed_extract_never_deletes_existing_directory(tmp_path: Path) -> None:
+    existing = tmp_path / "keep"
+    existing.mkdir()
+    (existing / "data.txt").write_text("keep me")
+    for payload in (b"not a zip", archive({"a.txt": "x"})):  # 형식 오류, 이미 있는 경로
+        with pytest.raises(AppError):
+            extract_project(payload, existing)
+        assert (existing / "data.txt").read_text() == "keep me"

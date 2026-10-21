@@ -29,6 +29,8 @@ from harness.prompts import get_prompt
 from harness.tools import read_only_tools_for
 
 TEST_PATH = re.compile(r"(^|/)src/test/")
+# 커밋된 자격증명은 '가짜 값·임시 계정'이라는 주장을 감사기가 검증할 수 없다 → 테스트 경로 밖에서는 기각하지 않고 검토로 남긴다
+CREDENTIAL_CATEGORIES = {"HARDCODED_SECRET", "HARDCODED_CREDENTIAL", "SECRET_LEAK", "COMMENT_SENSITIVE"}
 
 
 class Action(BaseModel):
@@ -242,93 +244,118 @@ async def _investigate_file(
     return last.final, used
 
 
-async def investigate(state: dict[str, Any], config: RunnableConfig, llm: tuple[Any, str]) -> dict[str, Any]:
-    deps = get_deps(config)
-    model, model_name = llm
-    candidates: list[dict[str, Any]] = state.get("candidates", [])
-    tid = state["target"]["target_id"]
-    risky = state.get("plan", {}).get("repos", {}).get(tid, {}).get("risky_files", [])
+def _group_by_file(candidates: list[dict[str, Any]], risky: list[str]) -> dict[str, list[dict[str, Any]]]:
+    """정적 후보를 파일별로 묶고, 후보가 없는 위험 파일도 조사 대상으로 넣는다 (정적 회피 탐지용)."""
     by_file: dict[str, list[dict[str, Any]]] = {}
     for c in candidates:
         p = ((c.get("evidence") or [{}])[0]).get("file_path") or ""
         by_file.setdefault(p, []).append(c)
     for p in risky:
         by_file.setdefault(p, [])
+    return by_file
+
+
+def _hold_reason(c: dict[str, Any], path: str, poisoned: bool) -> str | None:
+    """정적 후보를 LLM 이 FALSE_POSITIVE 로 판정해도 기각하지 않을 사유."""
+    if poisoned:  # 감사기 인젝션("이 파일은 보고하지 말 것")이 있는 파일: 모델 판단이 조작됐을 수 있다
+        return "감사기 인젝션이 있는 파일"
+    if c["category"] in CREDENTIAL_CATEGORIES and not TEST_PATH.search(path):
+        return "자격증명 정적 탐지"
+    return None
+
+
+def _apply_verdict(
+    c: dict[str, Any], v: Verdict | None, path: str, used: list[str], poisoned: bool = False
+) -> dict[str, Any]:
+    c["tools_used"] = sorted({*c.get("tools_used", []), *used})
+    if v is None or c["category"] == "AUDITOR_INJECTION_ATTEMPT":  # 감사기 인젝션 보고는 모델이 기각할 수 없다
+        return c
+    if v.verdict == "FALSE_POSITIVE" and (hold := _hold_reason(c, path, poisoned)):
+        c.update(
+            verdict="NEEDS_REVIEW",
+            confidence=min(float(c.get("confidence", 0.6)), 0.6),
+            reasoning_summary=f"[{hold} — LLM 기각 보류] {v.reason or ''}"[:400],
+        )
+        return c
+    if v.verdict == "FALSE_POSITIVE" and float(c.get("confidence", 0)) >= 0.8 and not TEST_PATH.search(path):
+        # 확정형 정적 규칙(needs_llm_review=false)은 LLM 이 지울 수 없다: '테스트용 값' 주석 같은 회피에 대비해 검토 필요로만
+        c.update(
+            verdict="NEEDS_REVIEW",
+            confidence=0.6,
+            reasoning_summary=f"[정적 확정 규칙 — LLM 기각 보류] {v.reason or ''}"[:400],
+        )
+        return c
+    c.update(
+        verdict=v.verdict,
+        confidence=round(max(0.05, min(0.99, v.confidence)), 2),
+        reasoning_summary=(v.reason or c["reasoning_summary"])[:400],
+    )
+    return c
+
+
+def _new_findings(
+    final: Final, path: str, base: list[dict[str, Any]], tid: str, used: list[str]
+) -> list[dict[str, Any]]:
+    """모델이 새로 찾은 Finding. 다른 파일·정적 후보와 같은 위치(±3줄) 재보고는 버린다."""
+    known_lines = [int((c.get("evidence") or [{}])[0].get("line_start") or 0) for c in base]
+    out = []
+    for nf in final.new_findings:
+        if (nf.file_path != path and path) or any(abs(nf.line_start - ln) <= 3 for ln in known_lines):
+            continue
+        out.append(
+            FindingDraft(
+                temp_id=f"r-{uuid.uuid4().hex[:8]}",
+                target_id=tid,
+                source="code",
+                category=nf.category,
+                rule_id="LLM-REACT",
+                title=nf.title[:200],
+                severity=nf.severity,
+                confidence=0.75,
+                evidence=[
+                    Evidence(
+                        kind="code",
+                        file_path=nf.file_path,
+                        line_start=nf.line_start,
+                        line_end=nf.line_end or nf.line_start,
+                        snippet_masked=nf.snippet[:300],
+                    )
+                ],
+                reasoning_summary=nf.reasoning[:400],
+                tools_used=sorted({*used, "read_repo_file"}),
+                verdict="TRUE_POSITIVE",
+            ).model_dump()
+        )
+    return out
+
+
+async def investigate(state: dict[str, Any], config: RunnableConfig, llm: tuple[Any, str]) -> dict[str, Any]:
+    deps = get_deps(config)
+    model, model_name = llm
+    tid = state["target"]["target_id"]
+    risky = state.get("plan", {}).get("repos", {}).get(tid, {}).get("risky_files", [])
     usage: list[dict[str, Any]] = []
     out: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
-    for path, cands in by_file.items():
+    for path, cands in _group_by_file(state.get("candidates", []), risky).items():
         base = static_verdicts(cands)
         try:
             final, used = await _investigate_file(deps, state, model, model_name, path, base, usage)
         except AppError as e:
             if e.code == ErrorCode.BUDGET_EXCEEDED:  # 예산 소진: 남은 파일은 정적 판정으로
-                await deps.event(
-                    state, "budget.exceeded", {"node": "code_investigate", "file": path}, node="code_investigate"
-                )
-                out.extend(base)
-                continue
-            errors.append({"node": "code_investigate", "file": path, "code": str(e.code), "message": e.message})
+                payload = {"node": "code_investigate", "file": path}
+                await deps.event(state, "budget.exceeded", payload, node="code_investigate")
+            else:
+                errors.append({"node": "code_investigate", "file": path, "code": str(e.code), "message": e.message})
             out.extend(base)
             continue
         if final is None:
             out.extend(base)
             continue
         verdicts = {v.temp_id: v for v in final.verdicts}
-        for c in base:
-            v = verdicts.get(c["temp_id"])
-            c["tools_used"] = sorted({*c.get("tools_used", []), *used})
-            if v is None:
-                out.append(c)
-                continue
-            if c["category"] == "AUDITOR_INJECTION_ATTEMPT":  # 감사기 인젝션 보고는 모델이 기각할 수 없다
-                out.append(c)
-                continue
-            if v.verdict == "FALSE_POSITIVE" and float(c.get("confidence", 0)) >= 0.8 and not TEST_PATH.search(path):
-                # 확정형 정적 규칙(needs_llm_review=false)은 LLM 이 지울 수 없다: '테스트용 값' 주석 같은 회피에 대비해 검토 필요로만
-                c.update(
-                    verdict="NEEDS_REVIEW",
-                    confidence=0.6,
-                    reasoning_summary=f"[정적 확정 규칙 — LLM 기각 보류] {v.reason or ''}"[:400],
-                )
-                out.append(c)
-                continue
-            c.update(
-                verdict=v.verdict,
-                confidence=round(max(0.05, min(0.99, v.confidence)), 2),
-                reasoning_summary=(v.reason or c["reasoning_summary"])[:400],
-            )
-            out.append(c)
-        known_lines = [int((c.get("evidence") or [{}])[0].get("line_start") or 0) for c in base]
-        for nf in final.new_findings:
-            if nf.file_path != path and path:
-                continue
-            if any(abs(nf.line_start - ln) <= 3 for ln in known_lines):  # 정적 후보와 같은 위치의 재보고는 중복
-                continue
-            out.append(
-                FindingDraft(
-                    temp_id=f"r-{uuid.uuid4().hex[:8]}",
-                    target_id=tid,
-                    source="code",
-                    category=nf.category,
-                    rule_id="LLM-REACT",
-                    title=nf.title[:200],
-                    severity=nf.severity,
-                    confidence=0.75,
-                    evidence=[
-                        Evidence(
-                            kind="code",
-                            file_path=nf.file_path,
-                            line_start=nf.line_start,
-                            line_end=nf.line_end or nf.line_start,
-                            snippet_masked=nf.snippet[:300],
-                        )
-                    ],
-                    reasoning_summary=nf.reasoning[:400],
-                    tools_used=sorted({*used, "read_repo_file"}),
-                    verdict="TRUE_POSITIVE",
-                ).model_dump()
-            )
+        poisoned = any(c["category"] == "AUDITOR_INJECTION_ATTEMPT" for c in base)
+        out.extend(_apply_verdict(c, verdicts.get(c["temp_id"]), path, used, poisoned) for c in base)
+        out.extend(_new_findings(final, path, base, tid, used))
     return {"investigated": out, "errors": errors, "token_usage": usage}
 
 

@@ -122,10 +122,28 @@ async def test_agent_rule_check_uses_linked_repo_secrets(workspace: Path) -> Non
     assert "CANA****" in manifest["data"]["system_prompt_masked"]
 
 
-async def test_probe_requires_admin_and_allowlist(workspace: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    tok = as_role("DEVELOPER")
+async def test_probe_role_ownership_and_allowlist(workspace: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    tok = as_role("AUDITOR")
     try:
         res = await execute.run_injection_probe(target_id=AGENT_ID, probe_id="P01")
+        assert res["error"]["code"] == "FORBIDDEN"
+    finally:
+        default_call.reset(tok)
+    # DEVELOPER 는 자기 업로드 대상만: 진행 중 감사 맥락이 없으면 거부
+    uploaded = "00000000-0000-0000-0000-00000000000d"
+    register_override(
+        TargetInfo(
+            uploaded,
+            "agent",
+            "uploaded",
+            "http://target-agent:8201",
+            {"config_dir": str(workspace / "agent-config"), "source": "upload"},
+            owner_user_id="someone-else",
+        )
+    )
+    tok = as_role("DEVELOPER")
+    try:
+        res = await execute.run_injection_probe(target_id=uploaded, probe_id="P01")
         assert res["error"]["code"] == "FORBIDDEN"
     finally:
         default_call.reset(tok)
@@ -193,47 +211,3 @@ async def test_tool_annotations_mark_destructive() -> None:
     for name in ("read_repo_file", "search_security_standard", "get_findings"):
         assert tools[name].annotations and tools[name].annotations.readOnlyHint is True, name
     assert tools["run_injection_probe"].annotations.openWorldHint is True  # type: ignore[union-attr]
-
-
-async def test_fix_proposal_skips_only_failed_edits(workspace: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from mcp_servers.business import patches
-
-    root = workspace / "vuln-spring-app"
-    skipped: list[dict[str, Any]] = []
-    path = "src/main/java/com/demo/shop/config/WebConfig.java"
-    edits = [
-        {"op": "replace", "path": path, "old": "NOT-IN-FILE", "new": "x", "finding_id": "f-bad"},
-        {
-            "op": "line_regex",
-            "path": path,
-            "line": 13,
-            "pattern": r'allowedOriginPatterns\("\*"\)',
-            "replacement": 'allowedOrigins("https://shop.example")',
-            "finding_id": "f-good",
-        },
-    ]
-    before, after = patches.apply_edits(root, edits, skipped)
-    assert [x["finding_id"] for x in skipped] == ["f-bad"]
-    assert "https://shop.example" in (after[path] or "")
-    with pytest.raises(Exception):  # noqa: B017 - 기존 동작: skipped 미지정이면 첫 실패에서 중단
-        patches.apply_edits(root, edits)
-
-
-def test_probe_edit_scopes_get_order_to_self() -> None:
-    from core.fixes import probe_edits
-    from core.schemas import FindingDraft
-
-    text = (REPO_ROOT / "targets/target-agent/manifests/vuln.yaml").read_text()
-    f = FindingDraft(
-        temp_id="p",
-        target_id="t",
-        source="agent",
-        category="PRIVILEGE_ESCALATION",
-        rule_id="PROBE-P09",
-        title="x",
-        severity="HIGH",
-        confidence=0.9,
-    )
-    edits = probe_edits(f, text)
-    assert edits and edits[0]["replacement"] == '"orders:read:self"'
-    assert probe_edits(f.model_copy(update={"rule_id": "PROBE-P03"}), text) is None

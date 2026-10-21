@@ -1,10 +1,7 @@
 """Phase 5·6 그래프 경로 (LLM 없음, in-process MCP, 실제 Postgres, fakeredis, InMemorySaver).
 
-- 감사가 intake → code/agent 서브그래프 → correlate → human_approval(interrupt) 까지 진행
-- 승인 → fix_generate → apply_fix → wait_merge(interrupt) → 병합 → re_verify → report
-- 반려 경로: risk_accept 후 비-CRITICAL 만 수정
-- 승인 없는 apply_fix → FORBIDDEN
-- '워커 재시작': 새 그래프 인스턴스 + 같은 체크포인터로 재개
+- 읽기 전용 감사: intake → code/agent 서브그래프 → correlate → report, 원본 파일 변경 없음
+- 퇴역한 수정·승인·병합 도구는 MCP 에 없고 게이트에서 FORBIDDEN
 """
 
 from __future__ import annotations

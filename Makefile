@@ -41,7 +41,7 @@ eval:
 eval-code: eval
 
 fault-on:
-	@grep -q '^FAULT_INJECTION=' .env && sed -i.bak 's/^FAULT_INJECTION=.*/FAULT_INJECTION=github_rate_limit:$(or $(N),2)/' .env && rm -f .env.bak
+	@grep -q '^FAULT_INJECTION=' .env && sed -i.bak 's/^FAULT_INJECTION=.*/FAULT_INJECTION=rate_limit:$(or $(N),2)/' .env && rm -f .env.bak
 	$(COMPOSE) up -d business-mcp
 
 fault-off:

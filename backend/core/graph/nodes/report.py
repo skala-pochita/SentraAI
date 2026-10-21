@@ -16,40 +16,53 @@ from core.schemas import SEVERITY_ORDER
 SEV_KO = {"CRITICAL": "치명", "HIGH": "높음", "MEDIUM": "중간", "LOW": "낮음", "INFO": "참고"}
 
 
+PROBE_FIELDS = ("probe_id", "category", "attempts", "successes", "asr", "judged_by", "adaptive", "error")
+
+
+def _report_finding(f: dict[str, Any], status_of: dict[str, str]) -> dict[str, Any]:
+    ev = (f.get("evidence") or [{}])[0]
+    location = f"{ev.get('file_path')}:{ev.get('line_start')}" if ev.get("file_path") else ev.get("probe_id")
+    return {
+        "finding_id": f.get("finding_id"),
+        "title": f["title"],
+        "severity": f["severity"],
+        "category": f["category"],
+        "source": f["source"],
+        "rule_id": f.get("rule_id"),
+        "confidence": f["confidence"],
+        "status": status_of.get(f.get("finding_id") or "", "OPEN"),
+        "verdict": f.get("verdict"),
+        "location": location,
+        "standard_refs": f.get("standard_refs", []),
+        "reasoning_summary": f.get("reasoning_summary", ""),
+        "tools_used": f.get("tools_used", []),
+        "fix_hint": f.get("fix_hint"),
+    }
+
+
+def _summary(findings: list[dict[str, Any]], probes: list[dict[str, Any]]) -> dict[str, Any]:
+    vulnerable = sum(1 for p in probes if (p["successes"] or 0) > 0 and p["category"] != "BENIGN_CONTROL")
+    return {
+        "total": len(findings),
+        "by_severity": dict(Counter(f["severity"] for f in findings)),
+        "by_source": dict(Counter(f["source"] for f in findings)),
+        "by_status": dict(Counter(f["status"] for f in findings)),
+        "vulnerable_probes": vulnerable,
+    }
+
+
+def _coverage(state: dict[str, Any], probes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """계획(PLANNED)만 된 공격 검사는 실제 결과(오류 여부)로 바꿔 적는다."""
+    attacks = "ERROR" if any(r.get("error") for r in probes) else "COMPLETED"
+    return [dict(c, attacks=attacks) if c.get("attacks") == "PLANNED" else c for c in state.get("agent_coverage", [])]
+
+
 def build_report(state: dict[str, Any], db_findings: list[dict[str, Any]]) -> dict[str, Any]:
     status_of = {f["finding_id"]: f["status"] for f in db_findings}
-    findings = []
-    for f in state.get("correlated", []):
-        ev = (f.get("evidence") or [{}])[0]
-        findings.append(
-            {
-                "finding_id": f.get("finding_id"),
-                "title": f["title"],
-                "severity": f["severity"],
-                "category": f["category"],
-                "source": f["source"],
-                "rule_id": f.get("rule_id"),
-                "confidence": f["confidence"],
-                "status": status_of.get(f.get("finding_id") or "", "OPEN"),
-                "verdict": f.get("verdict"),
-                "location": (
-                    f"{ev.get('file_path')}:{ev.get('line_start')}" if ev.get("file_path") else ev.get("probe_id")
-                ),
-                "standard_refs": f.get("standard_refs", []),
-                "reasoning_summary": f.get("reasoning_summary", ""),
-                "tools_used": f.get("tools_used", []),
-                "fix_hint": f.get("fix_hint"),
-            }
-        )
+    findings = [_report_finding(f, status_of) for f in state.get("correlated", [])]
     findings.sort(key=lambda x: (-SEVERITY_ORDER[x["severity"]], -x["confidence"]))
     usage = state.get("token_usage", [])
-    probes = [
-        {
-            k: r.get(k)
-            for k in ("probe_id", "category", "attempts", "successes", "asr", "judged_by", "adaptive", "error")
-        }
-        for r in state.get("probe_results", [])
-    ]
+    probes = [{k: r.get(k) for k in PROBE_FIELDS} for r in state.get("probe_results", [])]
     return {
         "audit_id": state["audit_id"],
         "generated_at": datetime.now(UTC).isoformat(),
@@ -57,21 +70,8 @@ def build_report(state: dict[str, Any], db_findings: list[dict[str, Any]]) -> di
         "targets": [
             {"target_id": t["target_id"], "type": t["type"], "name": t["name"]} for t in state.get("targets", [])
         ],
-        "summary": {
-            "total": len(findings),
-            "by_severity": dict(Counter(f["severity"] for f in findings)),
-            "by_source": dict(Counter(f["source"] for f in findings)),
-            "by_status": dict(Counter(f["status"] for f in findings)),
-            "vulnerable_probes": sum(
-                1 for p in probes if (p["successes"] or 0) > 0 and p["category"] != "BENIGN_CONTROL"
-            ),
-        },
-        "agent_coverage": [
-            dict(c, attacks=("ERROR" if any(r.get("error") for r in probes) else "COMPLETED"))
-            if c.get("attacks") == "PLANNED"
-            else c
-            for c in state.get("agent_coverage", [])
-        ],
+        "summary": _summary(findings, probes),
+        "agent_coverage": _coverage(state, probes),
         "risk_paths": state.get("risk_paths", []),
         "findings": findings,
         "probes": probes,

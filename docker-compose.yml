@@ -29,7 +29,7 @@ x-worker-health: &worker-health
 services:
   llm-proxy:
     <<: *backend
-    command: ["uvicorn", "llm_proxy.server:app", "--host", "0.0.0.0", "--port", "8400"]
+    command: ["uvicorn", "llm_proxy.server:app", "--host", "0.0.0.0", "--port", "8400", "--no-server-header"]
     env_file: []
     environment:
       DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
@@ -48,7 +48,7 @@ services:
 
   sandbox-runner:
     <<: *backend
-    command: ["uvicorn", "sandbox.server:app", "--host", "0.0.0.0", "--port", "8300"]
+    command: ["uvicorn", "sandbox.server:app", "--host", "0.0.0.0", "--port", "8300", "--no-server-header"]
     env_file: []
     environment:
       MCP_SERVICE_TOKEN: ${MCP_SERVICE_TOKEN:-change-me}
@@ -62,6 +62,7 @@ services:
 
   postgres:
     image: pgvector/pgvector:pg16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: auditor
       POSTGRES_PASSWORD: auditor
@@ -76,6 +77,7 @@ services:
 
   redis:
     image: redis/redis-stack-server:7.4.0-v3
+    restart: unless-stopped
     ports: ["6379:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -85,6 +87,7 @@ services:
 
   kafka:
     image: apache/kafka:3.9.1
+    restart: unless-stopped
     ports: ["9092:9092", "29092:29092"]
     environment:
       KAFKA_NODE_ID: 1
@@ -178,7 +181,7 @@ services:
   api:
     <<: *backend
     volumes: ["reports:/app/reports", "workspace:/workspace", "vault-data:/var/lib/audit-vault/data", "vault-keys:/var/lib/audit-vault/keys"]
-    command: ["sh", "-c", "alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port 8000"]
+    command: ["sh", "-c", "alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port 8000 --no-server-header"]
     ports: ["8000:8000"]
     depends_on:
       postgres: {condition: service_healthy}
@@ -236,6 +239,7 @@ services:
   frontend:
     build:
       context: frontend
+    restart: unless-stopped
     ports: ["5173:80"]
     depends_on:
       api: {condition: service_healthy}

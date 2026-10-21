@@ -14,19 +14,22 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
+import yaml
 from langgraph.checkpoint.memory import InMemorySaver
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from core.db.models import Audit, AuditTarget, EvalResult, EvalRun, Target, User
 from core.db.session import session_scope
-from core.errors import AppError
+from core.errors import AppError, ErrorCode
 from core.graph.build import build_graph
 from core.graph.deps import Deps
 from core.mcp_client import CallCtx, Gateway, http_gateway
 from core.probes import load_probe_set
+from core.rules.engine import check_manifest
 from core.rules.models import load_rules
 from core.settings import get_settings, load_config
 from harness.eval.scorer import AgentF, AuditOutput, CodeF, load_truth, score, with_cost
@@ -99,6 +102,44 @@ async def _targets() -> tuple[str, str, str]:
         admin = (await db.execute(select(User).where(User.role == "ADMIN").order_by(User.created_at))).scalars().first()
         assert admin is not None
         return str(repo.id), str(agent.id), str(admin.id)
+
+
+def workspace_drift(repo_root: Path, agent_dir: Path, truth: dict[str, Any]) -> list[str]:
+    """채점 대상 작업공간이 정답셋과 같은지 (LLM 호출 전). 다르면 수치가 무의미하다.
+
+    - 코드: 정답셋의 모든 위치(취약점·함정·감사기 인젝션)에 match 문자열이 그 줄에 있어야 한다
+    - Agent: 결정론 규칙이 정답셋 A01~ 을 모두 재현해야 한다 (vuln 매니페스트)
+    """
+    code = truth["code"]
+    problems = []
+    for item in code["findings"] + code.get("decoys", []) + code.get("auditor_injections", []):
+        path = repo_root / item["file"]
+        lines = path.read_text(encoding="utf-8").splitlines() if path.is_file() else []
+        line = int(item["line"])
+        if not (1 <= line <= len(lines) and item["match"] in lines[line - 1]):
+            problems.append(f"{item['id']} {item['file']}:{line}")
+    manifest_path, prompt_path = agent_dir / "manifest.yaml", agent_dir / "system_prompt.md"
+    if not manifest_path.is_file():
+        return problems + ["agent manifest.yaml 없음"]
+    text = manifest_path.read_text(encoding="utf-8")
+    prompt = prompt_path.read_text(encoding="utf-8") if prompt_path.is_file() else ""
+    hits = check_manifest(yaml.safe_load(text) or {}, text, prompt)
+    got = {(h.extra.get("tool") or h.extra.get("target"), h.category) for h in hits}
+    problems += [g["id"] for g in truth["agent"]["findings"] if (g["target"], g["category"]) not in got]
+    return problems
+
+
+async def ensure_workspace_matches_truth(repo_id: str, agent_id: str, truth: dict[str, Any]) -> None:
+    async with session_scope() as db:
+        repo, agent = await db.get(Target, uuid.UUID(repo_id)), await db.get(Target, uuid.UUID(agent_id))
+    assert repo is not None and agent is not None
+    agent_dir = Path(agent.config.get("config_dir") or get_settings().workspace_dir / "agent-config")
+    if drift := workspace_drift(Path(repo.ref), agent_dir, truth):
+        raise AppError(
+            ErrorCode.VALIDATION,
+            "감사 대상 작업공간이 정답셋과 다릅니다. `make demo-reset` 후 다시 실행하세요.",
+            {"mismatched": drift[:30], "count": len(drift)},
+        )
 
 
 async def measure_probes(gw: Gateway, agent_id: str, admin_id: str) -> dict[str, bool]:
@@ -282,26 +323,67 @@ def _agg(results: list[dict[str, Any]]) -> dict[str, dict[str, float | None]]:
     return out
 
 
+REPORT_COLUMNS = [
+    "run_failed",
+    "code_recall",
+    "code_precision",
+    "code_f1",
+    "static_evasion_recall",
+    "agent_recall",
+    "probe_accuracy",
+    "severity_accuracy",
+    "evidence_accuracy",
+    "auditor_robustness",
+    "fp_count_on_decoys",
+    "tokens",
+    "cost_usd",
+    "latency_s",
+    "f1_per_dollar",
+]
+HIT = ("TP", "ROBUST")
+
+
+def _cell(m: dict[str, Any] | None) -> str:
+    if not m or m["mean"] is None:
+        return "-"
+    return f"{m['mean']}" + (f" ± {m['std']}" if m["std"] else "")
+
+
+def _table_head(first_col: str, configs: list[str]) -> list[str]:
+    return [f"| {first_col} | " + " | ".join(configs) + " |", "|---|" + "---|" * len(configs)]
+
+
+def _only_b(first: dict[str, dict[str, Any]], case: str) -> bool:
+    """B 구성만 잡은 케이스 (⭐)."""
+    b = first.get("B_nano_harness")
+    if b is None or b.get(case) not in HIT:
+        return False
+    return all(first[c].get(case) not in HIT for c in first if c != "B_nano_harness")
+
+
+def _case_rows(configs: list[str], by_cfg: dict[str, list[dict[str, Any]]]) -> list[str]:
+    first = {c: by_cfg[c][0]["per_case"] for c in configs if by_cfg.get(c)}
+    rows = []
+    for case in sorted({k for pc in first.values() for k in pc}):
+        cells = [first.get(c, {}).get(case, "-") for c in configs]
+        rows.append(f"| {case}{' ⭐' if _only_b(first, case) else ''} | " + " | ".join(cells) + " |")
+    return rows
+
+
+def _interpretation(agg: dict[str, Any], by_cfg: dict[str, list[dict[str, Any]]]) -> list[str]:
+    lines = []
+    if "B_nano_harness" in agg and "A_nano_single" in agg:
+        b, a = agg["B_nano_harness"]["code_f1"]["mean"], agg["A_nano_single"]["code_f1"]["mean"]
+        lines.append(f"- 같은 작은 모델에서 Harness 적용 시 code F1: A {a} → B {b}.")
+    if any(by_cfg[c][0]["metrics"].get("cost_usd") == 0 for c in by_cfg):
+        lines.append("- 비용 0 은 config/pricing.yaml 가격 미기입 때문이다 (토큰 수로 비교).")
+    return lines
+
+
 def render_report(
     run_id: str, configs: list[str], by_cfg: dict[str, list[dict[str, Any]]], actual: dict[str, bool]
 ) -> str:
-    cols = [
-        "run_failed",
-        "code_recall",
-        "code_precision",
-        "code_f1",
-        "static_evasion_recall",
-        "agent_recall",
-        "probe_accuracy",
-        "severity_accuracy",
-        "evidence_accuracy",
-        "auditor_robustness",
-        "fp_count_on_decoys",
-        "tokens",
-        "cost_usd",
-        "latency_s",
-        "f1_per_dollar",
-    ]
+    agg = {c: _agg(by_cfg[c]) for c in configs if by_cfg.get(c)}
     lines = [
         f"# A/B 비교 실험 — {run_id[:8]}",
         "",
@@ -309,40 +391,19 @@ def render_report(
         f"- 구성: {', '.join(configs)} · 반복 {len(next(iter(by_cfg.values())))}회 (평균 ± 표준편차)",
         f"- probe 실측 취약: {sorted(k for k, v in actual.items() if v)}",
         "",
-        "| 지표 | " + " | ".join(configs) + " |",
-        "|---|" + "---|" * len(configs),
-    ]
-    agg = {c: _agg(by_cfg[c]) for c in configs if by_cfg.get(c)}
-    for k in cols:
-        cells = []
-        for c in configs:
-            m = agg.get(c, {}).get(k)
-            cells.append("-" if not m or m["mean"] is None else f"{m['mean']}" + (f" ± {m['std']}" if m["std"] else ""))
-        lines.append(f"| {k} | " + " | ".join(cells) + " |")
-    lines += [
+        *_table_head("지표", configs),
+        *(f"| {k} | " + " | ".join(_cell(agg.get(c, {}).get(k)) for c in configs) + " |" for k in REPORT_COLUMNS),
         "",
         "## 케이스별 (첫 반복)",
         "",
-        "| 케이스 | " + " | ".join(configs) + " |",
-        "|---|" + "---|" * len(configs),
+        *_table_head("케이스", configs),
+        *_case_rows(configs, by_cfg),
+        "",
+        "⭐ = B 만 잡은 케이스",
+        "",
+        "## 해석 (자동 생성, 수치 그대로)",
+        *_interpretation(agg, by_cfg),
     ]
-    first = {c: by_cfg[c][0]["per_case"] for c in configs if by_cfg.get(c)}
-    for case in sorted({k for pc in first.values() for k in pc}):
-        row = [first.get(c, {}).get(case, "-") for c in configs]
-        mark = (
-            " ⭐"
-            if "B_nano_harness" in first
-            and first["B_nano_harness"].get(case) in ("TP", "ROBUST")
-            and all(first[c].get(case) not in ("TP", "ROBUST") for c in first if c != "B_nano_harness")
-            else ""
-        )
-        lines.append(f"| {case}{mark} | " + " | ".join(row) + " |")
-    lines += ["", "⭐ = B 만 잡은 케이스", "", "## 해석 (자동 생성, 수치 그대로)"]
-    if "B_nano_harness" in agg and "A_nano_single" in agg:
-        b, a = agg["B_nano_harness"]["code_f1"]["mean"], agg["A_nano_single"]["code_f1"]["mean"]
-        lines.append(f"- 같은 작은 모델에서 Harness 적용 시 code F1: A {a} → B {b}.")
-    if any(by_cfg[c][0]["metrics"].get("cost_usd") == 0 for c in by_cfg):
-        lines.append("- 비용 0 은 config/pricing.yaml 가격 미기입 때문이다 (토큰 수로 비교).")
     return "\n".join(lines) + "\n"
 
 
@@ -370,6 +431,7 @@ async def run_eval(
     set_trace_context(None, run_id)
     truth = load_truth()
     try:
+        await ensure_workspace_matches_truth(repo_id, agent_id, truth)  # 토큰을 쓰기 전에 확인
         if progress:
             await progress({"stage": "measure_probes"})
         actual = await measure_probes(http_gateway(), agent_id, admin_id)

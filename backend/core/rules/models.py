@@ -81,4 +81,4 @@ def load_rules(target: Literal["code", "agent"]) -> tuple[Rule, ...]:
 
 def rules_hash(rules: tuple[Rule, ...] | list[Rule]) -> str:
     blob = "".join(r.model_dump_json() for r in rules)
-    return hashlib.sha1(blob.encode()).hexdigest()[:12]  # noqa: S324 - 캐시 키 용도
+    return hashlib.sha1(blob.encode(), usedforsecurity=False).hexdigest()[:12]  # 캐시 키 용도

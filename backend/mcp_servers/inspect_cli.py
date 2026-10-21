@@ -34,7 +34,7 @@ async def main() -> None:
             await session.initialize()
             if a.cmd == "list":
                 for t in (await session.list_tools()).tools:
-                    print(f"{t.name:28} {(t.description or '').splitlines()[0]}")
+                    print(f"{t.name:28} {((t.description or '').strip().splitlines() or ['(설명 없음)'])[0]}")
             else:
                 res = await session.call_tool(a.tool, json.loads(a.args))
                 for c in res.content:

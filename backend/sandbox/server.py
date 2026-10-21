@@ -9,12 +9,15 @@ import hashlib
 import hmac
 import io
 import json
+import logging
 import os
 import shutil
 import tarfile
 import threading
 import time
 import uuid
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -29,12 +32,42 @@ from core.project_upload import MAX_UPLOAD_BYTES, extract_project
 from core.runtime_spec import inside, runtime_spec
 from core.settings import get_settings
 
-app = FastAPI(title="Audit Sandbox Controller")
-install_error_handlers(app)
 LABEL = "auditor.sandbox"
 TTL = 900
 lock = threading.RLock()
 active: dict[str, dict[str, Any]] = {}
+log = logging.getLogger("sandbox")
+
+
+def reap_expired() -> None:
+    """만료(TTL) 라벨이 지난 감사의 컨테이너·네트워크·이미지를 정리한다."""
+    d = client()
+    expired = {
+        c.labels[LABEL]
+        for c in d.containers.list(all=True, filters={"label": LABEL})
+        if float(c.labels.get("auditor.expires", "0")) < time.time()
+    }
+    for aid in expired:
+        stop(aid)
+
+
+def _reap_forever() -> None:
+    while True:
+        try:
+            reap_expired()
+        except (docker.errors.DockerException, ValueError) as e:
+            log.warning("sandbox reaper skipped: %s", type(e).__name__)
+        time.sleep(15)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    threading.Thread(target=_reap_forever, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="Audit Sandbox Controller", lifespan=lifespan)
+install_error_handlers(app)
 
 
 def authenticate(authorization: str = Header(default="")) -> None:
@@ -325,23 +358,3 @@ async def chat(body: Chat) -> dict[str, Any]:
         return data
     except (KeyError, RuntimeError, ValueError, docker.errors.DockerException) as exc:
         raise HTTPException(502, "sandbox chat failed") from exc
-
-
-@app.on_event("startup")
-async def reap_loop() -> None:
-    def reap() -> None:
-        while True:
-            try:
-                d = client()
-                expired = {
-                    c.labels[LABEL]
-                    for c in d.containers.list(all=True, filters={"label": LABEL})
-                    if float(c.labels.get("auditor.expires", "0")) < time.time()
-                }
-                for aid in expired:
-                    stop(aid)
-            except (docker.errors.DockerException, ValueError):
-                pass
-            time.sleep(15)
-
-    threading.Thread(target=reap, daemon=True).start()

@@ -69,3 +69,8 @@ ignore = ["B008", "UP047", "E501"]  # 줄 길이는 ruff format 이 관리
 python_version = "3.12"
 ignore_missing_imports = true
 plugins = ["pydantic.mypy"]
+
+[tool.coverage.run]
+# SQLAlchemy async 는 greenlet 위에서 실행된다. 이 설정이 없으면 await 이후 줄이 미실행으로 잡힌다
+concurrency = ["greenlet", "thread"]
+source = ["core", "harness", "mcp_servers", "api", "workers", "sandbox", "llm_proxy"]

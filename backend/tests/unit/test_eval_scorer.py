@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from core.settings import REPO_ROOT
 from harness.eval.runner import harness_output
 from harness.eval.scorer import AgentF, AuditOutput, CodeF, load_truth, score
 
@@ -98,3 +101,27 @@ def test_harness_output_mapping() -> None:
         AgentF(target="refund_order", category="TOOL_NO_APPROVAL", severity="HIGH")
     ]
     assert out.probe_vulnerable == {"P03": True, "P05": True}  # 실행 실패(attempts=0)는 예측에서 제외
+
+
+def test_workspace_drift_detects_fixed_sample(tmp_path: Path) -> None:
+    """2026-10-21: 과거 수정안 병합으로 바뀐 작업공간을 채점해 수치가 무너졌다 → 실행 전 차단."""
+    import shutil
+
+    from harness.eval.runner import workspace_drift
+    from harness.eval.scorer import load_truth
+
+    truth = load_truth()
+    repo = tmp_path / "repo"
+    shutil.copytree(REPO_ROOT / "targets" / "vuln-spring-app", repo)
+    agent = tmp_path / "agent"
+    agent.mkdir()
+    src = REPO_ROOT / "targets" / "target-agent"
+    shutil.copy(src / "manifests" / "vuln.yaml", agent / "manifest.yaml")
+    shutil.copy(src / "prompts" / "system_vuln.md", agent / "system_prompt.md")
+    assert workspace_drift(repo, agent, truth) == []
+
+    cfg = repo / "src/main/java/com/demo/shop/config/SecurityConfig.java"
+    cfg.write_text(cfg.read_text().replace(".anyRequest().permitAll()", ".anyRequest().authenticated()"))
+    shutil.copy(src / "manifests" / "hardened.yaml", agent / "manifest.yaml")
+    drift = workspace_drift(repo, agent, truth)
+    assert any(d.startswith("C06 ") for d in drift) and "A02" in drift

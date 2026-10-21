@@ -1,21 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
-import { use } from 'echarts/core'
-import { PieChart } from 'echarts/charts'
-import { TooltipComponent, LegendComponent, GraphicComponent } from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
 import { get } from '../api/client'
 import type { Audit, Paged } from '../api/types'
 import Stat from '../components/Stat.vue'
 import Icon from '../components/Icon.vue'
 import Sev from '../components/Sev.vue'
+import Donut from '../components/Donut.vue'
 import { useAuth } from '../stores/auth'
-import { chartBase, SEV_COLORS, useTheme } from '../composables/theme'
+import { SEV_COLORS } from '../composables/theme'
 
-use([PieChart, TooltipComponent, LegendComponent, GraphicComponent, CanvasRenderer])
 const auth = useAuth()
-const { isDark } = useTheme()
 const audits = ref<Audit[]>([])
 const error = ref('')
 const loaded = ref(false)
@@ -33,21 +27,7 @@ const sev = computed(() => {
 })
 const sevList = computed(() => ORDER.filter((k) => sev.value[k] != null).map((k) => [k, sev.value[k]] as const))
 const total = computed(() => Object.values(sev.value).reduce((a, b) => a + b, 0))
-const option = computed(() => {
-  void isDark.value
-  const c = chartBase()
-  return {
-    ...c.base,
-    legend: { show: false },
-    graphic: [{ type: 'text', left: 'center', top: '40%', style: { text: String(total.value), fill: isDark.value ? '#e6edf3' : '#0f172a', font: '700 30px Space Grotesk, sans-serif' } },
-      { type: 'text', left: 'center', top: '55%', style: { text: 'findings', fill: c.text, font: '12px IBM Plex Sans KR, sans-serif' } }],
-    series: [{
-      type: 'pie', radius: ['58%', '80%'], padAngle: 2, itemStyle: { borderRadius: 6 }, label: { show: false },
-      emphasis: { scale: true, scaleSize: 6 },
-      data: sevList.value.map(([name, value]) => ({ name, value, itemStyle: { color: SEV_COLORS[name] } })),
-    }],
-  }
-})
+const donut = computed(() => sevList.value.map(([name, value]) => ({ name, value, color: SEV_COLORS[name] })))
 const running = computed(() => audits.value.filter((a) => ['QUEUED', 'RUNNING', 'WAITING_APPROVAL', 'WAITING_MERGE'].includes(a.status)).length)
 const completed = computed(() => audits.value.filter((a) => a.status === 'COMPLETED').length)
 const canRun = computed(() => auth.role === 'ADMIN' || auth.role === 'DEVELOPER')
@@ -94,7 +74,7 @@ const canRun = computed(() => auth.role === 'ADMIN' || auth.role === 'DEVELOPER'
     <div class="card">
       <div class="card-head"><h3><Icon name="bug" :size="16" />심각도 분포</h3></div>
       <template v-if="sevList.length">
-        <VChart :option="option" style="height:240px" autoresize />
+        <Donut :data="donut" label="findings" />
         <div class="chips" style="justify-content:center"><Sev v-for="[k, v] in sevList" :key="k" :v="k" :n="v" /></div>
       </template>
       <div v-else class="empty"><Icon name="check-circle" /><b>완료된 감사가 없습니다</b><span>감사가 끝나면 심각도별 분포가 표시됩니다.</span></div>

@@ -13,8 +13,9 @@ from mcp.server.fastmcp import Context
 from core.db.models import ProbeRun
 from core.db.session import session_scope
 from core.errors import AppError, ErrorCode
-from core.probes import Probe, ProbeSuccess, judge_attempt, load_probe_set, signals
+from core.probes import Probe, ProbeSet, ProbeSuccess, judge_attempt, load_probe_set, signals
 from core.redis.cache import cache_get, cache_set
+from core.redis.client import get_redis
 from core.rules.engine import check_manifest, scan_repo, secret_names_from_hits
 from core.rules.models import RuleHit, load_rules, rules_hash
 from core.settings import get_settings
@@ -44,6 +45,32 @@ async def _sandbox_access(target: Any) -> None:
 
 
 SCAN_CACHE_TTL_S = 24 * 3600
+FAULT_PREFIXES = ("rate_limit:", "github_rate_limit:")  # 뒤쪽은 수정안 경로 시절 값 (DECISIONS 2026-10-21)
+
+
+def fault_count() -> int:
+    """FAULT_INJECTION=rate_limit:N → 감사·대상별 처음 N회 정적 스캔을 RATE_LIMITED 로 실패시킨다."""
+    spec = get_settings().fault_injection.strip()
+    for prefix in FAULT_PREFIXES:
+        if spec.startswith(prefix):
+            try:
+                return max(0, int(spec[len(prefix) :]))
+            except ValueError:
+                return 0
+    return 0
+
+
+async def _inject_fault(target_id: str) -> None:
+    if (n := fault_count()) <= 0:
+        return
+    key = f"fault:scan:{current_call().audit_id or '-'}:{target_id}"
+    r = get_redis()
+    count = int(await r.incr(key))
+    await r.expire(key, 3600)
+    if count <= n:
+        raise AppError(
+            ErrorCode.RATE_LIMITED, "rate limit (fault injection)", {"attempt": count, "fail_first": n}, retry_after_s=1
+        )
 PROBE_TIMEOUT_S = 30.0
 MAX_ATTEMPTS = 10
 
@@ -74,8 +101,9 @@ async def run_static_scan(
     입력: target_id, paths (선택, 특정 파일만), rule_ids (선택)
     출력: {commit_sha, cached, hits: [{rule_id, category, path, line, snippet_masked, severity,
            needs_llm_review, references, fix_hint}]}
-    오류: NOT_FOUND, VALIDATION. 부작용: 없음 (Redis 캐시만 기록).
+    오류: NOT_FOUND, VALIDATION, RATE_LIMITED(FAULT_INJECTION 시연용). 부작용: 없음 (Redis 캐시만 기록).
     """
+    await _inject_fault(target_id)
     hits, sha, cached = await static_scan(target_id, paths, rule_ids)
     return {"commit_sha": sha, "cached": cached, "hits": [h.model_dump() for h in hits]}
 
@@ -146,6 +174,99 @@ async def _persist(rows: list[ProbeRun]) -> None:
         db.add_all(rows)
 
 
+async def _probe_set_for(t: Any, target_id: str, audit_id: str) -> ProbeSet:
+    """업로드 에이전트는 프로젝트 전용 공격 세트, 내장 샘플은 datasets/probes."""
+    if t.config.get("source") != "upload":
+        return load_probe_set()
+    from core.project_probes import uploaded_probe_set
+
+    a = await load_agent_files(target_id)
+    return uploaded_probe_set(audit_id, a["manifest"], t.config.get("runtime_protocol", "atlas"))
+
+
+def _resolve_probe(
+    ps: ProbeSet, probe_id: str | None, payload: str | None, channel: str, kb_docs: list[str] | None
+) -> Probe:
+    """probe_id 만 → 데이터셋 공격, payload + probe_id → 그 판정 기준을 쓰는 적응형 변형, payload 만 → ADHOC."""
+    base = ps.get(probe_id) if probe_id else None
+    if probe_id and base is None and not payload:
+        raise AppError(ErrorCode.NOT_FOUND, f"probe {probe_id} not found")
+    if base is not None and payload:
+        return base.model_copy(update={"turns": [payload], "kb_docs": kb_docs or base.kb_docs, "adaptive": True})
+    if base is not None:
+        return base
+    return Probe(
+        id=probe_id or "ADHOC",
+        category="ADHOC",
+        channel=channel,  # type: ignore[arg-type]
+        turns=[payload or ""],
+        kb_docs=kb_docs,
+        success=ProbeSuccess(type="canary"),
+    )
+
+
+async def _converse(client: httpx.AsyncClient, t: Any, url: str, audit_id: str, probe: Probe) -> dict[str, Any]:
+    """probe 의 모든 턴을 한 세션으로 보내고 응답·도구 호출을 합친다. 업로드 대상은 sandbox-runner 경유."""
+    session_id = f"probe-{probe.id}-{uuid.uuid4().hex[:8]}"
+    replies: list[str] = []
+    calls: list[dict[str, Any]] = []
+    for turn in probe.turns:
+        if t.config.get("source") == "upload":
+            from core.sandbox_client import sandbox_call
+
+            msg = {
+                "audit_id": audit_id,
+                "session_id": session_id,
+                "message": turn,
+                "kb_docs": probe.kb_docs,
+                "protocol": t.config.get("runtime_protocol", "atlas"),
+            }
+            data = await sandbox_call("/chat", msg, timeout=300)
+        else:
+            data = await _chat(client, url, session_id, turn, probe.kb_docs)
+        replies.append(str(data.get("reply", "")))
+        calls.extend(data.get("tool_calls", []))
+    out: dict[str, Any] = {"reply": "\n".join(replies), "tool_calls": calls}
+    if t.config.get("source") == "upload":
+        from core.runtime_redaction import redact_runtime
+
+        out = await redact_runtime(t, audit_id, out)
+    return out
+
+
+def _record(
+    t: Any, audit_id: str | None, probe: Probe, ps: ProbeSet, attempt: int, data: dict[str, Any], started: float
+) -> tuple[dict[str, Any], ProbeRun]:
+    reply = str(data.get("reply", ""))
+    tool_calls = list(data.get("tool_calls", []))
+    verdict = judge_attempt(probe, reply, tool_calls, ps)
+    run_id = uuid.uuid4()
+    result = {
+        "probe_run_id": str(run_id),
+        "attempt": attempt,
+        "reply_masked": mask_text(reply),
+        "tool_calls": mask_obj(tool_calls),
+        **signals(reply, tool_calls, ps).model_dump(),
+        "verdict": verdict,
+    }
+    row = ProbeRun(
+        id=run_id,
+        audit_id=uuid.UUID(audit_id) if audit_id else None,
+        target_id=uuid.UUID(t.id),
+        probe_id=probe.id,
+        category=probe.category,
+        channel=probe.channel,
+        attempt=attempt,
+        request={"turns": [mask_text(x) for x in probe.turns], "kb_docs": probe.kb_docs, "adaptive": probe.adaptive},
+        reply_masked=mask_text(reply),
+        tool_calls=mask_obj(tool_calls),  # type: ignore[arg-type]
+        success=verdict == "SUCCESS",
+        judged_by="deterministic",
+        latency_ms=int((time.monotonic() - started) * 1000),
+    )
+    return result, row
+
+
 @mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
 async def run_injection_probe(
     target_id: str,
@@ -163,7 +284,7 @@ async def run_injection_probe(
     입력: target_id (type=agent), probe_id?, payload?, channel, kb_docs?, attempts (기본 3, ≤10)
     출력: {probe_run_ids, attempts: [{reply_masked, tool_calls, canary_leaked, forbidden_tools,
            external_recipients, verdict}]}
-    권한: ADMIN (워커는 감사 요청자 역할을 X-Actor-Role 로 전달)
+    권한: ADMIN, DEVELOPER (업로드 대상은 진행 중인 본인 감사·본인 소유만). 워커는 요청자 역할을 X-Actor-Role 로 전달
     오류: FORBIDDEN(allowlist 밖), UPSTREAM_TIMEOUT(30s/회), UPSTREAM_ERROR, VALIDATION.
     부작용: probe_runs 테이블에 시도별 기록 (target-agent 의 도구는 가짜 구현이라 실제 변경 없음).
     """
@@ -173,102 +294,19 @@ async def run_injection_probe(
         raise AppError(ErrorCode.VALIDATION, "probe_id or payload required")
     t = await get_target(target_id, "agent")
     await _sandbox_access(t)
-    call = current_call()
-    uploaded = t.config.get("source") == "upload"
-    if uploaded:
-        from core.project_probes import uploaded_probe_set
-
-        a = await load_agent_files(target_id)
-        ps = uploaded_probe_set(call.audit_id or "", a["manifest"], t.config.get("runtime_protocol", "atlas"))
-    else:
-        ps = load_probe_set()
-    base = ps.get(probe_id) if probe_id else None
-    if probe_id and base is None and not payload:
-        raise AppError(ErrorCode.NOT_FOUND, f"probe {probe_id} not found")
-    if base is not None and payload:
-        probe = base.model_copy(update={"turns": [payload], "kb_docs": kb_docs or base.kb_docs, "adaptive": True})
-    elif base is not None:
-        probe = base
-    else:
-        probe = Probe(
-            id=probe_id or "ADHOC",
-            category="ADHOC",
-            channel=channel,
-            turns=[payload or ""],
-            kb_docs=kb_docs,
-            success=ProbeSuccess(type="canary"),
-        )
-    url = "" if uploaded else _check_allowlist(t.ref)
-
+    audit_id = current_call().audit_id
+    ps = await _probe_set_for(t, target_id, audit_id or "")
+    probe = _resolve_probe(ps, probe_id, payload, channel, kb_docs)
+    url = "" if t.config.get("source") == "upload" else _check_allowlist(t.ref)
     results: list[dict[str, Any]] = []
     rows: list[ProbeRun] = []
     async with httpx.AsyncClient() as client:
         for i in range(1, attempts + 1):
-            session_id = f"probe-{probe.id}-{uuid.uuid4().hex[:8]}"
             started = time.monotonic()
-            data: dict[str, Any] = {"reply": "", "tool_calls": []}
-            replies: list[str] = []
-            all_calls: list[dict[str, Any]] = []
-            for turn in probe.turns:
-                if uploaded:
-                    from core.sandbox_client import sandbox_call
-
-                    data = await sandbox_call(
-                        "/chat",
-                        {
-                            "audit_id": call.audit_id,
-                            "session_id": session_id,
-                            "message": turn,
-                            "kb_docs": probe.kb_docs,
-                            "protocol": t.config.get("runtime_protocol", "atlas"),
-                        },
-                        timeout=300,
-                    )
-                else:
-                    data = await _chat(client, url, session_id, turn, probe.kb_docs)
-                replies.append(str(data.get("reply", "")))
-                all_calls.extend(data.get("tool_calls", []))
-            data = {"reply": "\n".join(replies), "tool_calls": all_calls}
-            if uploaded:
-                from core.runtime_redaction import redact_runtime
-
-                data = await redact_runtime(t, call.audit_id or "", data)
-            reply = str(data.get("reply", ""))
-            tool_calls = list(data.get("tool_calls", []))
-            sig = signals(reply, tool_calls, ps)
-            verdict = judge_attempt(probe, reply, tool_calls, ps)
-            run_id = uuid.uuid4()
-            results.append(
-                {
-                    "probe_run_id": str(run_id),
-                    "attempt": i,
-                    "reply_masked": mask_text(reply),
-                    "tool_calls": mask_obj(tool_calls),
-                    **sig.model_dump(),
-                    "verdict": verdict,
-                }
-            )
-            rows.append(
-                ProbeRun(
-                    id=run_id,
-                    audit_id=uuid.UUID(call.audit_id) if call.audit_id else None,
-                    target_id=uuid.UUID(t.id),
-                    probe_id=probe.id,
-                    category=probe.category,
-                    channel=probe.channel,
-                    attempt=i,
-                    request={
-                        "turns": [mask_text(x) for x in probe.turns],
-                        "kb_docs": probe.kb_docs,
-                        "adaptive": probe.adaptive,
-                    },
-                    reply_masked=mask_text(reply),
-                    tool_calls=mask_obj(tool_calls),  # type: ignore[arg-type]
-                    success=verdict == "SUCCESS",
-                    judged_by="deterministic",
-                    latency_ms=int((time.monotonic() - started) * 1000),
-                )
-            )
+            data = await _converse(client, t, url, audit_id or "", probe)
+            result, row = _record(t, audit_id, probe, ps, i, data, started)
+            results.append(result)
+            rows.append(row)
     if t.id not in _overrides:
         await _persist(rows)
     return {
@@ -282,6 +320,14 @@ async def run_injection_probe(
 
 @mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
 async def prepare_agent_sandbox(target_id: str, ctx: Context | None = None) -> Any:
+    """업로드 에이전트 프로젝트를 격리 컨테이너로 빌드·기동한다 (내장 샘플 대상은 기존 엔드포인트 사용).
+
+    입력: target_id (type=agent)
+    출력: {status: RUNNING|EXTERNAL|UNSUPPORTED, endpoint?, reason?, requested_mode?}
+    권한: ADMIN, DEVELOPER (진행 중인 본인 감사·본인 소유 업로드 대상만)
+    오류: FORBIDDEN(감사 맥락·소유권 불일치), VALIDATION(audit id 없음), UPSTREAM_ERROR/TIMEOUT(sandbox-runner).
+    부작용: sandbox-runner 에 컨테이너·internal 네트워크 생성, live 모드면 감사 전용 LLM 프록시 토큰 발급.
+    """
     from core.sandbox_client import sandbox_call
 
     t = await get_target(target_id, "agent")
@@ -331,6 +377,13 @@ async def prepare_agent_sandbox(target_id: str, ctx: Context | None = None) -> A
 
 @mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
 async def stop_agent_sandbox(target_id: str, ctx: Context | None = None) -> Any:
+    """감사가 띄운 격리 컨테이너·네트워크·이미지를 정리하고 LLM 프록시 토큰을 폐기한다.
+
+    입력: target_id (type=agent)
+    출력: {status: STOPPED|EXTERNAL|NOT_STARTED}
+    권한: ADMIN, DEVELOPER. 오류: UPSTREAM_ERROR/TIMEOUT(sandbox-runner).
+    부작용: 컨테이너·네트워크·이미지 제거.
+    """
     from core.sandbox_client import sandbox_call
 
     t = await get_target(target_id, "agent")

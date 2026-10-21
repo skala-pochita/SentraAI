@@ -52,3 +52,16 @@ Cloud 기능 제거 시 삭제된 리비전 0002가 기존 DB에 남아 API 시�
 사용자 요청에 따라 실행 설정 화면, 암호화 비밀 저장소, 감사별 제한 토큰 기반 LLM 프록시, ZIP 전송 방식의 독립 실행 서버 구성을 추가한다. 실제 제공자 키는 타깃에 주입하지 않는다. 원격 실행용 Compose를 제공하며 실제 VM 생성은 포함하지 않는다. 현재는 승인된 로컬 Docker에서 컨트롤러와 프로젝트 볼륨을 분리한다. 실제 호출 여부와 공격 성공 여부를 보고서에서 구분한다.
 
 사용자는 leak 가상 문서·도구 정의·공격 대화를 OpenAI Chat Completions에 보내는 실제 검증을 명시적으로 승인했다. 테스트 한도는 총 20회·80,000토큰·응답당 512토큰이며, 종료 후 해당 검증 프로젝트의 제공자 키 사본을 삭제한다.
+
+## 2026-10-21 — ISO/IEC 25010 미달 항목 보완
+
+`isoReport.md` 평가에서 미달·부분 달성으로 나온 항목을 보완한다.
+
+- **과거 수정 경로 코드 삭제**: 읽기 전용 전환(2026-10-20) 때 호환용으로 남긴 그래프 노드(`human_approval`·`risk_accept`·`fix_generate`·`llm_fixer`·`apply_fix`·`wait_merge`·`re_verify`·`mark_manual`), `core/fixes.py`, `mcp_servers/business/patches.py`, business-mcp 함수(`request_approval`·`create_fix_proposal`·`apply_fix`·`merge_fix`·`register_risk_acceptance`), `fix_generate` 프롬프트를 지운다. 어디서도 import·등록하지 않았고, 고복잡도 함수와 커버리지 미달의 주원인이었다. DB 테이블(`approvals`·`fix_proposals`·`risk_acceptances`)과 마이그레이션은 기존 데이터 보존을 위해 그대로 둔다. 도구 게이트의 퇴역 도구 차단 목록은 방어용으로 유지한다. 되돌리기는 git 이력에서.
+- **장애 주입 지점 이동**: `FAULT_INJECTION` 이 지운 `apply_fix` 경로에 있었으므로 현재 감사 흐름의 `run_static_scan` 으로 옮긴다. 형식은 `rate_limit:N`(감사·대상별 처음 N회 RATE_LIMITED). 과거 값 `github_rate_limit:N` 도 받아들인다.
+- **probe 권한 테스트 갱신**: `run_injection_probe` 는 `b558d2b` 부터 ADMIN·DEVELOPER 허용(업로드 대상은 진행 중인 본인 감사·본인 소유만). 테스트를 AUDITOR 거부 + DEVELOPER 소유권 거부 검증으로 바꾼다.
+- **보안 헤더**: nginx 에 CSP·X-Frame-Options·X-Content-Type-Options·Referrer-Policy·Permissions-Policy, `server_tokens off`. API 에도 같은 헤더(JSON 은 `default-src 'none'`, `/docs` 제외). CSP `script-src 'self'` 를 위해 인라인 테마 스크립트를 `public/theme-init.js` 로 분리.
+- **개요 화면 차트**: 첫 화면 JS 예산(170KB gzip)을 맞추려고 개요의 심각도 도넛을 ECharts 대신 SVG 컴포넌트(`Donut.vue`)로 그린다. ECharts 는 모델 비교 화면에만 남긴다.
+- **의존성**: certifi 2026.10.19 (PYSEC-2026-4320), echarts 6.1 + vue-echarts 8 (GHSA-fgmj-fm8m-jvvx).
+- **`/quality` API 퇴역**: 품질 화면 제거(2026-10-20) 뒤 프론트·테스트 어디서도 쓰지 않던 고정 판정 집계 API 를 지운다. 품질 평가는 `isoReport.md` 로 대체.
+- **LLM 기각 보류 가드레일 확대** (`react_investigator._hold_reason`): 2026-10-20 A/B/C 실측(`b582d34a`)에서 B 가 놓친 코드 케이스 7건 중 5건(C02, C04×3, C06)은 정적 규칙이 잡은 후보를 LLM 이 FALSE_POSITIVE 로 지운 경우였다. 기존 보호는 신뢰도 ≥0.8 후보만 지켰고, `needs_llm_review: true` 규칙(permitAll·주석 속 자격증명·엔트로피)은 신뢰도가 낮아 보호 밖이었다. ① 감사기 인젝션 후보가 있는 파일에서는 LLM 이 다른 후보를 기각할 수 없다(I01: "보고하지 말 것" 주석 아래 C06). ② 자격증명 계열(HARDCODED_SECRET·HARDCODED_CREDENTIAL·SECRET_LEAK·COMMENT_SENSITIVE)은 테스트 경로(`src/test/`) 밖이면 기각 대신 NEEDS_REVIEW. 커밋된 자격증명은 '가짜 값·임시 계정' 주장을 감사기가 검증할 수 없기 때문이다. 함정 D01~D06 중 이 범주에서 정적 후보가 되는 것은 테스트 경로의 D01 뿐이라 함정 오탐은 늘지 않는다. 효과는 실 LLM 재측정으로 확인해야 한다.

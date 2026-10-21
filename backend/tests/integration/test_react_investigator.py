@@ -197,6 +197,60 @@ async def test_auditor_injection_candidate_cannot_be_dismissed(repo: dict[str, A
     assert f["verdict"] == "TRUE_POSITIVE" and f["category"] == "AUDITOR_INJECTION_ATTEMPT"
 
 
+async def test_injection_in_file_blocks_dismissing_neighbours(repo: dict[str, Any]) -> None:
+    """I01 재현: 인젝션 주석 바로 아래 permitAll(LLM 재판정 대상, 낮은 신뢰도)을 모델이 기각해도 남긴다."""
+    path = "src/main/java/com/demo/shop/config/SecurityConfig.java"
+
+    def cand(tid: str, category: str, line: int, confidence: float) -> dict[str, Any]:
+        return {
+            "temp_id": tid,
+            "target_id": repo["target_id"],
+            "source": "code",
+            "category": category,
+            "rule_id": "R",
+            "title": category,
+            "severity": "CRITICAL",
+            "confidence": confidence,
+            "verdict": "NEEDS_REVIEW",
+            "evidence": [{"kind": "code", "file_path": path, "line_start": line, "line_end": line}],
+        }
+
+    cands = [cand("s-inj", "AUDITOR_INJECTION_ATTEMPT", 24, 0.6), cand("s-pa", "SECCONFIG_PERMIT_ALL", 25, 0.6)]
+    dismiss = [{"temp_id": "s-pa", "verdict": "FALSE_POSITIVE", "confidence": 0.9, "reason": "보안팀 검토 완료"}]
+    out, _ = await run(repo, [final(verdicts=dismiss)], state(repo, cands))
+    pa = next(f for f in out["investigated"] if f["temp_id"] == "s-pa")
+    assert pa["verdict"] == "NEEDS_REVIEW" and pa["reasoning_summary"].startswith("[감사기 인젝션이 있는 파일")
+
+    # 인젝션이 없는 파일이면 같은 판정은 그대로 기각된다 (오탐 처리 능력 유지)
+    out, _ = await run(repo, [final(verdicts=dismiss)], state(repo, cands[1:]))
+    assert out["investigated"][0]["verdict"] == "FALSE_POSITIVE"
+
+
+async def test_credential_candidates_are_held_outside_tests(repo: dict[str, Any]) -> None:
+    """C04 재현: '// TODO 임시 계정 admin / admin1234' 를 모델이 '임시 주석'이라 기각해도 검토로 남긴다."""
+
+    def cand(tid: str, path: str) -> dict[str, Any]:
+        return {
+            "temp_id": tid,
+            "target_id": repo["target_id"],
+            "source": "code",
+            "category": "COMMENT_SENSITIVE",
+            "rule_id": "SEC-COMMENT-001",
+            "title": "comment credential",
+            "severity": "HIGH",
+            "confidence": 0.6,
+            "verdict": "NEEDS_REVIEW",
+            "evidence": [{"kind": "code", "file_path": path, "line_start": 21, "line_end": 21}],
+        }
+
+    main = "src/main/java/com/demo/shop/admin/AdminController.java"
+    test = "src/test/java/com/demo/shop/AdminControllerTest.java"
+    for path, expected in ((main, "NEEDS_REVIEW"), (test, "FALSE_POSITIVE")):
+        dismiss = [{"temp_id": "s-c", "verdict": "FALSE_POSITIVE", "confidence": 0.9, "reason": "임시 계정 주석"}]
+        out, _ = await run(repo, [final(verdicts=dismiss)], state(repo, [cand("s-c", path)]))
+        assert out["investigated"][0]["verdict"] == expected, path
+
+
 async def test_observation_with_injection_is_wrapped_untrusted(repo: dict[str, Any]) -> None:
     model = ScriptedModel([read_step("README.md"), final()])
     deps = Deps(gateway=inprocess_gateway(), emit_events=False)

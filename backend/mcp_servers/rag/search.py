@@ -51,8 +51,8 @@ async def hybrid_search(query: str, sources: tuple[str, ...], k: int = 5) -> lis
     version = raw.decode() if isinstance(raw, bytes) else (raw or "0")
     key = (
         "cache:rag:"
-        + hashlib.sha1(  # noqa: S324 - 캐시 키
-            f"{version}|{query}|{','.join(sources)}|{k}".encode()
+        + hashlib.sha1(  # 캐시 키 (보안 용도 아님)
+            f"{version}|{query}|{','.join(sources)}|{k}".encode(), usedforsecurity=False
         ).hexdigest()
     )
     if (cached := await cache_get(key)) is not None:

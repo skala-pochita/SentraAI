@@ -43,38 +43,56 @@ class ExecutionUpdate(ExecutionConfig):
     remove_provider_key: bool = False
 
 
-def validate_config(body: ExecutionUpdate) -> None:
-    for name in [body.base_url_variable, body.api_key_variable, body.model_variable, body.mode_variable]:
-        if not NAME.fullmatch(name):
-            raise AppError(ErrorCode.VALIDATION, "환경변수 이름 형식 오류")
+RESERVED_VARIABLES = {"OPENAI_API_KEY", "OPENAI_BASE_URL", "ANTHROPIC_API_KEY"}
+
+
+def _invalid(message: str) -> AppError:
+    return AppError(ErrorCode.VALIDATION, message)
+
+
+def _check_model_link(body: ExecutionUpdate) -> list[str]:
     names = [body.base_url_variable, body.api_key_variable, body.model_variable, body.mode_variable]
+    if not all(NAME.fullmatch(n) for n in names):
+        raise _invalid("환경변수 이름 형식 오류")
     if len(set(names)) != 4:
-        raise AppError(ErrorCode.VALIDATION, "모델 연결 환경변수 이름은 서로 달라야 합니다.")
+        raise _invalid("모델 연결 환경변수 이름은 서로 달라야 합니다.")
     if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,100}", body.model):
-        raise AppError(ErrorCode.VALIDATION, "모델 이름 형식 오류")
+        raise _invalid("모델 이름 형식 오류")
     if body.model not in get_settings().llm_proxy_model_allowlist.split(","):
-        raise AppError(ErrorCode.VALIDATION, "서버에서 허용하지 않은 모델입니다.")
+        raise _invalid("서버에서 허용하지 않은 모델입니다.")
+    return names
+
+
+def _check_variable(key: str, raw: str, sensitive: bool, link_names: list[str]) -> None:
+    if not NAME.fullmatch(key) or len(raw) > 4096 or "\x00" in raw:
+        raise _invalid("환경변수 이름·값 형식 오류")
+    if not sensitive and SENSITIVE.search(key):
+        raise _invalid("키·토큰·비밀번호는 비밀값 입력란을 사용하세요.")
+    if key in link_names or key in RESERVED_VARIABLES:
+        raise _invalid("LLM 연결 값은 모델 설정과 제공자 키 입력란을 사용하세요.")
+    if sensitive and not 4 <= len(raw) <= 4096:
+        raise _invalid("비밀값은 4~4096자여야 합니다.")
+
+
+def _check_services(group: dict[str, Any], sensitive: bool, link_names: list[str]) -> None:
+    for service, values in group.items():
+        if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", service) or len(values) > 32:
+            raise _invalid("서비스·환경변수 개수 또는 이름 오류")
+        for key, value in values.items():
+            raw = value.get_secret_value() if isinstance(value, SecretStr) else value
+            _check_variable(key, raw, sensitive, link_names)
+
+
+def validate_config(body: ExecutionUpdate) -> None:
+    link_names = _check_model_link(body)
     if len(body.environment) > 3 or len(body.secrets) > 3:
-        raise AppError(ErrorCode.VALIDATION, "서비스 설정은 최대 3개입니다.")
-    groups: list[tuple[dict[str, Any], bool]] = [(dict(body.environment), False), (dict(body.secrets), True)]
-    for group, sensitive in groups:
-        for service, values in group.items():
-            if not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", service) or len(values) > 32:
-                raise AppError(ErrorCode.VALIDATION, "서비스·환경변수 개수 또는 이름 오류")
-            for key, value in values.items():
-                raw = value.get_secret_value() if isinstance(value, SecretStr) else value
-                if not NAME.fullmatch(key) or len(raw) > 4096 or "\x00" in raw:
-                    raise AppError(ErrorCode.VALIDATION, "환경변수 이름·값 형식 오류")
-                if not sensitive and SENSITIVE.search(key):
-                    raise AppError(ErrorCode.VALIDATION, "키·토큰·비밀번호는 비밀값 입력란을 사용하세요.")
-                if key in names or key in {"OPENAI_API_KEY", "OPENAI_BASE_URL", "ANTHROPIC_API_KEY"}:
-                    raise AppError(ErrorCode.VALIDATION, "LLM 연결 값은 모델 설정과 제공자 키 입력란을 사용하세요.")
-                if sensitive and not 4 <= len(raw) <= 4096:
-                    raise AppError(ErrorCode.VALIDATION, "비밀값은 4~4096자여야 합니다.")
+        raise _invalid("서비스 설정은 최대 3개입니다.")
+    _check_services(dict(body.environment), False, link_names)
+    _check_services(dict(body.secrets), True, link_names)
     if body.mode == "live" and body.max_total_tokens < body.max_output_tokens + 1024:
-        raise AppError(ErrorCode.VALIDATION, "총 토큰 한도는 응답 한도보다 최소 1,024 이상 커야 합니다.")
+        raise _invalid("총 토큰 한도는 응답 한도보다 최소 1,024 이상 커야 합니다.")
     if body.provider_api_key is not None and not 8 <= len(body.provider_api_key.get_secret_value()) <= 4096:
-        raise AppError(ErrorCode.VALIDATION, "제공자 API 키 형식 오류")
+        raise _invalid("제공자 API 키 형식 오류")
 
 
 def public_settings(row: ExecutionSettings | None) -> dict[str, Any]:

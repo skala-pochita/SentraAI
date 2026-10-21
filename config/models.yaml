@@ -9,7 +9,6 @@ nodes:
   agent_static_check: {model: "${LLM_SMALL_MODEL}"}
   probe_generate: {model: "${LLM_SMALL_MODEL}"}
   probe_judge: {model: "${LLM_SMALL_MODEL}"}
-  fix_generate: {model: "${LLM_SMALL_MODEL}"}
   report: {model: "${LLM_SMALL_MODEL}"}
 
 eval_configs:

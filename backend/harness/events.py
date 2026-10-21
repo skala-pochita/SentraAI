@@ -37,13 +37,6 @@ NODE_PROGRESS = {
     "probe_run": 0.28,
     "probe_judge": 0.35,
     "correlate": 0.9,
-    "human_approval": 0.5,
-    "risk_accept": 0.55,
-    "fix_generate": 0.62,
-    "apply_fix": 0.7,
-    "wait_merge": 0.75,
-    "re_verify": 0.85,
-    "mark_manual": 0.9,
     "report": 0.97,
 }
 
