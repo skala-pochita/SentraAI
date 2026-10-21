@@ -1,4 +1,8 @@
-# AI Security Auditor
+<p align="center">
+  <img src="frontend/public/logo.png" alt="SentraAI" width="320" />
+</p>
+
+# SentraAI — AI Security Auditor
 
 > AI 에이전트 프로젝트를 ZIP으로 올리면 **도구 권한·프롬프트를 점검하고, 격리된 환경에서 실제로 공격해 보고, 코드 취약점과 엮어 결합 위험까지** 근거와 함께 보고하는 읽기 전용 보안감사 에이전트.
 

@@ -30,8 +30,8 @@ async function submit() {
   <div class="login">
     <section class="login-art">
       <div class="row" style="gap:12px">
-        <span class="brand-mark"><Icon name="shield" :size="20" /></span>
-        <span class="brand-name">AI Security Auditor</span>
+        <span class="brand-mark"><img src="/logo-mark.png" alt="" /></span>
+        <span class="brand-name">SentraAI</span>
       </div>
       <div>
         <h1>코드와 AI 에이전트를<br /><em>한 번에 감사</em>합니다</h1>

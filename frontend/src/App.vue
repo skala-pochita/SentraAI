@@ -28,8 +28,8 @@ async function logout() { await auth.logout(); router.push('/login') }
     <div v-if="open" class="scrim" @click="open = false" />
     <aside class="sidebar" :class="{ open }">
       <RouterLink to="/" class="brand" style="color:inherit">
-        <span class="brand-mark"><Icon name="shield" :size="20" /></span>
-        <span><div class="brand-name">AI Security Auditor</div><div class="brand-sub">Code · Agent Audit</div></span>
+        <span class="brand-mark"><img src="/logo-mark.png" alt="" /></span>
+        <span><div class="brand-name">SentraAI</div><div class="brand-sub">AI Security Auditor</div></span>
       </RouterLink>
       <nav class="nav" aria-label="주 메뉴">
         <div v-for="grp in groups" :key="grp.g" class="nav-group">
