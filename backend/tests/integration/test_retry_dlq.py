@@ -19,7 +19,7 @@ from core.db.session import session_scope
 from core.errors import AppError, ErrorCode
 from core.kafka import consumer as kc
 from core.kafka.envelope import Envelope, headers_to_kafka
-from core.settings import get_settings
+from core.settings import REPO_ROOT, get_settings
 from workers.retry import store_dlq
 
 sent: list[tuple[str, str, bytes, dict[str, str]]] = []
@@ -145,19 +145,28 @@ async def test_dlq_store_and_replay_republishes_with_new_message_id(db_ready: No
 async def test_fault_injection_rate_limits_first_n_then_recovers(
     db_ready: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from mcp_servers.business.tools import mutate
+    from mcp_servers.business.tools import execute
 
-    monkeypatch.setenv("FAULT_INJECTION", "github_rate_limit:2")
+    monkeypatch.setenv("FAULT_INJECTION", "github_rate_limit:2")  # 과거 형식도 인식
     get_settings.cache_clear()
-    assert mutate._fault_count() == 2
-    from core.redis.client import get_redis
+    assert execute.fault_count() == 2
+    monkeypatch.setenv("FAULT_INJECTION", "rate_limit:2")
+    get_settings.cache_clear()
+    from mcp_servers.business.workspace import TargetInfo, clear_overrides, register_override
+    from mcp_servers.common import CallContext, default_call
 
-    r = get_redis()
-    results = []
-    for _ in range(3):  # apply_fix 의 장애 주입 블록과 같은 계산
-        n = await r.incr("fault:apply_fix:p1")
-        results.append(n <= mutate._fault_count())
-    assert results == [True, True, False]
-    monkeypatch.setenv("FAULT_INJECTION", "")
-    get_settings.cache_clear()
-    assert mutate._fault_count() == 0
+    tid = "00000000-0000-0000-0000-0000000000fa"
+    register_override(TargetInfo(tid, "repo", "x", str(REPO_ROOT / "targets" / "vuln-spring-app")))
+    token = default_call.set(CallContext("u1", "ADMIN", str(uuid.uuid4()), "r"))
+    try:
+        codes = []
+        for _ in range(3):  # 노드 안 인라인 재시도 3회와 같은 횟수
+            res = await execute.run_static_scan(target_id=tid)
+            codes.append(res.get("error", {}).get("code", "OK"))
+        assert codes == ["RATE_LIMITED", "RATE_LIMITED", "OK"]
+    finally:
+        default_call.reset(token)
+        clear_overrides()
+        monkeypatch.setenv("FAULT_INJECTION", "")
+        get_settings.cache_clear()
+    assert execute.fault_count() == 0

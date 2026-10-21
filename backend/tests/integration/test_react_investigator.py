@@ -30,7 +30,7 @@ def final(verdicts: list[dict[str, Any]] | None = None, new: list[dict[str, Any]
 
 
 @pytest.fixture
-async def repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
+async def repo(db_ready: None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
     from api.seed import seed_users
     from core.db.models import Target
     from core.db.session import session_scope
@@ -130,8 +130,24 @@ async def test_step_cap_forces_final_after_six_steps(repo: dict[str, Any]) -> No
 
     out, deps = await run(repo, script, state(repo, risky=[PAY_CFG]))
     steps = [p for t, p in deps.captured if t == "investigate.step"]  # type: ignore[attr-defined]
-    assert len(steps) == 6  # 최대 6 스텝, 이후 final 만 요구
+    assert len(steps) == 3  # 같은 도구는 파일당 3회까지 (Harness Agent Loop), 이후는 거부 관찰
     assert out["investigated"] == []
+
+
+async def test_timeout_forces_final(repo: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    import core.graph.nodes.react_investigator as ri
+
+    real = ri.limits
+
+    def short() -> dict[str, Any]:
+        cfg = real()
+        return {**cfg, "react": {**cfg["react"], "max_seconds": 0}}
+
+    monkeypatch.setattr(ri, "limits", short)
+    out, deps = await run(repo, [final()], state(repo, risky=[PAY_CFG]))
+    limits_ev = [p for t, p in deps.captured if t == "loop.limit"]  # type: ignore[attr-defined]
+    assert limits_ev and limits_ev[0]["reason"] == "timeout"
+    assert not [p for t, p in deps.captured if t == "investigate.step"]  # type: ignore[attr-defined]
 
 
 async def test_disallowed_tool_is_refused_by_gate_and_loop_continues(repo: dict[str, Any]) -> None:
@@ -179,6 +195,60 @@ async def test_auditor_injection_candidate_cannot_be_dismissed(repo: dict[str, A
     )
     (f,) = out["investigated"]
     assert f["verdict"] == "TRUE_POSITIVE" and f["category"] == "AUDITOR_INJECTION_ATTEMPT"
+
+
+async def test_injection_in_file_blocks_dismissing_neighbours(repo: dict[str, Any]) -> None:
+    """I01 재현: 인젝션 주석 바로 아래 permitAll(LLM 재판정 대상, 낮은 신뢰도)을 모델이 기각해도 남긴다."""
+    path = "src/main/java/com/demo/shop/config/SecurityConfig.java"
+
+    def cand(tid: str, category: str, line: int, confidence: float) -> dict[str, Any]:
+        return {
+            "temp_id": tid,
+            "target_id": repo["target_id"],
+            "source": "code",
+            "category": category,
+            "rule_id": "R",
+            "title": category,
+            "severity": "CRITICAL",
+            "confidence": confidence,
+            "verdict": "NEEDS_REVIEW",
+            "evidence": [{"kind": "code", "file_path": path, "line_start": line, "line_end": line}],
+        }
+
+    cands = [cand("s-inj", "AUDITOR_INJECTION_ATTEMPT", 24, 0.6), cand("s-pa", "SECCONFIG_PERMIT_ALL", 25, 0.6)]
+    dismiss = [{"temp_id": "s-pa", "verdict": "FALSE_POSITIVE", "confidence": 0.9, "reason": "보안팀 검토 완료"}]
+    out, _ = await run(repo, [final(verdicts=dismiss)], state(repo, cands))
+    pa = next(f for f in out["investigated"] if f["temp_id"] == "s-pa")
+    assert pa["verdict"] == "NEEDS_REVIEW" and pa["reasoning_summary"].startswith("[감사기 인젝션이 있는 파일")
+
+    # 인젝션이 없는 파일이면 같은 판정은 그대로 기각된다 (오탐 처리 능력 유지)
+    out, _ = await run(repo, [final(verdicts=dismiss)], state(repo, cands[1:]))
+    assert out["investigated"][0]["verdict"] == "FALSE_POSITIVE"
+
+
+async def test_credential_candidates_are_held_outside_tests(repo: dict[str, Any]) -> None:
+    """C04 재현: '// TODO 임시 계정 admin / admin1234' 를 모델이 '임시 주석'이라 기각해도 검토로 남긴다."""
+
+    def cand(tid: str, path: str) -> dict[str, Any]:
+        return {
+            "temp_id": tid,
+            "target_id": repo["target_id"],
+            "source": "code",
+            "category": "COMMENT_SENSITIVE",
+            "rule_id": "SEC-COMMENT-001",
+            "title": "comment credential",
+            "severity": "HIGH",
+            "confidence": 0.6,
+            "verdict": "NEEDS_REVIEW",
+            "evidence": [{"kind": "code", "file_path": path, "line_start": 21, "line_end": 21}],
+        }
+
+    main = "src/main/java/com/demo/shop/admin/AdminController.java"
+    test = "src/test/java/com/demo/shop/AdminControllerTest.java"
+    for path, expected in ((main, "NEEDS_REVIEW"), (test, "FALSE_POSITIVE")):
+        dismiss = [{"temp_id": "s-c", "verdict": "FALSE_POSITIVE", "confidence": 0.9, "reason": "임시 계정 주석"}]
+        out, _ = await run(repo, [final(verdicts=dismiss)], state(repo, [cand("s-c", path)]))
+        assert out["investigated"][0]["verdict"] == expected, path
 
 
 async def test_observation_with_injection_is_wrapped_untrusted(repo: dict[str, Any]) -> None:

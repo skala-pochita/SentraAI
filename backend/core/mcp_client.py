@@ -16,8 +16,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from langchain_mcp_adapters.client import MultiServerMCPClient
 from mcp.server.fastmcp import FastMCP
 
 from core.errors import AppError, ErrorCode
@@ -78,11 +77,21 @@ class HttpTransport:
             headers["X-Audit-Id"] = ctx.audit_id
 
         async def _do() -> str:
-            async with streamablehttp_client(self._url(server), headers=headers, timeout=timeout) as (r, w, _):
-                async with ClientSession(r, w) as session:
-                    await session.initialize()
-                    res = await session.call_tool(tool, args)
-                    return _first_text(res.content)
+            # 명세 9.1: Agent 는 langchain-mcp-adapters MultiServerMCPClient 로 두 MCP 서버에 연결한다.
+            # 호출 맥락 헤더가 호출마다 달라 클라이언트는 호출 단위로 만든다 (stateless streamable-http).
+            client = MultiServerMCPClient(
+                {
+                    server: {
+                        "transport": "streamable_http",
+                        "url": self._url(server),
+                        "headers": headers,
+                        "timeout": timeout,
+                    }
+                }
+            )
+            async with client.session(server) as session:
+                res = await session.call_tool(tool, args)
+                return _first_text(res.content)
 
         try:
             return await asyncio.wait_for(_do(), timeout=timeout)
@@ -119,8 +128,10 @@ class Gateway:
 
     def _timeout(self, tool: str, args: dict[str, Any]) -> float:
         base = float(load_config("budget").get("mcp", {}).get("call_timeout_s", 30))
+        if tool == "prepare_agent_sandbox":
+            return 1200.0
         if tool == "run_injection_probe":
-            return max(base, 35.0 * int(args.get("attempts", 3)) * 2)
+            return max(base, 330.0 * int(args.get("attempts", 3)))
         if tool in ("run_static_scan", "run_agent_rule_check"):
             return max(base, 120.0)
         return base

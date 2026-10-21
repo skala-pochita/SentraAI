@@ -117,7 +117,16 @@ def mcp_tool(
             finally:
                 _current.reset(token)
 
-        server.add_tool(wrapper, name=fn.__name__, description=fn.__doc__)
+        from mcp.types import ToolAnnotations
+
+        from harness.tools import tool_annotations
+
+        server.add_tool(
+            wrapper,
+            name=fn.__name__,
+            description=fn.__doc__,
+            annotations=ToolAnnotations(title=fn.__name__, **tool_annotations(fn.__name__)),
+        )
         return wrapper
 
     return deco
@@ -165,4 +174,4 @@ def create_server(name: str, port: int, instructions: str) -> FastMCP:
 def run_server(server: FastMCP, port: int) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     app = ServiceTokenMiddleware(server.streamable_http_app())
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")  # noqa: S104
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info", server_header=False)  # noqa: S104

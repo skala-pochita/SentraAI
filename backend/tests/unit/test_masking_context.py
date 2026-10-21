@@ -44,3 +44,82 @@ def test_select_files_priority() -> None:
 def test_code_masking_spares_reference_codes() -> None:
     assert mask_text("ref OWASP-LLM-2025 SEC-SPRING-001") == "ref OWASP-LLM-2025 SEC-SPRING-001"
     assert "7F3A" not in mask_text("code CANARY-7F3A-INTERNAL-DISCOUNT")
+
+
+def test_truncate_tool_result() -> None:
+    from harness.context import truncate_tool_result
+
+    assert truncate_tool_result("abc", 10) == "abc"
+    out = truncate_tool_result("x" * 100, 10)
+    assert out.startswith("x" * 10) and "truncated 90 chars" in out
+
+
+async def test_compact_observations_summarizes_old() -> None:
+    from harness.context import compact_observations
+
+    calls: list[int] = []
+
+    async def summ(old: list[str]) -> str:
+        calls.append(len(old))
+        return "요약"
+
+    obs = ["a" * 4000, "b" * 4000, "c" * 40, "d" * 40]
+    out, done = await compact_observations(obs, budget_tokens=500, summarize=summ)
+    assert done and calls == [2] and out[0].startswith("[이전 관찰 요약") and out[1:] == obs[2:]
+    same, done2 = await compact_observations(["x"], budget_tokens=500, summarize=summ)
+    assert not done2 and same == ["x"]
+
+
+def test_pii_masking() -> None:
+    out = mask_text("메일 kim.cs@shop.example 또는 attacker@evil.test, 전화 010-1234-5678 / 02-555-1234")
+    assert "kim.cs@" not in out and "k***@shop.example" in out and "a***@evil.test" in out
+    assert "1234-5678" not in out and "010-****-5678" in out and "02-****-1234" in out
+    # 코드 애너테이션·URL 은 건드리지 않는다
+    assert (
+        mask_text("@Component class A; https://api.example-pay.test/v1")
+        == "@Component class A; https://api.example-pay.test/v1"
+    )
+
+
+def test_relocate_evidence_fixes_wrong_line() -> None:
+    from harness.guardrails import relocate_evidence
+
+    content = 'a\nb\n    private final String auth = "sk_live_" + "51FAKE";\nc'
+    assert (
+        relocate_evidence(content, {"line_start": 1, "snippet_masked": 'private final String auth = "sk_live_"'}) == 3
+    )
+    assert relocate_evidence(content, {"line_start": 1, "snippet_masked": "zz"}) is None
+
+
+def test_react_new_finding_category_must_be_known() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    from core.graph.nodes.react_investigator import NewFinding
+
+    ok = NewFinding(category="HARDCODED_SECRET", title="t", severity="HIGH", file_path="a", line_start=1)
+    assert ok.category == "HARDCODED_SECRET"
+    with pytest.raises(ValidationError):
+        NewFinding(category="Insecure Secrets Management", title="t", severity="HIGH", file_path="a", line_start=1)
+
+
+def test_system_prompt_placeholders_are_rendered() -> None:
+    from harness.prompts import get_prompt
+
+    p = get_prompt("code_investigate")
+    out = p.render_system(categories="A, B", category_defs="- A: x", untrusted_rule="RULE")
+    assert "{categories}" not in out and "{category_defs}" not in out and "{untrusted_rule}" not in out
+    assert "- A: x" in out
+    j = get_prompt("probe_judge").render_system(untrusted_rule="RULE")
+    assert "RULE" in j and "{untrusted_rule}" not in j
+    assert get_prompt("probe_judge").render_system().count("{untrusted_rule}") == 1  # 없는 키는 그대로
+
+
+def test_masking_never_touches_uuids() -> None:
+    import uuid
+
+    ids = [str(uuid.uuid4()) for _ in range(3000)] + ["28748f36-052c-4b02-0281-9854f552d17e"]
+    ids += [i.upper() for i in ids[:500]]
+    blob = " ".join(ids)
+    assert mask_text(blob) == blob
+    assert mask_obj({"finding_id": ids[-1]}) == {"finding_id": ids[-1]}

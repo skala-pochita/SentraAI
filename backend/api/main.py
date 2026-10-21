@@ -8,13 +8,24 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
+from starlette.middleware.base import RequestResponseEndpoint
 
 from api.errors import install_error_handlers
-from api.routers import audits, auth, knowledge, ops, targets, webhooks
+from api.routers import audits, auth, eval_runs, execution, knowledge, ops, results, targets
 from core.kafka.producer import close_producer
 
 API_PREFIX = "/api/v1"
+
+# OWASP Secure Headers. JSON API 는 아무 리소스도 불러오지 않으므로 CSP 를 막아 둔다.
+# /docs·/redoc 은 FastAPI 가 CDN 의 Swagger UI 를 쓰므로 CSP 를 붙이지 않는다.
+SECURITY_HEADERS = {
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+}
+API_CSP = "default-src 'none'; frame-ancestors 'none'"
+DOCS_PATHS = ("/docs", "/redoc", "/openapi.json")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("api")
@@ -48,12 +59,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="AI Security Auditor API", version="0.1.0", lifespan=lifespan)
 install_error_handlers(app)
 
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    response = await call_next(request)
+    response.headers.update(SECURITY_HEADERS)
+    if not request.url.path.startswith(DOCS_PATHS):
+        response.headers["Content-Security-Policy"] = API_CSP
+    return response
+
+
 for r in (
     auth.router,
     targets.router,
+    execution.router,
     audits.router,
+    results.router,
     knowledge.router,
     ops.router,
-    webhooks.router,
+    eval_runs.router,
 ):
     app.include_router(r, prefix=API_PREFIX)

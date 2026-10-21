@@ -122,10 +122,28 @@ async def test_agent_rule_check_uses_linked_repo_secrets(workspace: Path) -> Non
     assert "CANA****" in manifest["data"]["system_prompt_masked"]
 
 
-async def test_probe_requires_admin_and_allowlist(workspace: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    tok = as_role("DEVELOPER")
+async def test_probe_role_ownership_and_allowlist(workspace: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    tok = as_role("AUDITOR")
     try:
         res = await execute.run_injection_probe(target_id=AGENT_ID, probe_id="P01")
+        assert res["error"]["code"] == "FORBIDDEN"
+    finally:
+        default_call.reset(tok)
+    # DEVELOPER 는 자기 업로드 대상만: 진행 중 감사 맥락이 없으면 거부
+    uploaded = "00000000-0000-0000-0000-00000000000d"
+    register_override(
+        TargetInfo(
+            uploaded,
+            "agent",
+            "uploaded",
+            "http://target-agent:8201",
+            {"config_dir": str(workspace / "agent-config"), "source": "upload"},
+            owner_user_id="someone-else",
+        )
+    )
+    tok = as_role("DEVELOPER")
+    try:
+        res = await execute.run_injection_probe(target_id=uploaded, probe_id="P01")
         assert res["error"]["code"] == "FORBIDDEN"
     finally:
         default_call.reset(tok)
@@ -176,3 +194,20 @@ async def test_probe_upstream_timeout_is_retryable(workspace: Path, monkeypatch:
     res = await execute.run_injection_probe(target_id=AGENT_ID, probe_id="P01", attempts=1)
     assert res["error"]["code"] == "UPSTREAM_TIMEOUT" and res["error"]["retryable"] is True
     get_settings.cache_clear()
+
+
+async def test_tool_annotations_mark_destructive() -> None:
+    from mcp_servers.rag import tools as _rt  # noqa: F401
+    from mcp_servers.rag.app import mcp as rag_mcp
+
+    tools = {t.name: t for t in [*await mcp.list_tools(), *await rag_mcp.list_tools()]}
+    for name in (
+        "create_finding",
+        "save_report",
+        "delete_document",
+        "register_false_positive",
+    ):
+        assert tools[name].annotations and tools[name].annotations.destructiveHint is True, name
+    for name in ("read_repo_file", "search_security_standard", "get_findings"):
+        assert tools[name].annotations and tools[name].annotations.readOnlyHint is True, name
+    assert tools["run_injection_probe"].annotations.openWorldHint is True  # type: ignore[union-attr]

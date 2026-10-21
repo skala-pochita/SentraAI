@@ -25,7 +25,6 @@ class Settings(BaseSettings):
     # LLM
     openai_api_key: str = ""
     llm_small_model: str = "gpt-5.4-nano"
-    llm_large_model: str = ""
     embedding_model: str = "text-embedding-3-small"
     langsmith_api_key: str = ""
 
@@ -49,9 +48,14 @@ class Settings(BaseSettings):
     target_agent_url: str = "http://localhost:8201"
     probe_allowlist: str = "http://localhost:8201"
 
-    # Git
-    git_mode: Literal["local", "github"] = "local"  # github 모드는 미구현 (Phase 9)
-    github_webhook_secret: str = ""
+    sandbox_url: str = "http://sandbox-runner:8300"
+
+    sandbox_service_token: str = ""
+    llm_proxy_url: str = "http://llm-proxy:8400/v1"
+    llm_proxy_upstream: str = "https://api.openai.com/v1/chat/completions"
+    llm_proxy_model_allowlist: str = "gpt-5.4-nano"
+    vault_data_dir: Path = Field(default_factory=lambda: _default_path("VAULT_DATA_DIR", "private/vault/data"))
+    vault_key_file: Path = Field(default_factory=lambda: _default_path("VAULT_KEY_FILE", "private/vault/keys/master.key"))
 
     # Demo
     agent_variant: Literal["vuln", "hardened"] = "vuln"

@@ -31,18 +31,9 @@ READ_TOOLS = {
         "list_false_positive_rules",
     },
 }
-EXEC_TOOLS = {"business": {"run_static_scan", "run_agent_rule_check", "run_injection_probe"}}
+EXEC_TOOLS = {"business": {"run_static_scan", "run_agent_rule_check", "run_injection_probe", "prepare_agent_sandbox", "stop_agent_sandbox"}}
 MUTATING_TOOLS = {
-    "business": {
-        "create_finding",
-        "update_finding_status",
-        "request_approval",
-        "create_fix_proposal",
-        "apply_fix",
-        "register_risk_acceptance",
-        "save_report",
-        "merge_fix",
-    },
+    "business": {"create_finding", "update_finding_status", "save_report"},
     "rag": {"ingest_document", "update_document", "delete_document", "register_false_positive"},
 }
 
@@ -62,28 +53,15 @@ NODE_ALLOWLIST: dict[str, set[str]] = {
     },
     "code_evidence_check": {"read_repo_file"},
     "agent_static_check": {"run_agent_rule_check", "get_agent_manifest"},
+    "prepare_sandbox": {"prepare_agent_sandbox"},
     "probe_generate": {"search_security_standard", "get_agent_manifest"},
     "probe_run": {"run_injection_probe"},
     "probe_judge": set(),
     "correlate": {"create_finding", "get_findings"},
-    "human_approval": {"request_approval", "update_finding_status"},
-    "risk_accept": {"register_risk_acceptance", "update_finding_status"},
-    "fix_generate": {"read_repo_file", "create_fix_proposal", "search_framework_guide", "get_agent_manifest"},
-    "apply_fix": {"apply_fix", "update_finding_status"},
-    "wait_merge": set(),
-    "re_verify": {
-        "run_static_scan",
-        "run_injection_probe",
-        "update_finding_status",
-        "run_agent_rule_check",
-        "get_findings",
-    },
-    "mark_manual": {"update_finding_status"},
-    "report": {"save_report", "get_findings"},
+    "report": {"save_report", "get_findings", "stop_agent_sandbox"},
     "eval_single": {"list_repo_files", "read_repo_file", "get_agent_manifest"},
     # API 계층(사용자 요청)에서 호출하는 도구 — 역할·소유 검사는 API 가 먼저 한다
     "api": {
-        "merge_fix",
         "register_false_positive",
         "update_finding_status",
         "ingest_document",
@@ -96,7 +74,9 @@ NODE_ALLOWLIST: dict[str, set[str]] = {
 }
 
 DEFAULT_MAX_CALLS = 60
-DEVELOPER_MUTATING = {"register_false_positive", "merge_fix", "update_finding_status"}
+# 읽기 전용 전환으로 삭제한 수정·승인·병합 도구. 이름으로 다시 들어와도 게이트에서 막는다 (DECISIONS 2026-10-21)
+RETIRED_TOOLS = {"request_approval", "create_fix_proposal", "apply_fix", "merge_fix", "register_risk_acceptance"}
+DEVELOPER_MUTATING = {"register_false_positive", "update_finding_status", "create_finding", "save_report"}
 
 
 SERVER_TOOLS: dict[str, set[str]] = {
@@ -128,6 +108,8 @@ class ToolGate:
     denied: list[dict[str, str]] = field(default_factory=list)
 
     def check(self, node: str, tool: str, actor_role: str) -> None:
+        if tool in RETIRED_TOOLS:
+            raise AppError(ErrorCode.FORBIDDEN, "수정·승인·병합 기능은 제공하지 않습니다.")
         allowed = NODE_ALLOWLIST.get(node)
         if allowed is None or tool not in allowed:
             self._deny(node, tool, "tool not allowed for node")
@@ -140,3 +122,27 @@ class ToolGate:
     def _deny(self, node: str, tool: str, reason: str) -> None:
         self.denied.append({"node": node, "tool": tool, "reason": reason})
         raise AppError(ErrorCode.FORBIDDEN, f"H3 tool gate: {reason}", {"node": node, "tool": tool})
+
+
+# 같은 입력 재호출이 같은 결과인 변경 도구 (fingerprint·idempotency_key·upsert)
+IDEMPOTENT_MUTATING = {"create_finding", "save_report", "update_finding_status", "ingest_document", "update_document"}
+
+
+def tool_annotations(tool: str) -> dict[str, bool]:
+    """MCP ToolAnnotations: 조회 readOnlyHint, 변경 destructiveHint (강의 표 6-13 '승인')."""
+    if is_mutating(tool):
+        return {
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": tool in IDEMPOTENT_MUTATING,
+            "openWorldHint": False,
+        }
+    if tool in EXEC_TOOLS["business"]:
+        # 실행 도구: 감사 대상은 바꾸지 않지만 probe 는 샌드박스 에이전트(외부)를 호출한다
+        return {
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": tool != "run_injection_probe",
+            "openWorldHint": tool == "run_injection_probe",
+        }
+    return {"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}

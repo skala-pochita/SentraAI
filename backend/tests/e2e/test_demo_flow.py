@@ -1,4 +1,4 @@
-"""Phase 5/6 실환경 e2e: POST /audits → Kafka → audit-worker → 승인 → 병합 → report.
+"""Phase 5/6 실환경 e2e: POST /audits → Kafka → audit-worker → read-only report.
 
 전제: `make up && make demo-reset && make seed`. 실행: `cd backend && uv run pytest -m infra tests/e2e/test_demo_flow.py`
 LLM 키 없이도 동작한다(규칙 엔진 + 결정론 수정기).
@@ -68,26 +68,12 @@ def _demo_reset() -> None:
     subprocess.run(["make", "demo-reset"], cwd=root, check=True, capture_output=True)
 
 
-async def test_full_flow_approve_merge_report(client: httpx.AsyncClient) -> None:
-    _demo_reset()
+async def test_full_flow_read_only_report(client: httpx.AsyncClient) -> None:
     audit_id = await _start(client)
-    audit = await _wait(client, audit_id, {"WAITING_APPROVAL"})
-    approval_id = audit["pending_approval_id"]
-    assert approval_id
-
-    res = await client.post(f"/approvals/{approval_id}/decision", json={"decision": "APPROVE"})
-    assert res.status_code == 200, res.text
-    await _wait(client, audit_id, {"WAITING_MERGE"})
-
-    fixes = (await client.get(f"/audits/{audit_id}/fixes")).json()
-    assert fixes
-    for fx in fixes:
-        res = await client.post(f"/fixes/{fx['id']}/merge")
-        assert res.status_code == 200, res.text
     await _wait(client, audit_id, {"COMPLETED"})
-
     report = await client.get(f"/audits/{audit_id}/report")
     assert report.status_code == 200, report.text
+    assert "fix_proposals" not in report.json()
 
 
 async def test_sse_receives_events(client: httpx.AsyncClient) -> None:
@@ -102,13 +88,3 @@ async def test_sse_receives_events(client: httpx.AsyncClient) -> None:
                 break
     assert len(seen) >= 3
     await client.post(f"/audits/{audit_id}/cancel")
-
-
-async def test_worker_restart_while_waiting_approval(client: httpx.AsyncClient) -> None:
-    audit_id = await _start(client)
-    audit = await _wait(client, audit_id, {"WAITING_APPROVAL"})
-    subprocess.run(["docker", "compose", "restart", "audit-worker"], check=True, capture_output=True)
-    await asyncio.sleep(10)
-    res = await client.post(f"/approvals/{audit['pending_approval_id']}/decision", json={"decision": "REJECT"})
-    assert res.status_code == 200, res.text
-    await _wait(client, audit_id, {"COMPLETED", "WAITING_MERGE"})

@@ -29,6 +29,18 @@ log = logging.getLogger("trace")
 _parent: contextvars.ContextVar[str | None] = contextvars.ContextVar("trace_parent", default=None)
 _audit: contextvars.ContextVar[str | None] = contextvars.ContextVar("trace_audit", default=None)
 _eval_run: contextvars.ContextVar[str | None] = contextvars.ContextVar("trace_eval_run", default=None)
+_trace_id: contextvars.ContextVar[str | None] = contextvars.ContextVar("trace_id", default=None)
+
+_TRACE_NS = uuid.UUID("6f1f6c1e-5b3a-4c8e-9d2f-a5e7c0b4d913")
+
+
+def trace_id_for(audit_id: str) -> str:
+    """감사 1건의 trace_id. audit_id 에서 결정론적으로 만들어 요청·재개·재시도 메시지가 같은 값을 쓴다."""
+    return str(uuid.uuid5(_TRACE_NS, f"audit:{audit_id}"))
+
+
+def current_trace_id() -> str | None:
+    return _trace_id.get()
 
 
 def configure_langsmith() -> None:
@@ -39,9 +51,20 @@ def configure_langsmith() -> None:
         os.environ.setdefault("LANGSMITH_PROJECT", "ai-security-auditor")
 
 
-def set_trace_context(audit_id: str | None, eval_run_id: str | None = None) -> None:
+def set_trace_context(audit_id: str | None, eval_run_id: str | None = None, trace_id: str | None = None) -> None:
     _audit.set(audit_id)
     _eval_run.set(eval_run_id)
+    _trace_id.set(trace_id or (trace_id_for(audit_id) if audit_id else None))
+
+
+def langsmith_config(audit_id: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+    """그래프 invoke config 에 넣을 run_name·tags·metadata. LangSmith 에서 trace_id 로 검색할 수 있다."""
+    tid = trace_id_for(audit_id)
+    return {
+        "run_name": f"audit:{audit_id[:8]}",
+        "tags": ["security-audit"],
+        "metadata": {"audit_id": audit_id, "trace_id": tid, "thread_id": f"audit:{audit_id}", **(extra or {})},
+    }
 
 
 def cost_usd(model: str | None, input_tokens: int, output_tokens: int) -> float:
@@ -85,6 +108,7 @@ async def _persist(span: Span, parent: str | None) -> None:
                     id=uuid.UUID(span.id),
                     audit_id=uuid.UUID(audit_id) if audit_id else None,
                     eval_run_id=uuid.UUID(eval_run) if eval_run else None,
+                    trace_id=_trace_id.get(),
                     parent_id=uuid.UUID(parent) if parent else None,
                     kind=span.kind,
                     name=span.name,

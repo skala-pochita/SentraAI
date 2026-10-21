@@ -74,7 +74,7 @@ async def test_role_matrix_users(client: httpx.AsyncClient, seeded: dict[str, An
     assert (await client.get(f"{P}/users")).status_code == 401
     body = {"type": "repo", "name": "x", "ref": "/x"}
     assert (await client.post(f"{P}/targets", json=body, headers=h(t["DEVELOPER"]))).status_code == 403
-    assert (await client.post(f"{P}/targets", json=body, headers=h(t["ADMIN"]))).status_code == 201
+    assert (await client.post(f"{P}/targets", json=body, headers=h(t["ADMIN"]))).status_code == 422
 
 
 async def test_developer_sees_only_own_targets(client: httpx.AsyncClient, seeded: dict[str, Any]) -> None:

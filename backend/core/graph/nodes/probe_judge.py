@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from core.errors import AppError
 from core.graph.deps import get_deps, node_error
 from core.graph.nodes._base import node
-from core.probes import load_probe_set
+from core.probes import Probe, load_probe_set
 from core.schemas import Evidence, FindingDraft
 from harness.budget import limits
 from harness.context import UNTRUSTED_RULE, wrap_untrusted
@@ -64,6 +64,54 @@ def probe_finding(target_id: str, r: dict[str, Any]) -> FindingDraft:
     )
 
 
+async def _judge_undetermined(
+    r: dict[str, Any], base: Probe, llm: tuple[Any, str], deps: Any, usage: list[Any], errors: list[Any]
+) -> list[str]:
+    """판정 불가 시도만 LLM 판정. 실패한 시도의 probe id 를 돌려준다 (다음 라운드 재시도 대상)."""
+    model, name = llm
+    failed: list[str] = []
+    for t in r.get("transcripts", []):
+        if t["verdict"] != "UNDETERMINED":
+            continue
+        transcript = str({"reply": t["reply_masked"], "tool_calls": t["tool_calls"]})
+        try:
+            v = await structured_call(
+                model,
+                get_prompt("probe_judge"),
+                LlmVerdict,
+                node="probe_judge",
+                model_name=name,
+                budget=deps.budget,
+                usage=usage,
+                untrusted_rule=UNTRUSTED_RULE,
+                goal=base.success.model_dump(),
+                transcript=wrap_untrusted(transcript, "target-agent:reply"),
+            )
+        except AppError as e:
+            errors.append(node_error("probe_judge", e))
+            failed.append(base.id)
+            continue
+        t["verdict"] = "SUCCESS" if v.attack_succeeded else "BLOCKED"
+        r["uncertain"] -= 1
+        if v.attack_succeeded:
+            r["successes"] += 1
+            r["judged_by"] = "llm"
+    return failed
+
+
+def _vulnerable_findings(tid: str, results: list[dict[str, Any]], existing: set[str | None]) -> list[dict[str, Any]]:
+    out = []
+    for r in results:
+        if r["category"] == "BENIGN_CONTROL" or r["successes"] == 0:
+            continue
+        f = probe_finding(tid, r)
+        if f.rule_id in existing:  # 같은 base probe 의 적응형 변형은 기존 Finding 에 근거만 추가
+            continue
+        existing.add(f.rule_id)
+        out.append(f.model_dump())
+    return out
+
+
 @node("probe_judge")
 async def probe_judge(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any]:
     deps = get_deps(config)
@@ -74,54 +122,16 @@ async def probe_judge(state: dict[str, Any], config: RunnableConfig) -> dict[str
     results = [dict(r) for r in state.get("probe_results", [])]
     llm = deps.llm("probe_judge", state.get("eval_config"))
     still_uncertain: list[str] = []
-    for r in results:
-        if not r.get("uncertain"):
-            continue
+    for r in (r for r in results if r.get("uncertain")):
         base = ps.get(r.get("base_probe_id") or r["probe_id"])
         if llm is None or base is None:
             still_uncertain.append(r.get("base_probe_id") or r["probe_id"])
             continue
-        model, name = llm
-        for t in r.get("transcripts", []):
-            if t["verdict"] != "UNDETERMINED":
-                continue
-            try:
-                v = await structured_call(
-                    model,
-                    get_prompt("probe_judge"),
-                    LlmVerdict,
-                    node="probe_judge",
-                    model_name=name,
-                    budget=deps.budget,
-                    usage=usage,
-                    untrusted_rule=UNTRUSTED_RULE,
-                    goal=base.success.model_dump(),
-                    transcript=wrap_untrusted(
-                        str({"reply": t["reply_masked"], "tool_calls": t["tool_calls"]}), "target-agent:reply"
-                    ),
-                )
-            except AppError as e:
-                errors.append(node_error("probe_judge", e))
-                still_uncertain.append(base.id)
-                continue
-            t["verdict"] = "SUCCESS" if v.attack_succeeded else "BLOCKED"
-            r["uncertain"] -= 1
-            if v.attack_succeeded:
-                r["successes"] += 1
-                r["judged_by"] = "llm"
+        still_uncertain += await _judge_undetermined(r, base, llm, deps, usage, errors)
         r["asr"] = round(r["successes"] / r["attempts"], 3) if r["attempts"] else 0.0
 
     existing = {f["rule_id"] for f in state.get("agent_findings", []) if f["source"] == "agent"}
-    new_findings = []
-    for r in results:
-        if r["category"] == "BENIGN_CONTROL" or r["successes"] == 0:
-            continue
-        f = probe_finding(tid, r)
-        if f.rule_id in existing:  # 같은 base probe 의 적응형 변형은 기존 Finding 에 근거만 추가
-            continue
-        existing.add(f.rule_id)
-        new_findings.append(f.model_dump())
-
+    new_findings = _vulnerable_findings(tid, results, existing)
     rnd = int(state.get("probe_round", 0)) + 1
     max_rounds = int(limits().get("probe", {}).get("max_rounds", 2))
     loop = bool(still_uncertain) and rnd < max_rounds and llm is not None

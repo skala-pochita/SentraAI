@@ -117,56 +117,76 @@ def _dupes(ids: list[str]) -> list[str]:
     return sorted({i for i in ids if ids.count(i) > 1})
 
 
-def parse_bundle(raw: str | bytes | dict[str, Any]) -> EvidenceBundle:
-    """스키마·참조 무결성·크기·금지 필드를 검증한다. 실패는 VALIDATION(details 에 사유 목록)."""
+def _load(raw: str | bytes | dict[str, Any]) -> dict[str, Any]:
     if isinstance(raw, dict):
-        data = raw
-    else:
-        if len(raw) > MAX_BUNDLE_BYTES:
-            raise AppError(ErrorCode.VALIDATION, "evidence bundle too large", {"max_bytes": MAX_BUNDLE_BYTES})
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError as e:
-            raise AppError(ErrorCode.VALIDATION, f"invalid JSON: {e.msg}", {"line": e.lineno}) from e
+        return raw
+    if len(raw) > MAX_BUNDLE_BYTES:
+        raise AppError(ErrorCode.VALIDATION, "evidence bundle too large", {"max_bytes": MAX_BUNDLE_BYTES})
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise AppError(ErrorCode.VALIDATION, f"invalid JSON: {e.msg}", {"line": e.lineno}) from e
     if not isinstance(data, dict):
         raise AppError(ErrorCode.VALIDATION, "evidence bundle must be a JSON object")
-    forbidden = _find_forbidden(data)
-    if forbidden:
+    return data
+
+
+def _validate_schema(data: dict[str, Any]) -> EvidenceBundle:
+    if forbidden := _find_forbidden(data):
         raise AppError(ErrorCode.VALIDATION, "bundle contains judgement fields", {"fields": forbidden})
     try:
-        b = EvidenceBundle.model_validate(data)
+        return EvidenceBundle.model_validate(data)
     except ValidationError as e:
         errs = [{"loc": "/".join(map(str, x["loc"])), "msg": x["msg"]} for x in e.errors()[:20]]
         raise AppError(ErrorCode.VALIDATION, "bundle schema invalid", {"errors": errs}) from e
 
-    problems: list[str] = []
-    for name, ids in (
-        ("tools", [t.id for t in b.tools]),
-        ("principals", [p.id for p in b.principals]),
-        ("policies", [p.id for p in b.policies]),
-        ("resources", [r.id for r in b.resources]),
-    ):
-        problems += [f"duplicate {name} id: {d}" for d in _dupes(ids)]
+
+def _duplicate_ids(b: EvidenceBundle) -> list[str]:
+    groups = {
+        "tools": [t.id for t in b.tools],
+        "principals": [p.id for p in b.principals],
+        "policies": [p.id for p in b.policies],
+        "resources": [r.id for r in b.resources],
+    }
+    return [f"duplicate {name} id: {d}" for name, ids in groups.items() for d in _dupes(ids)]
+
+
+def _dangling_refs(b: EvidenceBundle) -> list[str]:
     tool_ids = {t.id for t in b.tools}
     principal_ids = {p.id for p in b.principals}
     policy_ids = {p.id for p in b.policies}
-    source_ids = {s.id for s in b.sources}
+    problems: list[str] = []
     for m in b.mappings.tool_to_principal:
         if m.tool_id not in tool_ids:
             problems.append(f"mapping references unknown tool: {m.tool_id}")
         if m.principal_id not in principal_ids:
             problems.append(f"mapping references unknown principal: {m.principal_id}")
-    for p in b.policies:
-        if p.principal_id not in principal_ids:
-            problems.append(f"policy {p.id} references unknown principal: {p.principal_id}")
-    for t in b.tools:
-        if t.access_policy_ref and t.access_policy_ref not in policy_ids:
-            problems.append(f"tool {t.id} references unknown access policy: {t.access_policy_ref}")
-    if b.sources:  # sources 를 제공했다면 source_ref 가 거기에 있어야 한다
-        refs: list[tuple[str, str]] = []
-        for group in (b.tools, b.principals, b.policies, b.resources):
-            refs += [(o.id, o.source_ref) for o in group]
-        problems += [f"{oid} references unknown source: {ref}" for oid, ref in refs if ref not in source_ids]
+    problems += [
+        f"policy {p.id} references unknown principal: {p.principal_id}"
+        for p in b.policies
+        if p.principal_id not in principal_ids
+    ]
+    problems += [
+        f"tool {t.id} references unknown access policy: {t.access_policy_ref}"
+        for t in b.tools
+        if t.access_policy_ref and t.access_policy_ref not in policy_ids
+    ]
+    return problems
+
+
+def _unknown_sources(b: EvidenceBundle) -> list[str]:
+    """sources 를 제공했다면 각 항목의 source_ref 가 거기에 있어야 한다."""
+    if not b.sources:
+        return []
+    source_ids = {s.id for s in b.sources}
+    refs = [(o.id, o.source_ref) for group in (b.tools, b.principals, b.policies, b.resources) for o in group]
+    return [f"{oid} references unknown source: {ref}" for oid, ref in refs if ref not in source_ids]
+
+
+def parse_bundle(raw: str | bytes | dict[str, Any]) -> EvidenceBundle:
+    """스키마·참조 무결성·크기·금지 필드를 검증한다. 실패는 VALIDATION(details 에 사유 목록)."""
+    b = _validate_schema(_load(raw))
+    problems = _duplicate_ids(b) + _dangling_refs(b) + _unknown_sources(b)
     if problems:
         raise AppError(ErrorCode.VALIDATION, "bundle reference check failed", {"problems": problems[:30]})
     return b

@@ -10,6 +10,7 @@ from typing import Any
 
 from core.rules.detectors import DETECTORS, hit, shannon_entropy
 from core.rules.models import Rule, RuleHit, load_rules
+from core.source_paths import excluded_source_path
 from harness.masking import mask_text
 
 SKIP_DIRS = {".git", "build", "target", "node_modules", ".gradle", ".idea", "out"}
@@ -47,7 +48,9 @@ def glob_match(path: str, globs: Iterable[str]) -> bool:
 def iter_repo_files(root: Path) -> Iterable[tuple[str, Path]]:
     for p in sorted(root.rglob("*")):
         rel = p.relative_to(root)
-        if any(part in SKIP_DIRS for part in rel.parts) or not p.is_file():
+        if excluded_source_path(rel.as_posix()) or not p.is_file() or p.is_symlink():
+            continue
+        if not p.resolve().is_relative_to(root.resolve()):
             continue
         if p.stat().st_size > MAX_FILE_BYTES:
             continue
@@ -135,6 +138,78 @@ def _tool_hit(
     return h.model_copy(update={"severity": severity}) if severity else h
 
 
+ToolVerdict = tuple[str, str | None] | None  # (사유, 심각도 덮어쓰기) 또는 해당 없음
+
+
+def _no_approval(t: dict[str, Any]) -> ToolVerdict:
+    effect = t.get("side_effect")
+    if effect in ("write", "delete", "external_send") and not t.get("requires_approval"):
+        return f"side_effect={effect} 인데 requires_approval=false", "CRITICAL" if effect == "delete" else None
+    return None
+
+
+def _excessive_scope(t: dict[str, Any]) -> ToolVerdict:
+    scopes = [str(s) for s in t.get("scopes", [])]
+    wildcard = any("*" in s for s in scopes)
+    write_on_read = t.get("side_effect") == "read" and any(":write" in s for s in scopes)
+    send_any = t.get("side_effect") == "external_send" and all(s.endswith(":any") for s in scopes)
+    return (f"과도한 스코프 {scopes}", None) if (wildcard or write_on_read) and not send_any else None
+
+
+def _exfil_channel(t: dict[str, Any]) -> ToolVerdict:
+    scopes = [str(s) for s in t.get("scopes", [])]
+    if t.get("side_effect") == "external_send" and not any(":domain:" in s for s in scopes):
+        return f"수신자 제한 없음 {scopes}", None
+    return None
+
+
+def _injection_surface(t: dict[str, Any]) -> ToolVerdict:
+    if t.get("input_source") == "external" and not t.get("output_untrusted"):
+        return "외부 입력을 untrusted 표시 없이 반환", None
+    return None
+
+
+# 규칙 순서대로 결과를 낸다 (보고서·테스트가 이 순서를 기대)
+TOOL_CHECKS = {
+    "tool_no_approval": _no_approval,
+    "tool_excessive_scope": _excessive_scope,
+    "tool_exfil_channel": _exfil_channel,
+    "indirect_injection_surface": _injection_surface,
+}
+
+
+def _prompt_secret_lines(system_prompt: str) -> list[tuple[int, str]]:
+    out = []
+    for i, line in enumerate(system_prompt.splitlines(), start=1):
+        tokens = re.findall(r"[A-Za-z0-9_\-]{12,}", line)
+        if any(shannon_entropy(tk) >= 3.5 for tk in tokens) and any(ph in line for ph in SECRET_PHRASES):
+            out.append((i, line))
+    return out
+
+
+def _prompt_hits(rules: dict[str, Rule], system_prompt: str, prompt_path: str) -> list[RuleHit]:
+    out: list[RuleHit] = []
+    if r := rules.get("prompt_secret_embedded"):
+        out += [hit(r, prompt_path, i, line, target="system_prompt") for i, line in _prompt_secret_lines(system_prompt)]
+    r = rules.get("prompt_no_instruction_hierarchy")
+    if r and not any(ph in system_prompt for ph in HIERARCHY_PHRASES):
+        plines = system_prompt.splitlines()
+        reason = "사용자·문서 지시를 데이터로 취급하라는 규칙 없음 (LLM 재판정 대상)"
+        out.append(hit(r, prompt_path, 1, plines[0] if plines else "", target="system_prompt", reason=reason))
+    return out
+
+
+def _shared_secret_hits(
+    rule: Rule, manifest: dict[str, Any], manifest_text: str, manifest_path: str, code_secret_names: set[str]
+) -> list[RuleHit]:
+    ln = next((i for i, s in enumerate(manifest_text.splitlines(), 1) if "secrets_env" in s), 1)
+    return [
+        hit(rule, manifest_path, ln, mask_text(f"secrets_env: [{name}]"), env=name)
+        for name in manifest.get("secrets_env", []) or []
+        if name in code_secret_names
+    ]
+
+
 def check_manifest(
     manifest: dict[str, Any],
     manifest_text: str,
@@ -146,65 +221,15 @@ def check_manifest(
     rules = {r.check: r for r in load_rules("agent") if r.check}
     tools: list[dict[str, Any]] = manifest.get("tools", [])
     out: list[RuleHit] = []
-
-    if r := rules.get("tool_no_approval"):
+    for check, verdict_of in TOOL_CHECKS.items():
+        if (r := rules.get(check)) is None:
+            continue
         for t in tools:
-            if t.get("side_effect") in ("write", "delete", "external_send") and not t.get("requires_approval"):
-                sev = "CRITICAL" if t.get("side_effect") == "delete" else None
-                out.append(
-                    _tool_hit(
-                        r,
-                        manifest_path,
-                        manifest_text,
-                        t,
-                        f"side_effect={t.get('side_effect')} 인데 requires_approval=false",
-                        sev,
-                    )
-                )
-    if r := rules.get("tool_excessive_scope"):
-        for t in tools:
-            scopes = [str(s) for s in t.get("scopes", [])]
-            wildcard = [s for s in scopes if "*" in s]
-            write_on_read = t.get("side_effect") == "read" and any(":write" in s for s in scopes)
-            if (wildcard or write_on_read) and not (
-                t.get("side_effect") == "external_send" and all(s.endswith(":any") for s in scopes)
-            ):
-                out.append(_tool_hit(r, manifest_path, manifest_text, t, f"과도한 스코프 {scopes}"))
-    if r := rules.get("tool_exfil_channel"):
-        for t in tools:
-            scopes = [str(s) for s in t.get("scopes", [])]
-            if t.get("side_effect") == "external_send" and not any(":domain:" in s for s in scopes):
-                out.append(_tool_hit(r, manifest_path, manifest_text, t, f"수신자 제한 없음 {scopes}"))
-    if r := rules.get("indirect_injection_surface"):
-        for t in tools:
-            if t.get("input_source") == "external" and not t.get("output_untrusted"):
-                out.append(_tool_hit(r, manifest_path, manifest_text, t, "외부 입력을 untrusted 표시 없이 반환"))
-
-    plines = system_prompt.splitlines()
-    if r := rules.get("prompt_secret_embedded"):
-        for i, line in enumerate(plines, start=1):
-            tokens = re.findall(r"[A-Za-z0-9_\-]{12,}", line)
-            secretish = any(shannon_entropy(tk) >= 3.5 for tk in tokens)
-            if tokens and (secretish and any(ph in line for ph in SECRET_PHRASES)):
-                out.append(hit(r, prompt_path, i, line, target="system_prompt"))
-    if r := rules.get("prompt_no_instruction_hierarchy"):
-        if not any(ph in system_prompt for ph in HIERARCHY_PHRASES):
-            first = plines[0] if plines else ""
-            out.append(
-                hit(
-                    r,
-                    prompt_path,
-                    1,
-                    first,
-                    target="system_prompt",
-                    reason="사용자·문서 지시를 데이터로 취급하라는 규칙 없음 (LLM 재판정 대상)",
-                )
-            )
+            if (v := verdict_of(t)) is not None:
+                out.append(_tool_hit(r, manifest_path, manifest_text, t, v[0], v[1]))
+    out += _prompt_hits(rules, system_prompt, prompt_path)
     if (r := rules.get("agent_shared_secret")) and code_secret_names:
-        for name in manifest.get("secrets_env", []) or []:
-            if name in code_secret_names:
-                ln = next((i for i, s in enumerate(manifest_text.splitlines(), 1) if "secrets_env" in s), 1)
-                out.append(hit(r, manifest_path, ln, mask_text(f"secrets_env: [{name}]"), env=name))
+        out += _shared_secret_hits(r, manifest, manifest_text, manifest_path, code_secret_names)
     return out
 
 

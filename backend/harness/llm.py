@@ -118,7 +118,7 @@ async def structured_call(
     """JSON 출력을 schema 로 검증. 실패하면 오류 메시지를 포함해 최대 2회 재요청 (H4 출력 가드레일)."""
     messages: list[BaseMessage] = [
         SystemMessage(
-            prompt.system
+            prompt.render_system(**vars)
             + "\n\n반드시 JSON 하나만 출력한다. 스키마:\n"
             + json.dumps(schema.model_json_schema(), ensure_ascii=False)
         ),

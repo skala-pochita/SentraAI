@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from core.errors import AppError
 from core.graph.deps import get_deps, node_error
 from core.graph.nodes._base import node
-from core.probes import load_probe_set
+from core.probes import ProbeSet, load_probe_set
 from harness.budget import limits
 from harness.llm import structured_call
 from harness.prompts import get_prompt
@@ -26,9 +26,64 @@ class AdaptiveProbes(BaseModel):
     probes: list[AdaptiveProbe] = Field(default_factory=list)
 
 
+def _uploaded_plan(state: dict[str, Any], manifest: dict[str, Any]) -> dict[str, Any]:
+    """업로드 에이전트: 격리 실행이 READY 일 때만 프로젝트 전용 공격 세트를 계획한다 (적응형 생성 없음)."""
+    from core.project_probes import uploaded_probe_set
+
+    ps = uploaded_probe_set(state["audit_id"], manifest, manifest.get("_runtime_protocol", "atlas"))
+    runtime = state.get("runtime", {})
+    ready = runtime.get("status") == "READY"
+    selected = [{"probe_id": p.id, "category": p.category, "adaptive": False} for p in ps.probes] if ready else []
+    empty = "지원되는 프로젝트 공격 세트가 없습니다." if ready and not selected else ""
+    coverage = {
+        "target_id": state["target"]["target_id"],
+        "static": "COMPLETED",
+        "runtime": runtime,
+        "attacks": "PLANNED" if selected else "NOT_RUN",
+        "reason": runtime.get("reason") or empty,
+        "probe_count": len(selected),
+    }
+    return {"probes": selected, "agent_coverage": [coverage]}
+
+
+def _adaptive_inputs(state: dict[str, Any], ps: ProbeSet) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    tools = [
+        {"name": t["name"], "description": t.get("description", ""), "side_effect": t.get("side_effect")}
+        for t in state.get("manifest", {}).get("tools", [])
+    ]
+    focus = state.get("uncertain_probe_ids") or [p.id for p in ps.probes if p.category != "BENIGN_CONTROL"]
+    bases = [
+        {"probe_id": p.id, "category": p.category, "goal": p.success.model_dump(), "example": p.turns[-1]}
+        for p in ps.probes
+        if p.id in focus
+    ]
+    return tools, bases
+
+
+def _adaptive_probes(out: AdaptiveProbes, ps: ProbeSet, rnd: int, max_adaptive: int) -> list[dict[str, Any]]:
+    probes = []
+    for i, a in enumerate(out.probes[:max_adaptive]):
+        if (base := ps.get(a.base_probe_id)) is None:
+            continue
+        probes.append(
+            {
+                "probe_id": f"{a.base_probe_id}-A{rnd}{i + 1}",
+                "base_probe_id": a.base_probe_id,
+                "payload": a.payload,
+                "category": base.category,
+                "adaptive": True,
+                "rationale": a.rationale,
+            }
+        )
+    return probes
+
+
 @node("probe_generate")
 async def probe_generate(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any]:
     deps = get_deps(config)
+    manifest = state.get("manifest", {})
+    if manifest.get("_source") == "upload":
+        return _uploaded_plan(state, manifest)
     ps = load_probe_set()
     rnd = int(state.get("probe_round", 0))
     max_adaptive = int(limits().get("probe", {}).get("max_adaptive_per_round", 4))
@@ -37,20 +92,9 @@ async def probe_generate(state: dict[str, Any], config: RunnableConfig) -> dict[
     probes: list[dict[str, Any]] = []
     if rnd == 0:
         probes = [{"probe_id": p.id, "category": p.category, "adaptive": False} for p in ps.probes]
-    llm = deps.llm("probe_generate", state.get("eval_config"))
-    if llm is not None:
+    if (llm := deps.llm("probe_generate", state.get("eval_config"))) is not None:
         model, name = llm
-        manifest = state.get("manifest", {})
-        tools = [
-            {"name": t["name"], "description": t.get("description", ""), "side_effect": t.get("side_effect")}
-            for t in manifest.get("tools", [])
-        ]
-        focus = state.get("uncertain_probe_ids") or [p.id for p in ps.probes if p.category != "BENIGN_CONTROL"]
-        bases = [
-            {"probe_id": p.id, "category": p.category, "goal": p.success.model_dump(), "example": p.turns[-1]}
-            for p in ps.probes
-            if p.id in focus
-        ]
+        tools, bases = _adaptive_inputs(state, ps)
         try:
             out = await structured_call(
                 model,
@@ -65,19 +109,7 @@ async def probe_generate(state: dict[str, Any], config: RunnableConfig) -> dict[
                 max_n=max_adaptive,
                 round=rnd,
             )
-            for i, a in enumerate(out.probes[:max_adaptive]):
-                if ps.get(a.base_probe_id) is None:
-                    continue
-                probes.append(
-                    {
-                        "probe_id": f"{a.base_probe_id}-A{rnd}{i + 1}",
-                        "base_probe_id": a.base_probe_id,
-                        "payload": a.payload,
-                        "category": ps.get(a.base_probe_id).category,  # type: ignore[union-attr]
-                        "adaptive": True,
-                        "rationale": a.rationale,
-                    }
-                )
+            probes += _adaptive_probes(out, ps, rnd, max_adaptive)
         except AppError as e:
             errors.append(node_error("probe_generate", e))
     await deps.event(

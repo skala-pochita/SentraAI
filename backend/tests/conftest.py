@@ -47,7 +47,11 @@ async def _prepare_db() -> bool:
     async with engine.begin() as c:
         await c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await c.execute(text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
-        await c.run_sync(Base.metadata.drop_all)
+        # 테스트 전용 DB: 이전 스키마(예: 삭제된 Cloud 테이블)가 남아도 깨끗이 다시 만든다
+        await c.execute(text("DROP SCHEMA public CASCADE"))
+        await c.execute(text("CREATE SCHEMA public"))
+        await c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        await c.execute(text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
         await c.run_sync(Base.metadata.create_all)
     await engine.dispose()
     return True
