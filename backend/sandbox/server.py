@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import collections
 import contextlib
 import hashlib
 import hmac
@@ -11,12 +12,13 @@ import io
 import json
 import logging
 import os
+import re
 import shutil
 import tarfile
 import threading
 import time
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -26,11 +28,12 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from api.errors import install_error_handlers
-from core.errors import AppError
+from core.errors import AppError, ErrorCode
 from core.project_probes import canary
 from core.project_upload import MAX_UPLOAD_BYTES, extract_project
 from core.runtime_spec import inside, runtime_spec
 from core.settings import get_settings
+from harness.masking import mask_text
 
 LABEL = "auditor.sandbox"
 TTL = 900
@@ -134,6 +137,22 @@ def context_tar(root: Path, spec: dict[str, Any], aid: str) -> io.BytesIO:
     return stream
 
 
+class SandboxBusy(RuntimeError):
+    """Another audit holds the single sandbox slot; the caller may retry later."""
+
+
+# Lines where Maven/Gradle/pip/npm/compilers report an error, and the boilerplate that follows Maven's real one.
+BUILD_ERROR_LINE = re.compile(r"^(\[ERROR\]|ERROR[: ]|error[:\[]|npm (ERR!|error)|FAILURE:|E: )")
+BUILD_NOISE = re.compile(r"^\[ERROR\]\s*(To see|Re-run|For more information|\[Help \d+\]|$)")
+
+
+def build_failure(service: str, error: str, recent: Iterable[str]) -> str:
+    """Docker's error names only the failing step; add the build tool's first error line so the cause is visible."""
+    cause = next((line for line in recent if BUILD_ERROR_LINE.match(line) and not BUILD_NOISE.match(line)), "")
+    detail = error.strip() + (f" ({cause[:240]})" if cause else "")
+    return f"image build for {service} failed: {detail}"
+
+
 HTTP_SCRIPT = """import urllib.request,json,base64,sys,urllib.error
 x=json.loads(base64.b64decode(sys.argv[1])); req=urllib.request.Request(x['url'],data=json.dumps(x['body']).encode() if x.get('body') is not None else None,headers={'Content-Type':'application/json'},method=x['method'])
 try:
@@ -171,7 +190,7 @@ def start(
         if aid in active:
             return {"status": "READY", "mode": active[aid]["mode"]}
         if active:
-            raise RuntimeError("another sandbox audit is running; retry later")
+            raise SandboxBusy("another sandbox audit is running; retry later")
         d = client()
         labels = {LABEL: aid, "auditor.expires": str(time.time() + TTL)}
         try:
@@ -181,6 +200,7 @@ def start(
                 stream = context_tar(root, s, aid)
                 started = time.monotonic()
                 image_id = None
+                recent: collections.deque[str] = collections.deque(maxlen=40)
                 output = d.api.build(
                     fileobj=stream,
                     custom_context=True,
@@ -196,15 +216,16 @@ def start(
                         output.close()
                         raise RuntimeError("sandbox image build exceeded 300 seconds")
                     if "error" in event:
-                        raise RuntimeError("sandbox Dockerfile build failed")
+                        raise RuntimeError(build_failure(s["name"], str(event["error"]), recent))
                     if event.get("aux", {}).get("ID"):
                         image_id = event["aux"]["ID"]
                     # Classic Docker build returns image hash in stream output.
                     text = event.get("stream", "")
+                    recent.extend(line.strip() for line in text.splitlines() if line.strip())
                     if text.startswith("Successfully built "):
                         image_id = text.split()[-1]
                 if not image_id:
-                    raise RuntimeError("sandbox image build produced no image")
+                    raise RuntimeError(f"sandbox image build for {s['name']} produced no image")
                 images[s["name"]] = image_id
             if proxy:
                 relay = d.containers.create(
@@ -310,11 +331,17 @@ async def launch(body: Launch) -> dict[str, Any]:
         destination = get_settings().workspace_dir / "uploads" / aid
         root = await asyncio.to_thread(extract_project, data, destination)
         return await asyncio.to_thread(start, aid, str(root), body.environment, body.proxy)
+    except SandboxBusy as exc:
+        raise AppError(ErrorCode.CONFLICT, "격리 실행 대기: " + str(exc)) from exc
     except (AppError, ValueError, RuntimeError, docker.errors.DockerException) as exc:
         await asyncio.to_thread(stop, aid)
-        raise HTTPException(
-            422, "격리 실행 실패: " + (exc.message if isinstance(exc, AppError) else type(exc).__name__)
-        ) from exc
+        # 직접 쓴 메시지(AppError·ValueError·RuntimeError)만 내보낸다. Docker SDK 오류 원문은 내부 정보라 이름만
+        reason = exc.message if isinstance(exc, AppError) else (
+            type(exc).__name__ if isinstance(exc, docker.errors.DockerException) else str(exc)
+        )
+        reason = mask_text(reason)[:400]
+        log.warning("sandbox start failed audit=%s: %s", aid, reason)
+        raise AppError(ErrorCode.VALIDATION, "격리 실행 실패: " + reason) from exc
 
 
 @app.post("/stop/{aid}", dependencies=[Depends(authenticate)])

@@ -47,6 +47,31 @@ test('collect: 산출물·.env·심볼릭 링크를 빼고 상대 경로로 모�
   assert.deepEqual(collect(root, { includeEnv: true }).files.map((f) => f.name), ['.env', '.env.example', 'src/main.py'])
 })
 
+test('collect: target·build 같은 이름은 빌드 파일 옆일 때만 산출물로 뺀다 (Java 패키지 lab/target 은 남김)', () => {
+  for (const git of [false, true]) {
+    const root = mkdtempSync(join(tmpdir(), 'sentra-'))
+    const files = {
+      'backend/pom.xml': '<project/>',
+      'backend/src/main/java/lab/target/App.java': 'class App {}',
+      'backend/target/app.jar.original': 'x',
+      'web/package.json': '{}',
+      'web/build/index.js': 'x',
+      'web/src/build/plan.ts': 'x',
+      'docs/out/notes.md': 'x',
+    }
+    for (const [name, body] of Object.entries(files)) {
+      mkdirSync(join(root, name, '..'), { recursive: true })
+      writeFileSync(join(root, name), body)
+    }
+    if (git) execFileSync('git', ['-C', root, 'init', '-q'])
+    const r = collect(root)
+    assert.deepEqual(r.files.map((f) => f.name), [
+      'backend/pom.xml', 'backend/src/main/java/lab/target/App.java', 'docs/out/notes.md', 'web/package.json', 'web/src/build/plan.ts',
+    ], git ? 'git' : 'walk')
+    if (git) assert.equal(r.skipped.generated, 2)
+  }
+})
+
 // 저장소 compose 와 CLI compose 의 서비스 목록이 어긋나지 않게 (kafka-ui 는 개발용이라 제외)
 const services = (text) => [...text.split(/^services:\n/m)[1].split(/^\S/m)[0].matchAll(/^ {2}([a-z][a-z-]*):\s*$/gm)].map((m) => m[1]).sort()
 

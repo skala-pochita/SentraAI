@@ -138,9 +138,25 @@ async function follow(api, id) {
   }
 }
 
+// 전체 모드인데 격리 실행·공격 검사를 못 했으면 알린다. 발견 0건이 '공격에 안전함' 으로 읽히지 않게
+async function warnUnrunAttacks(api, id) {
+  let coverage
+  try {
+    coverage = (await api.report(id)).agent_coverage ?? []
+  } catch (e) {
+    return warn(`보고서를 읽지 못해 공격 검사 실행 여부를 확인하지 못했습니다: ${e.message}`)
+  }
+  for (const c of coverage) {
+    if (c.runtime?.status === 'ERROR' || c.attacks === 'NOT_RUN') {
+      warn(`에이전트 공격 검사를 실행하지 못했습니다 — 공격 관련 결과는 비어 있습니다.`)
+      console.log(dim(`  사유: ${c.runtime?.reason || c.reason || '사유 미상'}`))
+    }
+  }
+}
+
 async function startServer(api) {
-  const started = await ensureStack(step)
-  ok(started ? 'SentraAI 서버 준비 완료' : 'SentraAI 서버 실행 중')
+  const state = await ensureStack(step)
+  ok({ started: 'SentraAI 서버 준비 완료', updated: 'SentraAI 서버에 새 버전·설정 반영', running: 'SentraAI 서버 실행 중' }[state])
   const { mode } = await api.mode()
   if (mode !== 'local') throw new CliError(`포트 ${new URL(webUrl()).port} 에서 로컬 모드가 아닌 SentraAI 가 응답합니다.`, 'SENTRA_PORT 로 다른 포트를 지정하세요.')
   await ensureKnowledge(api)
@@ -202,6 +218,7 @@ async function audit(values, dirArg) {
     const s = a.summary?.by_severity ?? {}
     const parts = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'].filter((k) => s[k]).map((k) => SEV_PAINT[k](`${k} ${s[k]}`))
     ok(`감사 완료 — 발견 ${a.summary?.total ?? 0}건${parts.length ? `  ${parts.join(dim(' · '))}` : ''}`)
+    if (mode === 'full') await warnUnrunAttacks(api, id)
   } else {
     console.log(`${red('✖')} 감사 ${a.status === 'FAILED' ? '실패' : '취소'} — 자세한 내용은 대시보드에서 확인하세요.`)
     process.exitCode = 1
@@ -234,7 +251,7 @@ async function main() {
   if (cmd === 'setup') {
     await setup()
     // 서버가 떠 있으면 새 키로 컨테이너를 다시 만든다
-    if (await stackHealthy()) { await ensureStack(step, { force: true }); ok('새 설정을 서버에 반영했습니다') }
+    if (await stackHealthy()) { await ensureStack(step); ok('새 설정을 서버에 반영했습니다') }
     return
   }
   return audit(values, cmd === 'audit' ? rest[0] : cmd)

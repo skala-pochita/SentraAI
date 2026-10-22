@@ -18,4 +18,6 @@ async def prepare_sandbox(state: dict[str, Any], config: RunnableConfig) -> dict
         )
         return {"runtime": result}
     except AppError as exc:
+        # 실행하지 못한 공격 검사가 '취약점 없음' 으로 읽히지 않게 사유를 진행 기록에도 남긴다
+        await deps.event(state, "sandbox.failed", {"reason": exc.message, "code": str(exc.code)}, node="prepare_sandbox")
         return {"runtime": {"status": "ERROR", "reason": exc.message}, "errors": [node_error("prepare_sandbox", exc)]}
