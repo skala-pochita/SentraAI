@@ -29,10 +29,25 @@ async def sandbox_call(path: str, payload: dict[str, Any] | None = None, timeout
                 headers={"Authorization": "Bearer " + (settings.sandbox_service_token or settings.mcp_service_token)},
             )
         if not response.is_success:
+            # 422 는 프로젝트를 빌드·기동할 수 없다는 뜻이라 다시 해도 같다 → 재시도하지 않는다.
+            # 409(다른 감사가 실행 중)·5xx 는 일시적일 수 있어 재시도 대상으로 둔다
             raise AppError(
-                ErrorCode.UPSTREAM_ERROR,
-                "격리 실행 실패: " + str(response.json().get("detail", response.status_code))[:250],
+                ErrorCode.VALIDATION if response.status_code == 422 else ErrorCode.UPSTREAM_ERROR,
+                _failure_message(response)[:450],
             )
         return response.json()
     except (httpx.HTTPError, ValueError) as exc:
         raise AppError(ErrorCode.UPSTREAM_ERROR, "격리 실행 서비스 연결 또는 응답 오류") from exc
+
+
+def _failure_message(response: httpx.Response) -> str:
+    """sandbox-runner 오류 본문 {"error": {"message"}} 의 사유. 본문이 없으면 상태 코드."""
+    try:
+        body = response.json()
+    except ValueError:
+        body = None
+    error = body.get("error") if isinstance(body, dict) else None
+    message = str(error.get("message") or "") if isinstance(error, dict) else ""
+    if not message:
+        return f"격리 실행 실패: HTTP {response.status_code}"
+    return message if message.startswith("격리 실행") else "격리 실행 실패: " + message

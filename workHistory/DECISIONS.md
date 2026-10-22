@@ -65,3 +65,34 @@ Cloud 기능 제거 시 삭제된 리비전 0002가 기존 DB에 남아 API 시�
 - **의존성**: certifi 2026.10.19 (PYSEC-2026-4320), echarts 6.1 + vue-echarts 8 (GHSA-fgmj-fm8m-jvvx).
 - **`/quality` API 퇴역**: 품질 화면 제거(2026-10-20) 뒤 프론트·테스트 어디서도 쓰지 않던 고정 판정 집계 API 를 지운다. 품질 평가는 `isoReport.md` 로 대체.
 - **LLM 기각 보류 가드레일 확대** (`react_investigator._hold_reason`): 2026-10-20 A/B/C 실측(`b582d34a`)에서 B 가 놓친 코드 케이스 7건 중 5건(C02, C04×3, C06)은 정적 규칙이 잡은 후보를 LLM 이 FALSE_POSITIVE 로 지운 경우였다. 기존 보호는 신뢰도 ≥0.8 후보만 지켰고, `needs_llm_review: true` 규칙(permitAll·주석 속 자격증명·엔트로피)은 신뢰도가 낮아 보호 밖이었다. ① 감사기 인젝션 후보가 있는 파일에서는 LLM 이 다른 후보를 기각할 수 없다(I01: "보고하지 말 것" 주석 아래 C06). ② 자격증명 계열(HARDCODED_SECRET·HARDCODED_CREDENTIAL·SECRET_LEAK·COMMENT_SENSITIVE)은 테스트 경로(`src/test/`) 밖이면 기각 대신 NEEDS_REVIEW. 커밋된 자격증명은 '가짜 값·임시 계정' 주장을 감사기가 검증할 수 없기 때문이다. 함정 D01~D06 중 이 범주에서 정적 후보가 되는 것은 테스트 경로의 D01 뿐이라 함정 오탐은 늘지 않는다. 효과는 실 LLM 재측정으로 확인해야 한다.
+
+## 2026-10-22 — three.js 3D 시각화 (결합 위험 그래프·레드팀 공격 화면)
+
+명세에 없는 화면 요소로, 사용자 요청에 따라 추가한다. 데이터·API·백엔드는 바꾸지 않고 기존 응답과 SSE 이벤트만 읽는다.
+
+- **결합 위험 그래프** (`RiskGraph3D.vue`, 결합 위험 화면): Finding 을 노드(모양 = source, 색·크기 = 심각도), 위험 경로의 연속 Finding 을 엣지로 그린다. 경로 심각도만큼 파티클이 흘러 전파 방향을 보여 준다. 목록 카드에 마우스를 올리면 해당 경로만 강조, 노드 클릭 시 Finding 상세로 이동. 목록은 그대로 두어 3D 없이도 같은 정보를 볼 수 있다.
+- **레드팀 공격 화면** (`ProbeArena.vue`): 차단된 시도는 방어막에 튕기고 성공한 시도는 코어를 맞힌다. 감사 진행 화면에서는 `probe.progress` 이벤트(시도 수·성공 수)로 실시간 발사, 레드팀 결과 화면에서는 저장된 시도를 순서대로 재생한다. 이벤트에 시도별 순서가 없어 진행 화면의 성공·차단 순서는 실제 순서가 아니다. 적응형 probe(`P03-A11`)는 기본 probe 발사대에서 쏜다.
+- **번들 예산**: three 는 해당 컴포넌트를 `defineAsyncComponent` 로 불러올 때만 별도 청크(약 127KB gzip)로 내려받는다. 첫 화면 JS 예산(170KB gzip)에는 영향 없음.
+- WebGL 을 쓸 수 없으면 안내 문구를 보여 준다. 화면 밖에서는 렌더 루프를 멈추고, `prefers-reduced-motion` 이면 자동 회전과 장식 움직임을 끈다. 색은 테마 CSS 토큰을 읽어 라이트·다크 전환을 따른다.
+
+## 2026-10-22 — sentraai CLI 와 로컬 모드 (로그인 없음)
+
+명세에 없는 실행 방식으로, 사용자 요청에 따라 추가한다. 캡스톤 시연이 목적이며, 저장소를 받지 않은 사람이 `npm install -g <Release tgz>` → 감사할 디렉터리에서 `sentraai` 로 감사·대시보드까지 가는 흐름이다. 실행은 두 갈래가 된다: **웹 모드**(기존, 로그인·JWT·역할 3개)와 **CLI 로컬 모드**.
+
+- **배포**: 서버 이미지 3개(backend·frontend·target-agent)를 GHCR(`ghcr.io/skala-pochita/sentraai-*:<버전>`)에 arm64·amd64 로 올리고, CLI 는 `npm pack` 결과를 GitHub Release 에 첨부한다(`.github/workflows/release.yml`, v* 태그). npm 레지스트리는 쓰지 않는다. 저장소가 공개라 이미지 공개로 새로 드러나는 코드는 없다. 이미지에 실제 키가 없는지 `scripts/scan_image_secrets.sh` 로 검사한다(샘플·테스트의 가짜 키 경로 제외). `make cli-images` 는 같은 이름으로 로컬 빌드만 한다(push 없음).
+- **로컬 모드** (`AUTH_MODE=local`, `api/local_mode.py`): 토큰 없이 고정 사용자 `User`(ADMIN, 로그인 불가 임의 비밀번호)로 처리한다. 혼자 쓰는 로컬이라 모든 메뉴를 연다. 인증이 없는 대신 ① compose 는 nginx 포트 하나만 `127.0.0.1` 에 열고 API·DB·Kafka·MCP 는 열지 않는다 ② Host 검사로 DNS 리바인딩 차단(nginx 가 `X-Forwarded-Host` 전달) ③ Origin·`Sec-Fetch-Site` 검사로 다른 웹페이지의 요청 차단 ④ 상태 변경 요청에 `X-Sentra-Local: 1` 헤더 요구(교차 출처면 CORS preflight 에서 막힘). 웹 모드 동작은 바뀌지 않는다.
+- **CLI** (`cli/`): 외부 의존성 없는 Node(22.13+). 패키지에 든 `compose.yml` 을 `~/.sentraai/` 로 복사해 프로젝트 이름 `sentraai`, 포트 5180 으로 띄운다(웹 모드 5173 과 공존). 첫 실행에 OpenAI 키(입력 숨김, `/v1/models` 로 유효성 확인 — 키는 OpenAI 에만 보냄)와 LangSmith 키(선택)를 받아 `~/.sentraai/.env`(0600)에 저장하고, JWT·MCP 서비스 토큰은 무작위로 만든다. Docker 가 꺼져 있으면 켜 달라고 안내하며 자동 기동도 시도한다. 감사 대상의 `.env` 는 기본 제외(`--include-env`), git 저장소면 `.gitignore` 를 따른다. 지식 문서가 비어 있으면 `api.seed --local` 로 로컬 사용자·보안 기준 문서만 색인한다.
+- `cli/compose.yml` 은 저장소 `docker-compose.yml` 과 서비스 목록이 같아야 한다(cli 테스트가 비교).
+- **업로드 한도 대응**: 서버 한도(압축 20MiB)는 그대로 두고, CLI 가 감사에 쓰지 않는 큰 파일을 뺀다 — 512KB 넘는 바이너리(확장자 또는 NUL 바이트로 판단), 5MB 넘는 파일. 작은 바이너리(gradle-wrapper.jar 등)는 격리 실행 빌드에 필요할 수 있어 남긴다. 사용자는 `.sentraaiignore`·`--exclude` 로 더 뺄 수 있고, 한도를 넘으면 서버를 띄우기 전에 큰 디렉터리·파일 목록을 보여 준다. 실제 프로젝트가 29.8MB 로 거절된 사례(rc.1)에서 정했다.
+
+## 2026-10-22 — 업로드 에이전트가 격리 실행되지 않던 문제 (leak 사례)
+
+로컬 CLI 로 `leak`(Spring Boot backend + Python agent)을 감사했을 때 에이전트가 한 번도 실행되지 않았고, 보고서에는 `격리 실행 실패: 422` 만 남았다. 원인 세 가지를 고친다.
+
+- **CLI 수집 규칙** (`cli/lib/collect.js`): `target`·`build`·`dist`·`out`·`coverage` 를 이름만으로 빼면서 Java 패키지 `lab/target/` 의 소스 4개가 업로드에서 빠졌다 → `mvn package` 의 Spring Boot repackage 가 "Unable to find main class" 로 실패. 이 다섯 이름은 **바로 옆에 빌드 파일**(pom.xml, build.gradle, package.json, pyproject.toml 등)이 있을 때만 산출물로 본다. `.git`·`node_modules`·캐시류는 지금처럼 이름만으로 뺀다. git 저장소·일반 디렉터리 모두 같은 규칙.
+- **CLI 스택 갱신** (`cli/lib/docker.js` `ensureStack`): 서버가 healthy 면 바로 돌아가서, 첫 실행에 입력한 키와 CLI 업그레이드(rc.1→rc.2)가 컨테이너에 반영되지 않았다(컨테이너 안 OpenAI 키 비어 있음 → LLM 조사 생략). 이제 매번 `compose up -d --wait` 를 하고, 이미지 태그나 `.env` 가 바뀐 서비스만 compose 가 다시 만든다. 바뀐 게 없으면 수 초 안에 끝난다. 결과는 `started | updated | running`.
+- **실패 사유 전달**:
+  - sandbox-runner 는 오류를 `AppError` 로 돌려준다(본문 `{"error": {...}}`). 직접 쓴 메시지(ValueError·RuntimeError·AppError)는 `mask_text` 를 거쳐 그대로, Docker SDK 오류는 이름만 내보낸다. 이미지 빌드 실패에는 서비스 이름과 빌드 도구의 첫 오류 줄(Maven `[ERROR]`, pip `ERROR:`, npm `npm ERR!` 등)을 붙인다.
+  - 다른 감사가 실행 중이면 409(CONFLICT), 프로젝트를 빌드·기동할 수 없으면 422(VALIDATION).
+  - `core/sandbox_client.py` 가 `detail` 이 아니라 `error.message` 를 읽는다. 422 는 VALIDATION(재시도 안 함 — 같은 프로젝트는 다시 해도 실패, 이전에는 3회 재시도로 84초 소모), 409·5xx 는 UPSTREAM_ERROR(재시도).
+  - `prepare_sandbox` 노드가 실패 시 `sandbox.failed` 이벤트를 남기고, CLI 는 전체 모드 감사 끝에 공격 검사를 못 했으면 경고와 사유를 출력한다. 보안 감사에서 "실행 못 함"이 "취약점 0건"으로 읽히는 것을 막기 위해서다.

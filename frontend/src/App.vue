@@ -43,7 +43,7 @@ async function logout() { await auth.logout(); router.push('/login') }
         <div v-if="auth.user" class="me">
           <span class="avatar">{{ initials }}</span>
           <span style="min-width:0"><div class="me-name">{{ auth.user.name }}</div><div class="me-role">{{ auth.user.role }}</div></span>
-          <button class="icon-btn" aria-label="로그아웃" title="로그아웃" @click="logout"><Icon name="logout" :size="17" /></button>
+          <button v-if="!auth.local" class="icon-btn" aria-label="로그아웃" title="로그아웃" @click="logout"><Icon name="logout" :size="17" /></button>
         </div>
       </div>
     </aside>

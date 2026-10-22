@@ -37,6 +37,8 @@ export async function api<T = unknown>(path: string, init: RequestInit = {}, ret
   const headers = new Headers(init.headers)
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   if (tokens.access) headers.set('Authorization', `Bearer ${tokens.access}`)
+  // CLI 로컬 모드 API 는 상태 변경 요청에 이 헤더를 요구한다 (웹 모드에서는 무시됨)
+  headers.set('X-Sentra-Local', '1')
   const res = await fetch(`${BASE}${path}`, { ...init, headers })
   if (res.status === 401 && retry && (await tryRefresh())) return api<T>(path, init, false)
   if (!res.ok) {

@@ -36,3 +36,6 @@ docs/*
 !docs/security_QA_ver.01.md
 
 /private/vault/
+
+# sentraai CLI 패키지 (npm pack 산출물)
+cli/*.tgz

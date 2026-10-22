@@ -1,16 +1,24 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { get } from '../api/client'
 import Icon from '../components/Icon.vue'
 import AuditTabs from '../components/AuditTabs.vue'
+import type { Shot } from '../three/stage'
+const ProbeArena = defineAsyncComponent(() => import('../components/ProbeArena.vue'))
 interface Run { id: string; attempt: number; success: boolean; reply_masked: string; tool_calls: unknown[]; judged_by: string }
 interface Row { probe_id: string; category: string; channel: string; runs: Run[] }
 const id = useRoute().params.id as string
 const data = ref<{ probes: Row[]; asr_by_category: Record<string, number>; coverage: { target_id: string; static: string; attacks: string; reason: string; model_verification?: string; runtime: { status: string; mode?: string; reason?: string } }[] } | null>(null)
 const open = ref<Run | null>(null)
 const openProbe = ref('')
-onMounted(async () => { data.value = await get(`/audits/${id}/probes`) })
+const shots = ref<Shot[]>([])
+onMounted(async () => { data.value = await get(`/audits/${id}/probes`); replay() })
+// 시도 순번별로 모든 probe 가 한 번씩 쏘도록 섞어 일제 사격처럼 재생한다 (적응형 probe 는 기본 probe 발사대에서)
+function replay() {
+  const all = (data.value?.probes ?? []).flatMap((p) => p.runs.map((r) => ({ lane: p.probe_id.replace(/-A\d+$/, ''), success: r.success, attempt: r.attempt })))
+  shots.value = all.sort((a, b) => a.attempt - b.attempt).map(({ lane, success }) => ({ lane, success }))
+}
 const tone = (v: number) => (v >= 0.5 ? 'var(--critical)' : v > 0 ? 'var(--warn)' : 'var(--ok)')
 function pick(p: Row, r: Run) { open.value = r; openProbe.value = p.probe_id }
 </script>
@@ -21,6 +29,11 @@ function pick(p: Row, r: Run) { open.value = r; openProbe.value = p.probe_id }
       <p class="muted small">{{ c.reason || c.runtime.reason }} · 실행 모드: {{ c.runtime.mode ?? '미실행' }} · 모델 검증: {{ c.model_verification ?? '미확인' }}</p>
       <p v-if="c.runtime.mode === 'mock'" class="muted small">모의 에이전트의 도구 실행 검증입니다. 실제 LLM의 방어 성능을 의미하지 않습니다.</p>
     </div>
+  </div>
+  <div v-if="data && shots.length" class="card mb">
+    <div class="card-head"><h3><Icon name="crosshair" :size="16" />공격 재생</h3><span class="muted small">probe 시도 {{ shots.length }}건을 기록 순서대로 다시 보여줍니다</span>
+      <span class="spacer" /><button class="btn" @click="replay"><Icon name="refresh" :size="14" />다시 재생</button></div>
+    <ProbeArena :feed="shots" />
   </div>
   <div v-if="data" class="grid side">
     <div class="card">

@@ -204,12 +204,15 @@ async def test_rejects_bad_input_and_concurrent_audits(fake: FakeDocker) -> None
         first = str(uuid.uuid4())
         assert (await c.post("/start", json=body(first), headers=AUTH)).status_code == 200
         busy = await c.post("/start", json=body(str(uuid.uuid4())), headers=AUTH)
-        assert busy.status_code == 422 and "RuntimeError" in busy.text  # 한 번에 프로젝트 하나
+        # 한 번에 프로젝트 하나. 일시적이라 409(재시도 대상)
+        assert busy.status_code == 409 and "another sandbox audit is running" in busy.json()["error"]["message"]
         await c.post(f"/stop/{first}", headers=AUTH)
 
         fake.build_events = [{"error": "boom"}]
         failed = str(uuid.uuid4())
-        assert (await c.post("/start", json=body(failed), headers=AUTH)).status_code == 422
+        res = await c.post("/start", json=body(failed), headers=AUTH)
+        assert res.status_code == 422
+        assert res.json()["error"]["message"] == "격리 실행 실패: image build for backend failed: boom"
         assert failed not in server.active  # 실패하면 정리
 
         fake.build_events = [{"stream": "Successfully built abc123"}]
@@ -225,6 +228,63 @@ async def test_rejects_bad_input_and_concurrent_audits(fake: FakeDocker) -> None
     server.active["x"] = {"helper": None, "url": "http://agent:8000"}
     with pytest.raises(ValueError):
         server.request("x", "/admin")
+
+
+async def test_build_failure_reports_build_tool_cause(fake: FakeDocker) -> None:
+    # 소스가 빠져 Spring Boot repackage 가 실패한 실제 사례(leak, lab/target 패키지 누락)의 Maven 출력
+    maven = [
+        "[INFO] BUILD FAILURE",
+        "[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.5.7:repackage "
+        "(repackage) on project target-backend: Unable to find main class -> [Help 1]",
+        "[ERROR] ",
+        "[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.",
+        "[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException",
+    ]
+    fake.build_events = [{"stream": line + "\n"} for line in maven] + [
+        {"error": "The command '/bin/sh -c mvn -B package' returned a non-zero code: 1"}
+    ]
+    async with api() as c:
+        res = await c.post("/start", json=body(str(uuid.uuid4())), headers=AUTH)
+    message = res.json()["error"]["message"]
+    assert res.status_code == 422
+    assert message.startswith("격리 실행 실패: image build for backend failed: The command '/bin/sh -c mvn -B package'")
+    assert "Unable to find main class" in message and "To see the full stack trace" not in message
+
+
+def test_build_failure_without_tool_error_line_keeps_docker_message() -> None:
+    assert server.build_failure("agent", "returned a non-zero code: 2", ["Step 3/5 : RUN make", "compiling ErrorView.ts"]) == (
+        "image build for agent failed: returned a non-zero code: 2"
+    )
+    pip = ["Collecting nope==9.9", "ERROR: No matching distribution found for nope==9.9"]
+    assert "(ERROR: No matching distribution found for nope==9.9)" in server.build_failure("agent", "code: 1", pip)
+
+
+async def test_sandbox_client_keeps_reason_and_only_retries_transient_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    from core import sandbox_client
+    from core.errors import AppError, ErrorCode
+
+    replies = {
+        "/start": httpx.Response(422, json={"error": {"code": "VALIDATION", "message": "격리 실행 실패: image build for backend failed: boom"}}),
+        "/busy": httpx.Response(409, json={"error": {"code": "CONFLICT", "message": "격리 실행 대기: another sandbox audit is running"}}),
+        "/bare": httpx.Response(500, text="oops"),
+    }
+    transport = httpx.MockTransport(lambda req: replies[req.url.path])
+    real = httpx.AsyncClient
+    monkeypatch.setattr(sandbox_client.httpx, "AsyncClient", lambda **kw: real(transport=transport, **kw))
+    monkeypatch.setenv("SANDBOX_URL", "http://sandbox-runner:8300")
+    get_settings.cache_clear()
+
+    with pytest.raises(AppError) as exc:
+        await sandbox_client.sandbox_call("/start", {})
+    assert exc.value.code == ErrorCode.VALIDATION and not exc.value.retryable  # 같은 프로젝트는 다시 해도 실패
+    assert exc.value.message == "격리 실행 실패: image build for backend failed: boom"
+    with pytest.raises(AppError) as exc:
+        await sandbox_client.sandbox_call("/busy", {})
+    assert exc.value.retryable and exc.value.message == "격리 실행 대기: another sandbox audit is running"
+    with pytest.raises(AppError) as exc:
+        await sandbox_client.sandbox_call("/bare", {})
+    assert exc.value.retryable and exc.value.message == "격리 실행 실패: HTTP 500"
+    get_settings.cache_clear()
 
 
 def test_reaper_stops_only_expired(fake: FakeDocker, monkeypatch: pytest.MonkeyPatch) -> None:

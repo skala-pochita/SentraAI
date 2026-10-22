@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     langsmith_api_key: str = ""
 
-    # Auth
+    # Auth — local: CLI 로컬 모드 (로그인 없이 고정 사용자, api/local_mode.py)
+    auth_mode: Literal["server", "local"] = "server"
     jwt_secret: str = Field(default="dev-only-jwt-secret-change-me-32bytes!!")
     access_token_min: int = 15
     refresh_token_days: int = 7

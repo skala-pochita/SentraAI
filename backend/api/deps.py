@@ -10,6 +10,7 @@ from fastapi import Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.local_mode import is_local, local_user
 from api.security import decode_token
 from core.db.models import Target, User
 from core.db.session import get_db
@@ -45,6 +46,10 @@ async def get_current_user(
     token: str | None = Query(default=None, include_in_schema=False),
     db: AsyncSession = Depends(get_db),
 ) -> CurrentUser:
+    if is_local():
+        # 로컬 모드는 토큰을 보지 않는다 (웹 모드에서 남은 토큰이 있어도 무시)
+        u = await local_user(db)
+        return CurrentUser(u.id, u.email, u.name, u.role, "local", 0)
     claims = decode_token(_bearer(request, token), "access")
     if await get_redis().exists(f"auth:blacklist:{claims['jti']}"):
         raise AppError(ErrorCode.UNAUTHORIZED, "token revoked")

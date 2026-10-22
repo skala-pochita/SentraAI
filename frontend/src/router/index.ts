@@ -30,6 +30,7 @@ const router = createRouter({ history: createWebHistory(), routes })
 router.beforeEach(async (to) => {
   const auth = useAuth()
   await auth.load()
+  if (auth.local && to.path === '/login') return { path: '/' }
   if (to.meta.public) return true
   if (!auth.user) return { path: '/login', query: { next: to.fullPath } }
   if (to.meta.roles && !to.meta.roles.includes(auth.user.role)) return { path: '/' }
