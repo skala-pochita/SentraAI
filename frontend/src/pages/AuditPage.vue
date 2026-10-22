@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { get } from '../api/client'
 import { sse } from '../api/sse'
@@ -7,6 +7,9 @@ import type { Audit } from '../api/types'
 import Sev from '../components/Sev.vue'
 import Icon from '../components/Icon.vue'
 import AuditTabs from '../components/AuditTabs.vue'
+import type { Shot } from '../three/stage'
+// three.js 는 probe 이벤트가 처음 도착할 때만 내려받는다
+const ProbeArena = defineAsyncComponent(() => import('../components/ProbeArena.vue'))
 
 const route = useRoute()
 const id = route.params.id as string
@@ -16,6 +19,16 @@ const error = ref('')
 const logEl = ref<HTMLElement | null>(null)
 const follow = ref(true)
 const ctl = new AbortController()
+const shots = ref<Shot[]>([])
+
+// probe.progress 는 probe 하나의 시도 수·성공 수만 알려 주므로 그만큼 발사한다 (적응형 probe 는 기본 probe 발사대에서)
+function onProbe(p: Record<string, unknown>) {
+  if (typeof p.probe_id !== 'string') return
+  const lane = p.probe_id.replace(/-A\d+$/, '')
+  const n = Number(p.attempts) || 0
+  const hit = Number(p.successes) || 0
+  for (let i = 0; i < n; i++) shots.value.push({ lane, success: i < hit })
+}
 
 const done = computed(() => audit.value && ['COMPLETED', 'FAILED', 'CANCELLED'].includes(audit.value.status))
 async function refresh() {
@@ -28,6 +41,7 @@ async function subscribe() {
       await sse(`/api/v1/audits/${id}/events`, (m) => {
         try {
           const d = JSON.parse(m.data); events.value.push({ type: d.type ?? m.event, node: d.node, payload: d.payload ?? {}, ts: d.ts })
+          if ((d.type ?? m.event) === 'probe.progress') onProbe(d.payload ?? {})
           if (follow.value) void nextTick(() => logEl.value?.scrollTo({ top: logEl.value.scrollHeight }))
         } catch { /* ping */ }
         if (m.event.startsWith('audit.') || m.event === 'node.finished') void refresh()
@@ -82,6 +96,12 @@ function onScroll() {
         </div>
         <p class="section-title mt">심각도</p>
         <div class="chips"><Sev v-for="[k, v] in sevs" :key="k" :v="k" :n="v" /><span v-if="!sevs.length" class="muted small">결과 대기</span></div>
+      </div>
+
+      <div v-if="shots.length" class="card">
+        <div class="card-head"><h3><Icon name="crosshair" :size="16" />레드팀 공격</h3>
+          <span class="badge tone" :class="done ? '' : 'ok'"><span v-if="!done" class="live" />{{ done ? '종료' : '실시간' }}</span></div>
+        <ProbeArena :feed="shots" :height="320" />
       </div>
 
       <div v-if="audit.status === 'COMPLETED'" class="grid cols-2">
