@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, statSync, symlinkSync, writeFileS
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { collect, isEnvFile } from '../lib/collect.js'
+import { collect, ignoreMatcher, isEnvFile, MAX_BINARY_BYTES, MAX_FILE_BYTES } from '../lib/collect.js'
 import { buildZip } from '../lib/zip.js'
 
 // 서버는 Python zipfile 로 푼다 — 같은 라이브러리로 열리는지 확인
@@ -70,4 +70,36 @@ test('writeConfig: 본인만 읽는 권한, 비밀값은 처음 한 번 만들�
   assert.equal(b.JWT_SECRET, a.JWT_SECRET)
   assert.equal(b.MCP_SERVICE_TOKEN, a.MCP_SERVICE_TOKEN)
   assert.deepEqual([readConfig().OPENAI_API_KEY, readConfig().LANGSMITH_API_KEY], ['sk-test-2', 'ls-1'])
+})
+
+test('collect: 큰 바이너리·아주 큰 파일은 빼고, 작은 바이너리(빌드 파일)는 남긴다', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sentra-big-'))
+  mkdirSync(join(root, 'gradle/wrapper'), { recursive: true })
+  writeFileSync(join(root, 'gradle/wrapper/gradle-wrapper.jar'), Buffer.alloc(60 * 1024, 1)) // 작은 jar → 유지
+  writeFileSync(join(root, 'model.bin'), Buffer.alloc(MAX_BINARY_BYTES + 1, 7)) // 큰 바이너리(확장자) → 제외
+  const blob = Buffer.alloc(MAX_BINARY_BYTES + 1, 65); blob[10] = 0
+  writeFileSync(join(root, 'data.unknown'), blob) // 확장자 모름 + NUL 바이트 → 바이너리 → 제외
+  writeFileSync(join(root, 'dump.sql'), Buffer.alloc(MAX_FILE_BYTES + 1, 65)) // 아주 큰 텍스트 → 제외
+  writeFileSync(join(root, 'big.json'), Buffer.alloc(MAX_BINARY_BYTES + 1, 65)) // 5MB 미만 텍스트 → 유지
+  const r = collect(root)
+  assert.deepEqual(r.files.map((f) => f.name), ['big.json', 'gradle/wrapper/gradle-wrapper.jar'])
+  assert.deepEqual(r.skipped.large.map((f) => f.name), ['dump.sql', 'data.unknown', 'model.bin']) // 큰 순서
+})
+
+test('ignoreMatcher: 디렉터리·확장자·경로 패턴', () => {
+  const m = ignoreMatcher(['# 주석', 'data/', '*.csv', 'docs/images', 'assets/**/*.svg'])
+  for (const p of ['data/a.txt', 'src/data/b.py', 'x.csv', 'a/b/c.csv', 'docs/images/1.png', 'assets/icons/x/y.svg']) assert.equal(m(p), true, p)
+  for (const p of ['data', 'src/database.py', 'csv.py', 'docs/imagesx/1.png', 'src/docs/images/1.png', 'assets/a.png']) assert.equal(m(p), false, p)
+})
+
+test('collect: .sentraaiignore 와 exclude 옵션', () => {
+  const root = mkdtempSync(join(tmpdir(), 'sentra-ign-'))
+  mkdirSync(join(root, 'fixtures'))
+  writeFileSync(join(root, 'app.py'), 'x')
+  writeFileSync(join(root, 'fixtures/f.json'), 'x')
+  writeFileSync(join(root, 'notes.log'), 'x')
+  writeFileSync(join(root, '.sentraaiignore'), 'fixtures/\n')
+  const r = collect(root, { exclude: ['*.log'] })
+  assert.deepEqual(r.files.map((f) => f.name), ['.sentraaiignore', 'app.py'])
+  assert.equal(r.skipped.ignored, 2)
 })
