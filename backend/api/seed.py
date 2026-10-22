@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.local_mode import local_user
 from api.security import hash_password
 from core.db.models import Target, User
 from core.db.session import session_scope
@@ -67,8 +69,15 @@ async def seed_targets(db: AsyncSession, owner: User) -> tuple[Target, Target]:
     return repo, agent
 
 
-async def main() -> None:
+async def main(local: bool = False) -> None:
     logging.basicConfig(level=logging.INFO)
+    if local:
+        # CLI 로컬 모드: 데모 계정·대상 없이 로컬 사용자와 보안 기준 문서만
+        async with session_scope() as db:
+            await local_user(db)
+            docs = await ingest_dir(db, get_settings().knowledge_dir)
+            log.info("local seed: indexed knowledge documents: %s", docs)
+        return
     async with session_scope() as db:
         users = await seed_users(db)
         repo, agent = await seed_targets(db, users["DEVELOPER"])
@@ -79,4 +88,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(local="--local" in sys.argv[1:]))

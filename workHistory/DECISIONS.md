@@ -74,3 +74,12 @@ Cloud 기능 제거 시 삭제된 리비전 0002가 기존 DB에 남아 API 시�
 - **레드팀 공격 화면** (`ProbeArena.vue`): 차단된 시도는 방어막에 튕기고 성공한 시도는 코어를 맞힌다. 감사 진행 화면에서는 `probe.progress` 이벤트(시도 수·성공 수)로 실시간 발사, 레드팀 결과 화면에서는 저장된 시도를 순서대로 재생한다. 이벤트에 시도별 순서가 없어 진행 화면의 성공·차단 순서는 실제 순서가 아니다. 적응형 probe(`P03-A11`)는 기본 probe 발사대에서 쏜다.
 - **번들 예산**: three 는 해당 컴포넌트를 `defineAsyncComponent` 로 불러올 때만 별도 청크(약 127KB gzip)로 내려받는다. 첫 화면 JS 예산(170KB gzip)에는 영향 없음.
 - WebGL 을 쓸 수 없으면 안내 문구를 보여 준다. 화면 밖에서는 렌더 루프를 멈추고, `prefers-reduced-motion` 이면 자동 회전과 장식 움직임을 끈다. 색은 테마 CSS 토큰을 읽어 라이트·다크 전환을 따른다.
+
+## 2026-10-22 — sentraai CLI 와 로컬 모드 (로그인 없음)
+
+명세에 없는 실행 방식으로, 사용자 요청에 따라 추가한다. 캡스톤 시연이 목적이며, 저장소를 받지 않은 사람이 `npm install -g <Release tgz>` → 감사할 디렉터리에서 `sentraai` 로 감사·대시보드까지 가는 흐름이다. 실행은 두 갈래가 된다: **웹 모드**(기존, 로그인·JWT·역할 3개)와 **CLI 로컬 모드**.
+
+- **배포**: 서버 이미지 3개(backend·frontend·target-agent)를 GHCR(`ghcr.io/skala-pochita/sentraai-*:<버전>`)에 arm64·amd64 로 올리고, CLI 는 `npm pack` 결과를 GitHub Release 에 첨부한다(`.github/workflows/release.yml`, v* 태그). npm 레지스트리는 쓰지 않는다. 저장소가 공개라 이미지 공개로 새로 드러나는 코드는 없다. 이미지에 실제 키가 없는지 `scripts/scan_image_secrets.sh` 로 검사한다(샘플·테스트의 가짜 키 경로 제외). `make cli-images` 는 같은 이름으로 로컬 빌드만 한다(push 없음).
+- **로컬 모드** (`AUTH_MODE=local`, `api/local_mode.py`): 토큰 없이 고정 사용자 `User`(ADMIN, 로그인 불가 임의 비밀번호)로 처리한다. 혼자 쓰는 로컬이라 모든 메뉴를 연다. 인증이 없는 대신 ① compose 는 nginx 포트 하나만 `127.0.0.1` 에 열고 API·DB·Kafka·MCP 는 열지 않는다 ② Host 검사로 DNS 리바인딩 차단(nginx 가 `X-Forwarded-Host` 전달) ③ Origin·`Sec-Fetch-Site` 검사로 다른 웹페이지의 요청 차단 ④ 상태 변경 요청에 `X-Sentra-Local: 1` 헤더 요구(교차 출처면 CORS preflight 에서 막힘). 웹 모드 동작은 바뀌지 않는다.
+- **CLI** (`cli/`): 외부 의존성 없는 Node(22.13+). 패키지에 든 `compose.yml` 을 `~/.sentraai/` 로 복사해 프로젝트 이름 `sentraai`, 포트 5180 으로 띄운다(웹 모드 5173 과 공존). 첫 실행에 OpenAI 키(입력 숨김, `/v1/models` 로 유효성 확인 — 키는 OpenAI 에만 보냄)와 LangSmith 키(선택)를 받아 `~/.sentraai/.env`(0600)에 저장하고, JWT·MCP 서비스 토큰은 무작위로 만든다. Docker 가 꺼져 있으면 켜 달라고 안내하며 자동 기동도 시도한다. 감사 대상의 `.env` 는 기본 제외(`--include-env`), git 저장소면 `.gitignore` 를 따른다. 지식 문서가 비어 있으면 `api.seed --local` 로 로컬 사용자·보안 기준 문서만 색인한다.
+- `cli/compose.yml` 은 저장소 `docker-compose.yml` 과 서비스 목록이 같아야 한다(cli 테스트가 비교).
