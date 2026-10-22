@@ -12,10 +12,37 @@ export const MAX_BINARY_BYTES = 512 * 1024
 export const MAX_FILE_BYTES = 5 * 1024 * 1024
 export const IGNORE_FILE = '.sentraaiignore'
 
+// 이름만으로 산출물·캐시라고 볼 수 있는 디렉터리
 const SKIP_DIRS = new Set([
   '.git', 'node_modules', '.venv', 'venv', '__pycache__', '.mypy_cache', '.pytest_cache', '.ruff_cache',
-  'dist', 'build', 'target', 'out', '.next', '.nuxt', '.gradle', '.idea', '.vscode', 'coverage', '.terraform',
+  '.next', '.nuxt', '.gradle', '.idea', '.vscode', '.terraform',
 ])
+// 소스 디렉터리 이름으로도 흔한 산출물 이름 (예: Java 패키지 lab/target). 바로 옆에 빌드 파일이 있을 때만 산출물로 본다
+const BUILD_OUTPUT_DIRS = new Map([
+  ['target', ['pom.xml', 'Cargo.toml', 'build.sbt']],
+  ['build', ['build.gradle', 'build.gradle.kts', 'settings.gradle', 'settings.gradle.kts', 'package.json', 'pyproject.toml', 'setup.py', 'CMakeLists.txt']],
+  ['dist', ['package.json', 'pyproject.toml', 'setup.py']],
+  ['out', ['package.json', 'build.gradle', 'build.gradle.kts']],
+  ['coverage', ['package.json', 'pyproject.toml', 'setup.py']],
+])
+
+/** (부모 디렉터리의 루트 기준 상대 경로, 디렉터리 이름) → 산출물이면 true. 빌드 파일 확인 결과는 캐시한다 */
+export function generatedDirs(root) {
+  const cache = new Map()
+  return (parent, name) => {
+    if (SKIP_DIRS.has(name)) return true
+    const manifests = BUILD_OUTPUT_DIRS.get(name)
+    if (!manifests) return false
+    const key = `${parent}/${name}`
+    if (!cache.has(key)) cache.set(key, manifests.some((m) => existsSync(join(root, parent, m))))
+    return cache.get(key)
+  }
+}
+
+const inGeneratedDir = (isGenerated, name) => {
+  const parts = name.split('/')
+  return parts.slice(0, -1).some((p, i) => isGenerated(parts.slice(0, i).join('/'), p))
+}
 
 // 확장자만 보고 바이너리로 판단하는 형식 (나머지는 앞부분에 NUL 바이트가 있는지 본다)
 const BINARY_EXT = new Set([
@@ -74,10 +101,10 @@ function gitFiles(root) {
   return out.toString('utf8').split('\0').filter(Boolean)
 }
 
-function walk(root, dir = root, acc = []) {
+function walk(root, isGenerated, dir = root, acc = []) {
   for (const d of readdirSync(dir, { withFileTypes: true })) {
     if (d.isDirectory()) {
-      if (!SKIP_DIRS.has(d.name)) walk(root, join(dir, d.name), acc)
+      if (!isGenerated(relative(root, dir).split(sep).join('/'), d.name)) walk(root, isGenerated, join(dir, d.name), acc)
     } else if (d.isFile() || d.isSymbolicLink()) {
       acc.push(relative(root, join(dir, d.name)).split(sep).join('/'))
     }
@@ -94,12 +121,13 @@ function walk(root, dir = root, acc = []) {
 export function collect(root, { includeEnv = false, exclude = [] } = {}) {
   const ignoreFile = join(root, IGNORE_FILE)
   const ignored = ignoreMatcher([...(existsSync(ignoreFile) ? readFileSync(ignoreFile, 'utf8').split('\n') : []), ...exclude])
-  const names = gitFiles(root) ?? walk(root)
+  const isGenerated = generatedDirs(root)
+  const names = gitFiles(root) ?? walk(root, isGenerated)
   const files = []
   const skipped = { env: [], symlinks: 0, generated: 0, ignored: 0, large: [] }
   let bytes = 0
   for (const name of names) {
-    if (name.split('/').some((p) => SKIP_DIRS.has(p))) { skipped.generated++; continue }
+    if (inGeneratedDir(isGenerated, name)) { skipped.generated++; continue }
     if (ignored(name)) { skipped.ignored++; continue }
     if (!includeEnv && isEnvFile(name)) { skipped.env.push(name); continue }
     const abs = join(root, name)

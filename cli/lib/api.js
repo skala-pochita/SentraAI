@@ -37,5 +37,6 @@ export function client(apiBase) {
     readiness: (tid) => call('GET', `/targets/${tid}/execution`),
     startAudit: (targetIds, mode) => call('POST', '/audits', { json: { target_ids: targetIds, mode } }),
     audit: (id) => call('GET', `/audits/${id}`),
+    report: (id) => call('GET', `/audits/${id}/report`),
   }
 }

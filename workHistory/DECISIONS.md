@@ -84,3 +84,15 @@ Cloud 기능 제거 시 삭제된 리비전 0002가 기존 DB에 남아 API 시�
 - **CLI** (`cli/`): 외부 의존성 없는 Node(22.13+). 패키지에 든 `compose.yml` 을 `~/.sentraai/` 로 복사해 프로젝트 이름 `sentraai`, 포트 5180 으로 띄운다(웹 모드 5173 과 공존). 첫 실행에 OpenAI 키(입력 숨김, `/v1/models` 로 유효성 확인 — 키는 OpenAI 에만 보냄)와 LangSmith 키(선택)를 받아 `~/.sentraai/.env`(0600)에 저장하고, JWT·MCP 서비스 토큰은 무작위로 만든다. Docker 가 꺼져 있으면 켜 달라고 안내하며 자동 기동도 시도한다. 감사 대상의 `.env` 는 기본 제외(`--include-env`), git 저장소면 `.gitignore` 를 따른다. 지식 문서가 비어 있으면 `api.seed --local` 로 로컬 사용자·보안 기준 문서만 색인한다.
 - `cli/compose.yml` 은 저장소 `docker-compose.yml` 과 서비스 목록이 같아야 한다(cli 테스트가 비교).
 - **업로드 한도 대응**: 서버 한도(압축 20MiB)는 그대로 두고, CLI 가 감사에 쓰지 않는 큰 파일을 뺀다 — 512KB 넘는 바이너리(확장자 또는 NUL 바이트로 판단), 5MB 넘는 파일. 작은 바이너리(gradle-wrapper.jar 등)는 격리 실행 빌드에 필요할 수 있어 남긴다. 사용자는 `.sentraaiignore`·`--exclude` 로 더 뺄 수 있고, 한도를 넘으면 서버를 띄우기 전에 큰 디렉터리·파일 목록을 보여 준다. 실제 프로젝트가 29.8MB 로 거절된 사례(rc.1)에서 정했다.
+
+## 2026-10-22 — 업로드 에이전트가 격리 실행되지 않던 문제 (leak 사례)
+
+로컬 CLI 로 `leak`(Spring Boot backend + Python agent)을 감사했을 때 에이전트가 한 번도 실행되지 않았고, 보고서에는 `격리 실행 실패: 422` 만 남았다. 원인 세 가지를 고친다.
+
+- **CLI 수집 규칙** (`cli/lib/collect.js`): `target`·`build`·`dist`·`out`·`coverage` 를 이름만으로 빼면서 Java 패키지 `lab/target/` 의 소스 4개가 업로드에서 빠졌다 → `mvn package` 의 Spring Boot repackage 가 "Unable to find main class" 로 실패. 이 다섯 이름은 **바로 옆에 빌드 파일**(pom.xml, build.gradle, package.json, pyproject.toml 등)이 있을 때만 산출물로 본다. `.git`·`node_modules`·캐시류는 지금처럼 이름만으로 뺀다. git 저장소·일반 디렉터리 모두 같은 규칙.
+- **CLI 스택 갱신** (`cli/lib/docker.js` `ensureStack`): 서버가 healthy 면 바로 돌아가서, 첫 실행에 입력한 키와 CLI 업그레이드(rc.1→rc.2)가 컨테이너에 반영되지 않았다(컨테이너 안 OpenAI 키 비어 있음 → LLM 조사 생략). 이제 매번 `compose up -d --wait` 를 하고, 이미지 태그나 `.env` 가 바뀐 서비스만 compose 가 다시 만든다. 바뀐 게 없으면 수 초 안에 끝난다. 결과는 `started | updated | running`.
+- **실패 사유 전달**:
+  - sandbox-runner 는 오류를 `AppError` 로 돌려준다(본문 `{"error": {...}}`). 직접 쓴 메시지(ValueError·RuntimeError·AppError)는 `mask_text` 를 거쳐 그대로, Docker SDK 오류는 이름만 내보낸다. 이미지 빌드 실패에는 서비스 이름과 빌드 도구의 첫 오류 줄(Maven `[ERROR]`, pip `ERROR:`, npm `npm ERR!` 등)을 붙인다.
+  - 다른 감사가 실행 중이면 409(CONFLICT), 프로젝트를 빌드·기동할 수 없으면 422(VALIDATION).
+  - `core/sandbox_client.py` 가 `detail` 이 아니라 `error.message` 를 읽는다. 422 는 VALIDATION(재시도 안 함 — 같은 프로젝트는 다시 해도 실패, 이전에는 3회 재시도로 84초 소모), 409·5xx 는 UPSTREAM_ERROR(재시도).
+  - `prepare_sandbox` 노드가 실패 시 `sandbox.failed` 이벤트를 남기고, CLI 는 전체 모드 감사 끝에 공격 검사를 못 했으면 경고와 사유를 출력한다. 보안 감사에서 "실행 못 함"이 "취약점 0건"으로 읽히는 것을 막기 위해서다.

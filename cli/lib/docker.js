@@ -100,15 +100,30 @@ async function missingImages() {
   return missing
 }
 
-/** compose 파일을 최신으로 두고 스택을 올린다. 이미지가 없으면 먼저 내려받는다. 설정이 바뀌었으면 compose 가 컨테이너를 다시 만든다. */
+/** 패키지의 compose 파일을 ~/.sentraai 로 복사해 CLI 버전과 맞춘다 */
 function syncCompose() {
   mkdirSync(configDir(), { recursive: true, mode: 0o700 })
   copyFileSync(join(PKG_DIR, 'compose.yml'), join(configDir(), 'compose.yml'))
 }
 
-export async function ensureStack(log, { force = false } = {}) {
+async function containerIds() {
+  try {
+    const { stdout } = await run('docker', ['compose', '-p', 'sentraai', 'ps', '-q'], { timeout: 15_000 })
+    return stdout.split('\n').filter(Boolean).sort().join(',')
+  } catch {
+    return '' // 비교 실패는 '바뀜' 으로 본다
+  }
+}
+
+/**
+ * 실행 중이어도 매번 compose up 을 한다. 이미지 버전(CLI 업그레이드)이나 .env(키 입력·변경)가 바뀐 서비스만
+ * compose 가 다시 만들고, 바뀐 게 없으면 그대로 둔다.
+ * @returns {Promise<'started' | 'updated' | 'running'>}
+ */
+export async function ensureStack(log) {
   syncCompose()
-  if (!force && (await stackHealthy())) return false
+  const healthy = await stackHealthy()
+  const before = healthy ? await containerIds() : ''
   const missing = await missingImages()
   if (missing.length) {
     log('SentraAI 서버 이미지를 내려받습니다… (처음 한 번, 몇 분 걸려요)')
@@ -117,10 +132,11 @@ export async function ensureStack(log, { force = false } = {}) {
       throw new CliError(`이미지를 받지 못했습니다: ${missing.join(', ')}`, '인터넷 연결을 확인하세요. 이미지가 공개(Public)인지도 확인하세요.')
     }
   }
-  log('SentraAI 서버를 시작합니다…')
+  if (!healthy) log('SentraAI 서버를 시작합니다…')
   const r = await compose(['up', '-d', '--wait', '--remove-orphans'], { timeout: 600_000 })
   if (r.code !== 0) throw new CliError('서버 시작에 실패했습니다.\n' + r.tail.join('\n'), '`sentraai logs` 로 로그를 확인하세요.')
-  return true
+  if (!healthy) return 'started'
+  return (await containerIds()) === before ? 'running' : 'updated'
 }
 
 /** 로컬 사용자와 보안 기준 문서 색인 (멱등) */
