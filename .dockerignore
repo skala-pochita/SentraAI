@@ -11,3 +11,9 @@ workspace
 artifacts
 reports
 private/vault
+# 로컬 산출물·실제 키 (이미지에 넣지 않음). 샘플 취약 대상의 가짜 .env 는 탐지 시연용이라 예외
+**/.coverage
+**/.env
+**/.env.*
+!**/.env.example
+!targets/**/.env
