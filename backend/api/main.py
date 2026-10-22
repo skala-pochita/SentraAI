@@ -9,9 +9,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import RequestResponseEndpoint
 
 from api.errors import install_error_handlers
+from api.local_mode import is_local, reject_reason
 from api.routers import audits, auth, eval_runs, execution, knowledge, ops, results, targets
 from core.kafka.producer import close_producer
 
@@ -58,6 +60,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="AI Security Auditor API", version="0.1.0", lifespan=lifespan)
 install_error_handlers(app)
+
+
+@app.middleware("http")
+async def local_guard(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    if is_local():
+        reason = reject_reason(request.method, request.headers)
+        if reason:
+            log.warning("local mode rejected %s %s: %s", request.method, request.url.path, reason)
+            body = {"error": {"code": "FORBIDDEN", "message": f"local mode: {reason}", "details": {}}}
+            return JSONResponse(body, status_code=403)
+    return await call_next(request)
 
 
 @app.middleware("http")

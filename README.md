@@ -137,6 +137,19 @@ open http://localhost:5173
 
 > 로컬 개발·시연용 구성이다. 외부에 공개된 네트워크에서 실행하지 말고, 실행 전 `.env`의 `JWT_SECRET`·`MCP_SERVICE_TOKEN`·시드 비밀번호를 새 값으로 바꾼다.
 
+### sentraai CLI (저장소 없이 로컬 실행)
+
+저장소를 받지 않아도 Node 22.13+ 와 Docker Desktop 만 있으면 된다. 로그인 없이 이 컴퓨터에서만 접근할 수 있는 로컬 모드로 뜬다.
+
+```bash
+npm install -g https://github.com/skala-pochita/product/releases/download/v0.1.0/sentraai-0.1.0.tgz
+cd ~/my-agent-project
+sentraai            # Docker 확인 → (처음만) OpenAI·LangSmith 키 입력 → 감사 확인 → 진행 → 대시보드
+sentraai setup      # 키 다시 입력          sentraai stop   # 서버 멈춤 (기록 유지)
+```
+
+배포는 `cli/package.json` 버전을 올리고 같은 이름의 태그(`v0.1.0`)를 push 하면 GitHub Actions 가 이미지(GHCR)와 CLI(Release)를 올린다. 첫 배포 뒤 GHCR 패키지를 Public 으로 바꿔야 로그인 없이 받을 수 있다. 로컬에서 이미지만 만들어 시험하려면 `make cli-images && make cli-pack`.
+
 ### 데모 계정 (운영 금지)
 
 | 이메일 | 역할 | 비밀번호 |

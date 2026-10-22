@@ -3,7 +3,10 @@ BACKEND := cd backend &&
 REPEAT ?= 3
 CODE_CONFIGS ?= A_nano_single,B_nano_harness
 
-.PHONY: up down logs seed demo-reset test test-e2e lint eval eval-code fault-on fault-off env
+SENTRA_REGISTRY ?= ghcr.io/skala-pochita
+SENTRA_VERSION ?= $(shell node -p "require('./cli/package.json').version")
+
+.PHONY: cli-images cli-pack up down logs seed demo-reset test test-e2e lint eval eval-code fault-on fault-off env
 
 env:
 	@test -f .env || cp .env.example .env
@@ -47,3 +50,13 @@ fault-on:
 fault-off:
 	@sed -i.bak 's/^FAULT_INJECTION=.*/FAULT_INJECTION=/' .env && rm -f .env.bak
 	$(COMPOSE) up -d business-mcp
+
+# sentraai CLI 용 이미지를 이 컴퓨터에 빌드한다 (push 없음). 배포는 v* 태그 → .github/workflows/release.yml
+cli-images:
+	docker build -f backend/Dockerfile -t $(SENTRA_REGISTRY)/sentraai-backend:$(SENTRA_VERSION) .
+	docker build -f targets/target-agent/Dockerfile -t $(SENTRA_REGISTRY)/sentraai-target-agent:$(SENTRA_VERSION) .
+	docker build -t $(SENTRA_REGISTRY)/sentraai-frontend:$(SENTRA_VERSION) frontend
+	for s in backend target-agent frontend; do sh scripts/scan_image_secrets.sh $(SENTRA_REGISTRY)/sentraai-$$s:$(SENTRA_VERSION) || exit 1; done
+
+cli-pack:
+	cd cli && npm test && npm pack

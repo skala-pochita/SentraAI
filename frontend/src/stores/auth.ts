@@ -5,7 +5,8 @@ export type Role = 'ADMIN' | 'DEVELOPER' | 'AUDITOR'
 export interface User { id: string; email: string; name: string; role: Role }
 
 export const useAuth = defineStore('auth', {
-  state: () => ({ user: null as User | null, loaded: false }),
+  // local = sentraai CLI 로 띄운 로컬 모드: 로그인 없이 고정 사용자 'User'
+  state: () => ({ user: null as User | null, loaded: false, local: false }),
   getters: {
     role: (s) => s.user?.role,
     isAdmin: (s) => s.user?.role === 'ADMIN',
@@ -21,6 +22,8 @@ export const useAuth = defineStore('auth', {
     async load() {
       if (this.loaded) return
       this.loaded = true
+      try { this.local = (await get<{ mode: string }>('/auth/mode')).mode === 'local' } catch { this.local = false }
+      if (this.local) { this.user = await get<User>('/me'); return }
       if (!tokens.access) return
       try { this.user = await get<User>('/me') } catch { tokens.clear(); this.user = null }
     },

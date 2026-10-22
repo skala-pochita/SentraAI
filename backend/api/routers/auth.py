@@ -120,6 +120,12 @@ async def logout(body: LogoutIn | None = None, user: CurrentUser = LoggedIn) -> 
             await r.delete(f"auth:refresh:{claims['jti']}")
 
 
+@router.get("/auth/mode")
+async def auth_mode() -> dict[str, str]:
+    """프론트가 로그인 화면을 보일지 정한다. local = CLI 로컬 모드 (로그인 없음)."""
+    return {"mode": get_settings().auth_mode}
+
+
 @router.get("/me", response_model=UserOut)
 async def me(user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)) -> UserOut:
     row = await db.get(User, user.id)

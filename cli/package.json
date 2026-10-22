@@ -1,0 +1,13 @@
+{
+  "name": "sentraai",
+  "version": "0.1.0",
+  "description": "SentraAI 보안 감사 CLI — 현재 디렉터리를 감사하고 대시보드를 연다",
+  "private": true,
+  "type": "module",
+  "bin": { "sentraai": "bin/sentraai.js" },
+  "files": ["bin", "lib", "compose.yml"],
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": { "node": ">=22.13" }
+}
