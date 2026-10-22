@@ -1,6 +1,6 @@
 {
   "name": "sentraai",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0-rc.2",
   "description": "SentraAI 보안 감사 CLI — 현재 디렉터리를 감사하고 대시보드를 연다",
   "private": true,
   "type": "module",

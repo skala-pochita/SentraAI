@@ -6,7 +6,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { client } from '../lib/api.js'
-import { collect, LIMITS } from '../lib/collect.js'
+import { collect, IGNORE_FILE, LIMITS } from '../lib/collect.js'
 import { ask, askSecret, checkOpenAIKey, envPath, mask, readConfig, writeConfig } from '../lib/config.js'
 import { apiBase, beginDocker, ensureStack, seedLocal, showLogs, stackHealthy, stopStack, VERSION, webUrl } from '../lib/docker.js'
 import { CliError } from '../lib/errors.js'
@@ -23,6 +23,7 @@ const HELP = `사용법
   -y, --yes            확인 질문 없이 바로 감사
   -m, --mode <모드>     code | full  (기본: 에이전트가 감지되고 실행 준비가 되면 full 을 제안, 아니면 code)
       --include-env    .env 파일도 포함 (기본은 실제 키 보호를 위해 제외)
+  -x, --exclude <패턴>  감사에서 뺄 경로 (여러 번 가능, 예: -x data/ -x '*.csv'). 디렉터리의 .sentraaiignore 도 읽음
       --no-open        끝나도 대시보드를 열지 않음
   -v, --version        버전
   -h, --help           도움말
@@ -95,6 +96,21 @@ async function chooseMode(api, target, forced, yes) {
   return yes || (await ask(`${yellow('?')} 에이전트가 감지됐어요. 격리 실행 레드팀 공격까지 포함한 전체 검사를 할까요?`)) ? 'full' : 'code'
 }
 
+const EXCLUDE_HINT = `감사에 필요 없는 경로를 ${IGNORE_FILE} 에 적거나 --exclude 로 빼세요 (예: --exclude 'data/' --exclude '*.csv').`
+
+// 한도를 넘으면 무엇을 빼야 하는지 가장 큰 파일·디렉터리를 보여 준다
+function tooBig(message, files) {
+  const dirs = new Map()
+  for (const f of files) {
+    const top = f.name.includes('/') ? `${f.name.split('/')[0]}/` : f.name
+    dirs.set(top, (dirs.get(top) ?? 0) + f.size)
+  }
+  const fmt = ([n, s]) => `    ${n} (${mb(s)})`
+  const bigDirs = [...dirs].sort((a, b) => b[1] - a[1]).slice(0, 5).map(fmt)
+  const bigFiles = [...files].sort((a, b) => b.size - a.size).slice(0, 5).map((f) => fmt([f.name, f.size]))
+  return new CliError(`${message}\n  큰 항목:\n${bigDirs.join('\n')}\n  큰 파일:\n${bigFiles.join('\n')}`, EXCLUDE_HINT)
+}
+
 const DONE = new Set(['COMPLETED', 'FAILED', 'CANCELLED'])
 async function follow(api, id) {
   let last = ''
@@ -142,14 +158,26 @@ async function audit(values, dirArg) {
     console.log('')
   }
 
-  const { files, skipped, bytes } = collect(dir, { includeEnv: values['include-env'] })
+  const { files, skipped, bytes } = collect(dir, { includeEnv: values['include-env'], exclude: values.exclude ?? [] })
   if (!files.length) throw new CliError('감사할 파일이 없습니다.')
   console.log(`  대상   ${bold(dir)}`)
   console.log(`  파일   ${files.length}개 · ${mb(bytes)}`)
   if (skipped.env.length) console.log(`  제외   ${skipped.env.join(', ')} ${dim('(실제 키 보호 — 포함하려면 --include-env)')}`)
+  if (skipped.large.length) {
+    const total = skipped.large.reduce((n, f) => n + f.size, 0)
+    console.log(`  제외   큰 파일 ${skipped.large.length}개 · ${mb(total)} ${dim('(감사에 쓰지 않는 바이너리·대용량 파일)')}`)
+    for (const f of skipped.large.slice(0, 5)) console.log(dim(`         ${f.name} (${mb(f.size)})`))
+    if (skipped.large.length > 5) console.log(dim(`         … 외 ${skipped.large.length - 5}개`))
+  }
+  if (skipped.ignored) console.log(`  제외   ${IGNORE_FILE}·--exclude 로 ${skipped.ignored}개`)
   if (skipped.symlinks) console.log(`  제외   심볼릭 링크 ${skipped.symlinks}개`)
-  if (files.length > LIMITS.files) throw new CliError(`파일이 너무 많습니다 (${files.length} > ${LIMITS.files}).`, '.gitignore 로 산출물·의존성을 제외하세요.')
-  if (bytes > LIMITS.expandedBytes) throw new CliError(`프로젝트가 너무 큽니다 (${mb(bytes)} > ${mb(LIMITS.expandedBytes)}).`, '.gitignore 로 산출물·의존성을 제외하세요.')
+  if (files.length > LIMITS.files) throw new CliError(`파일이 너무 많습니다 (${files.length} > ${LIMITS.files}).`, EXCLUDE_HINT)
+  if (bytes > LIMITS.expandedBytes) throw tooBig(`프로젝트가 너무 큽니다 (${mb(bytes)} > ${mb(LIMITS.expandedBytes)}).`, files)
+
+  // 업로드 한도는 압축 후 크기라 서버를 띄우기 전에 미리 압축해 본다
+  const zip = buildZip(files.map((f) => ({ name: f.name, data: readFileSync(join(dir, f.name)), mtime: f.mtime })))
+  console.log(`  압축   ${mb(zip.length)} ${dim(`/ 한도 ${mb(LIMITS.zipBytes)}`)}`)
+  if (zip.length > LIMITS.zipBytes) throw tooBig(`압축 결과가 업로드 한도를 넘습니다 (${mb(zip.length)} > ${mb(LIMITS.zipBytes)}).`, files)
   console.log('')
   if (!values.yes && !(await ask(`${yellow('?')} 이 디렉터리를 보안 감사할까요?`))) return console.log(dim('취소했습니다.'))
 
@@ -158,8 +186,6 @@ async function audit(values, dirArg) {
   const api = client(apiBase())
   await startServer(api)
 
-  const zip = buildZip(files.map((f) => ({ name: f.name, data: readFileSync(join(dir, f.name)), mtime: f.mtime })))
-  if (zip.length > LIMITS.zipBytes) throw new CliError(`압축 결과가 업로드 한도를 넘습니다 (${mb(zip.length)} > ${mb(LIMITS.zipBytes)}).`)
   step(`업로드 중… (${mb(zip.length)})`)
   const target = await api.upload(zip, `${basename(dir) || 'project'}.zip`)
   ok(`업로드 완료 ${dim(target.id.slice(0, 8))}`)
@@ -189,7 +215,7 @@ async function main() {
     allowPositionals: true,
     options: {
       yes: { type: 'boolean', short: 'y' }, mode: { type: 'string', short: 'm' }, help: { type: 'boolean', short: 'h' },
-      version: { type: 'boolean', short: 'v' }, 'include-env': { type: 'boolean' }, 'no-open': { type: 'boolean' },
+      version: { type: 'boolean', short: 'v' }, 'include-env': { type: 'boolean' }, exclude: { type: 'string', short: 'x', multiple: true }, 'no-open': { type: 'boolean' },
     },
   })
   if (values.help) return console.log(HELP)
