@@ -43,6 +43,7 @@ async def probe_run(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
             except AppError as e:
                 errors.append(node_error("probe_run", e))
                 return ProbeResult(
+                    target_id=tid,
                     probe_id=p["probe_id"],
                     category=p["category"],
                     attempts=0,
@@ -56,7 +57,9 @@ async def probe_run(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
             att = res["attempts"]
             succ = sum(1 for a in att if a["verdict"] == "SUCCESS")
             unc = sum(1 for a in att if a["verdict"] == "UNDETERMINED")
-            tools_hit = sorted({t["name"] for a in att for t in a["tool_calls"] if t.get("executed")})
+            tools_hit = sorted(
+                {t["name"] for a in att if a["verdict"] == "SUCCESS" for t in a["tool_calls"] if t.get("executed")}
+            )
             done += 1
             await deps.event(
                 state,
@@ -71,6 +74,7 @@ async def probe_run(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
                 node="probe_run",
             )
             return ProbeResult(
+                target_id=tid,
                 probe_id=p["probe_id"],
                 category=res["category"],
                 attempts=len(att),
@@ -84,10 +88,9 @@ async def probe_run(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
                 channel=res["channel"],
                 tools_hit=tools_hit,
             ).model_dump() | {
-                "transcripts": [
-                    {"reply_masked": a["reply_masked"], "tool_calls": a["tool_calls"], "verdict": a["verdict"]}
-                    for a in att
-                ]
+                "runtime_mode": state.get("runtime", {}).get("mode", "unknown"),
+                "round": state.get("probe_round", 0),
+                "transcripts": [{**a, "target_id": tid, "judged_by": "deterministic"} for a in att],
             }
 
     probes = state.get("probes", [])

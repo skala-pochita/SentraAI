@@ -29,6 +29,7 @@ def hit_to_agent_draft(target_id: str, h: dict[str, Any]) -> FindingDraft:
         temp_id=f"a-{uuid.uuid4().hex[:8]}",
         target_id=target_id,
         source="agent",
+        subject=subject,
         category=h["category"],
         rule_id=h["rule_id"],
         title=f"{h['category']}: {subject}",
@@ -58,6 +59,10 @@ async def agent_static_check(state: dict[str, Any], config: RunnableConfig) -> d
     res = await deps.call(state, "agent_static_check", "run_agent_rule_check", target_id=tid)
     manifest = await deps.call(state, "agent_static_check", "get_agent_manifest", target_id=tid)
     drafts = [hit_to_agent_draft(tid, h) for h in res["hits"]]
+    for draft in drafts:
+        snapshots = res.get("tool_code_evidence", {}).get(draft.subject, [])
+        if snapshots:
+            draft.evidence = [Evidence.model_validate(e) for e in snapshots]
     usage: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
     llm = deps.llm("agent_static_check", state.get("eval_config"))
@@ -92,7 +97,8 @@ async def agent_static_check(state: dict[str, Any], config: RunnableConfig) -> d
     )
     return {
         "agent_findings": [d.model_dump() for d in drafts] + res.get("source_findings", []),
-        "manifest": manifest["manifest"] | {"_source": manifest.get("source"), "_runtime_protocol": manifest.get("runtime_protocol", "auditor")},
+        "manifest": manifest["manifest"]
+        | {"_source": manifest.get("source"), "_runtime_protocol": manifest.get("runtime_protocol", "auditor")},
         "token_usage": usage,
         "errors": errors,
     }

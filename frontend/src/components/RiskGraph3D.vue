@@ -1,25 +1,24 @@
 <script setup lang="ts">
-// 결합 위험 경로 3D 그래프: Finding 이 노드, 위험 경로의 연결이 엣지, 심각한 경로일수록 파티클이 많이 흐른다
+// 근거가 있는 단계·관계를 표시한다. 구성 Finding 배열에 실행 순서 의미를 부여하지 않는다.
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import * as THREE from 'three'
-import type { Finding, RiskPath } from '../api/types'
+import type { RiskPath } from '../api/types'
 import { createStage, cssColor, reducedMotion, SEV_VAR, WebGLUnavailable, type Stage } from '../three/stage'
 import { useTheme } from '../composables/theme'
 
-const props = defineProps<{ paths: RiskPath[]; findings: Record<string, Finding>; focus?: string | null }>()
-const router = useRouter()
+const props = defineProps<{ paths: RiskPath[]; focus?: string | null }>()
+const emit = defineEmits<{ inspect: [value: { pathId: string; stepId: string }] }>()
 const { isDark } = useTheme()
 const host = ref<HTMLElement | null>(null)
 const error = ref('')
-const tip = ref<{ x: number; y: number; f: Finding | null; id: string } | null>(null)
+const tip = ref<{ x: number; y: number; id: string } | null>(null)
 
-const SEV_RANK: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1, INFO: 0 }
+
 const SEV_SIZE: Record<string, number> = { CRITICAL: 0.95, HIGH: 0.8, MEDIUM: 0.68, LOW: 0.58, INFO: 0.5 }
-const FLOW: Record<string, number> = { CRITICAL: 3, HIGH: 2, MEDIUM: 1, LOW: 1, INFO: 0 }
 
-interface GNode { id: string; sev: string; source: string; pos: THREE.Vector3; mesh?: THREE.Mesh; paths: Set<string> }
-interface GEdge { a: GNode; b: GNode; path: RiskPath; curve?: THREE.QuadraticBezierCurve3; line?: THREE.Line; dots: THREE.Mesh[] }
+
+interface GNode { title: string; pathId: string; stepId: string; id: string; sev: string; source: string; pos: THREE.Vector3; mesh?: THREE.Mesh; paths: Set<string> }
+interface GEdge { conditional: boolean; a: GNode; b: GNode; path: RiskPath; curve?: THREE.QuadraticBezierCurve3; line?: THREE.Line }
 
 let stage: Stage | null = null
 let nodes: GNode[] = []
@@ -38,25 +37,22 @@ function geometryFor(source: string, s: number): THREE.BufferGeometry {
 
 function buildGraph() {
   const byId = new Map<string, GNode>()
+  edges = []
   for (const p of props.paths) {
-    for (const fid of p.finding_ids) {
-      const f = props.findings[fid]
-      let n = byId.get(fid)
-      if (!n) {
-        n = { id: fid, sev: f?.severity ?? p.severity, source: f?.source ?? 'unknown', pos: new THREE.Vector3(), paths: new Set() }
-        byId.set(fid, n)
-      }
-      n.paths.add(p.id)
+    if (!p.payload) continue
+    for (const step of p.payload.steps) {
+      const id = `${p.id}:${step.id}`
+      const n: GNode = { id, title: step.title, pathId: p.id, stepId: step.id, sev: p.severity,
+        source: step.kind === 'code' ? 'code' : step.kind === 'impact' ? 'correlation' : 'agent', pos: new THREE.Vector3(), paths: new Set([p.id]) }
+      byId.set(id, n)
+    }
+    for (const edge of p.payload.edges) {
+      const a = byId.get(`${p.id}:${edge.from_step_id}`)
+      const b = byId.get(`${p.id}:${edge.to_step_id}`)
+      if (a && b) edges.push({ a, b, path: p, conditional: edge.evidence_level === 'CONDITIONAL' })
     }
   }
   nodes = [...byId.values()]
-  edges = []
-  for (const p of props.paths) {
-    for (let i = 0; i + 1 < p.finding_ids.length; i++) {
-      const a = byId.get(p.finding_ids[i]!)!; const b = byId.get(p.finding_ids[i + 1]!)!
-      if (a !== b) edges.push({ a, b, path: p, dots: [] })
-    }
-  }
   layout()
 }
 
@@ -114,7 +110,6 @@ function populate(s: Stage) {
   }
   // 같은 두 노드를 잇는 경로가 여럿이면 곡률을 달리해 겹치지 않게 한다
   const seen = new Map<string, number>()
-  const dotGeo = new THREE.SphereGeometry(0.09, 10, 8)
   for (const e of edges) {
     const k = [e.a.id, e.b.id].sort().join('|')
     const nth = seen.get(k) ?? 0; seen.set(k, nth + 1)
@@ -123,27 +118,21 @@ function populate(s: Stage) {
     if (side.lengthSq() < 1e-4) side.set(1, 0, 0)
     side.normalize().multiplyScalar(0.6 + nth * 0.9 * (nth % 2 ? -1 : 1))
     e.curve = new THREE.QuadraticBezierCurve3(e.a.pos, mid.add(side), e.b.pos)
-    e.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(e.curve.getPoints(32)), new THREE.LineBasicMaterial({ transparent: true }))
+    e.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(e.curve.getPoints(32)), e.conditional ? new THREE.LineDashedMaterial({ transparent: true, dashSize: 0.15, gapSize: 0.12 }) : new THREE.LineBasicMaterial({ transparent: true }))
+    e.line.computeLineDistances()
     s.scene.add(e.line)
-    for (let i = 0; i < (FLOW[e.path.severity] ?? 1); i++) {
-      const dot = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ transparent: true }))
-      dot.userData.offset = i / (FLOW[e.path.severity] ?? 1)
-      e.dots.push(dot); s.scene.add(dot)
-    }
+
   }
   applyColors()
 
-  s.onFrame((dt, t) => {
+  s.onFrame((dt) => {
     for (const v of nodes) {
       if (!v.mesh) continue
       if (!reducedMotion) { v.mesh.rotation.x += dt * 0.25; v.mesh.rotation.y += dt * 0.35 }
       const target = v === hovered ? 1.3 : 1
       v.mesh.scale.lerp(new THREE.Vector3(target, target, target), 0.2)
     }
-    for (const e of edges) {
-      const speed = 0.18 + (SEV_RANK[e.path.severity] ?? 0) * 0.06
-      for (const dot of e.dots) dot.position.copy(e.curve!.getPointAt(((reducedMotion ? 0 : t * speed) + dot.userData.offset) % 1))
-    }
+
   })
 }
 
@@ -165,10 +154,7 @@ function applyColors() {
     const lm = e.line?.material as THREE.LineBasicMaterial | undefined
     lm?.color.copy(c)
     if (lm) lm.opacity = dim(e.path.id) ? 0.06 : 0.7
-    for (const dot of e.dots) {
-      const dm = dot.material as THREE.MeshBasicMaterial
-      dm.color.copy(c); dm.opacity = dim(e.path.id) ? 0 : 1
-    }
+
   }
 }
 
@@ -187,7 +173,7 @@ function onMove(ev: PointerEvent) {
   const r = setPointer(ev)
   hovered = pick()
   if (stage) stage.renderer.domElement.style.cursor = hovered ? 'pointer' : 'grab'
-  tip.value = hovered ? { x: ev.clientX - r.left, y: ev.clientY - r.top, f: props.findings[hovered.id] ?? null, id: hovered.id } : null
+  tip.value = hovered ? { x: ev.clientX - r.left, y: ev.clientY - r.top, id: hovered.title } : null
 }
 function onLeave() { hovered = null; tip.value = null }
 function onDown(ev: PointerEvent) { downAt = { x: ev.clientX, y: ev.clientY } }
@@ -196,14 +182,14 @@ function onUp(ev: PointerEvent) {
   if (Math.hypot(ev.clientX - downAt.x, ev.clientY - downAt.y) > 5) return
   setPointer(ev)
   const n = pick()
-  if (n) void router.push(`/findings/${n.id}`)
+  if (n) emit('inspect', { pathId: n.pathId, stepId: n.stepId })
 }
 
 function mount() {
   stage?.dispose(); stage = null
   if (!host.value || !props.paths.length) return
   try {
-    stage = createStage(host.value, { distance: 15, height: 5, autoRotate: 0.6 })
+    stage = createStage(host.value, { distance: 24, height: 8, autoRotate: 0.6 })
   } catch (e) {
     if (e instanceof WebGLUnavailable) { error.value = '이 브라우저에서 WebGL 을 사용할 수 없어 3D 그래프를 표시하지 못했습니다.'; return }
     throw e
@@ -214,7 +200,6 @@ function mount() {
 onMounted(mount)
 onBeforeUnmount(() => stage?.dispose())
 watch(() => props.paths, mount)
-watch(() => props.findings, applyColors)
 watch(() => props.focus, applyColors)
 watch(isDark, () => void nextTick(applyColors))
 </script>
@@ -224,17 +209,12 @@ watch(isDark, () => void nextTick(applyColors))
     <div ref="host" class="canvas" @pointermove="onMove" @pointerleave="onLeave" @pointerdown="onDown" @pointerup="onUp" />
     <p v-if="error" class="muted small fallback">{{ error }}</p>
     <div class="legend small">
-      <span><i class="shape box" />코드</span><span><i class="shape oct" />Agent</span><span><i class="shape ico" />결합</span>
-      <span class="muted">· 흐르는 점 = 위험 전파 방향</span>
+      <span><i class="shape box" />코드</span><span><i class="shape oct" />입력·호출·통제</span><span><i class="shape ico" />영향</span>
+      <span class="muted">· 점선 = 조건부 연결 · 선은 실제 시간 순서를 뜻하지 않습니다</span>
     </div>
     <p class="hint muted small">드래그 회전 · 휠 확대 · 노드 클릭 → 상세</p>
     <div v-if="tip" class="tip" :style="{ left: `${tip.x + 14}px`, top: `${tip.y + 14}px` }">
-      <template v-if="tip.f">
-        <span class="sev" :class="`sev-${tip.f.severity}`">{{ tip.f.severity }}</span>
-        <b>{{ tip.f.title }}</b>
-        <span class="muted small mono">{{ tip.f.source }} · {{ tip.f.rule_id ?? tip.f.category }}</span>
-      </template>
-      <span v-else class="mono small">{{ tip.id.slice(0, 8) }}</span>
+      <b>{{ tip.id }}</b>
     </div>
   </div>
 </template>

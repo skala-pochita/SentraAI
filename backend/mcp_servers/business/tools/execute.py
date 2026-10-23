@@ -71,6 +71,8 @@ async def _inject_fault(target_id: str) -> None:
         raise AppError(
             ErrorCode.RATE_LIMITED, "rate limit (fault injection)", {"attempt": count, "fail_first": n}, retry_after_s=1
         )
+
+
 PROBE_TIMEOUT_S = 30.0
 MAX_ATTEMPTS = 10
 
@@ -127,6 +129,15 @@ async def run_agent_rule_check(target_id: str, ctx: Context | None = None) -> An
         from core.agent_project import source_drafts
 
         return {"hits": [], "code_secret_names": sorted(names), "source_findings": source_drafts(a, target_id)}
+    from core.tool_code_evidence import collect_tool_evidence
+
+    code_evidence = await asyncio.to_thread(
+        collect_tool_evidence,
+        a["target"].root,
+        a["manifest"],
+        a["manifest_text"],
+        a.get("manifest_path", "manifest.yaml"),
+    )
     hits = check_manifest(
         a["manifest"],
         a["manifest_text"],
@@ -134,7 +145,11 @@ async def run_agent_rule_check(target_id: str, ctx: Context | None = None) -> An
         names,
         manifest_path=a.get("manifest_path", "manifest.yaml"),
     )
-    return {"hits": [h.model_dump() for h in hits], "code_secret_names": sorted(names)}
+    return {
+        "hits": [h.model_dump() for h in hits],
+        "code_secret_names": sorted(names),
+        "tool_code_evidence": code_evidence,
+    }
 
 
 def _check_allowlist(base_url: str) -> str:
@@ -260,6 +275,7 @@ def _record(
         request={"turns": [mask_text(x) for x in probe.turns], "kb_docs": probe.kb_docs, "adaptive": probe.adaptive},
         reply_masked=mask_text(reply),
         tool_calls=mask_obj(tool_calls),  # type: ignore[arg-type]
+        verdict=verdict,
         success=verdict == "SUCCESS",
         judged_by="deterministic",
         latency_ms=int((time.monotonic() - started) * 1000),

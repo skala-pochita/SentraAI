@@ -96,3 +96,19 @@ Cloud 기능 제거 시 삭제된 리비전 0002가 기존 DB에 남아 API 시�
   - 다른 감사가 실행 중이면 409(CONFLICT), 프로젝트를 빌드·기동할 수 없으면 422(VALIDATION).
   - `core/sandbox_client.py` 가 `detail` 이 아니라 `error.message` 를 읽는다. 422 는 VALIDATION(재시도 안 함 — 같은 프로젝트는 다시 해도 실패, 이전에는 3회 재시도로 84초 소모), 409·5xx 는 UPSTREAM_ERROR(재시도).
   - `prepare_sandbox` 노드가 실패 시 `sandbox.failed` 이벤트를 남기고, CLI 는 전체 모드 감사 끝에 공격 검사를 못 했으면 경고와 사유를 출력한다. 보안 감사에서 "실행 못 함"이 "취약점 0건"으로 읽히는 것을 막기 위해서다.
+
+
+## 2026-10-23 — 근거가 연결된 공격 경로
+
+- 결합 위험을 versioned steps/edges/evidence_refs로 저장한다. Finding 배열 순서는 공격 순서가 아니다. 기존 3D 그래프도 명시적 연결만 표시한다.
+- 같은 대상·같은 성공 run의 호출을 연결하며 이름 대신 명시된 side_effect/subject를 사용한다. 도구 특성은 intake plan snapshot으로 전달한다.
+- 실행 관측·정적 사실·조건부 영향을 구분한다. 대상의 executed 보고만으로 실제 삭제/유출을 확정하지 않는다. CORR-004의 무조건 CRITICAL 승격과 CORR-005의 임의 partner fallback을 제거한다.
+- 새 nullable 컬럼은 migration 0005로 추가하며 과거 감사의 경로는 소급 생성하지 않는다. MCP 재판정 저장 도구는 probe_judge에서만 허용한다.
+- 검증: [구현 및 검증](ATTACK_PATH_IMPLEMENTATION.md).
+
+## 2026-10-23 — 심각도 유지, 결합 이유의 소스 근거 보강
+
+- 사용자 요청으로 심각도 산정은 유지한다. 이번 추가 개선은 코드/설정의 어느 부분이 결합 이유인지 제시하는 데 집중한다.
+- 도구별 YAML 정책 필드와 Python 구현 후보의 실제 파일·라인·마스킹 snapshot을 수집한다. 파일·라인·내용이 일치하는 연결 repo의 기존 코드 Finding만 보조 근거로 연결한다.
+- 이름 기반 구현 후보는 실행 바인딩·인가 누락의 확정 증거로 표시하지 않는다. 근거가 없는 경우 설정만 확인했다고 표시한다.
+- 상세 검증은 [공격 경로 구현 기록](ATTACK_PATH_IMPLEMENTATION.md)의 추가 개선 절을 따른다.

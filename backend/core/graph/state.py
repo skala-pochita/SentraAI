@@ -33,6 +33,7 @@ class AuditState(TypedDict, total=False):
     correlated: list[FindingD]  # 결합 위험 포함 최종 목록
     agent_coverage: Annotated[list[dict[str, Any]], operator.add]
     risk_paths: list[dict[str, Any]]
+    correlation_gaps: list[dict[str, str]]
     # 승인·수정
     needs_approval: bool
     approval: dict[str, Any] | None  # {approval_id, decision, decided_by, comment, decided_at}

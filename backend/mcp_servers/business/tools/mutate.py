@@ -11,9 +11,10 @@ from mcp.server.fastmcp import Context
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
-from core.db.models import Audit, AuditTarget, Finding, Report, RiskPath
+from core.db.models import Audit, AuditTarget, Finding, ProbeRun, Report, RiskPath
 from core.db.session import session_scope
 from core.errors import AppError, ErrorCode
+from core.path_validation import validate_path
 from core.schemas import FindingDraft, finding_fingerprint
 from harness.masking import mask_obj, mask_text
 from mcp_servers.business.app import mcp
@@ -74,6 +75,14 @@ async def create_finding(audit_id: str, finding: dict[str, Any], ctx: Context | 
     fp = finding_fingerprint(f)
     async with session_scope() as db:
         await _ensure_audit_writer(db, aid, _uuid(f.target_id, "target_id"))
+        if f.attack_path:
+            await validate_path(db, aid, f.attack_path)
+            for target in f.attack_path.target_ids:
+                await _ensure_audit_writer(db, aid, _uuid(target, "target_id"))
+        for cid in f.component_ids:
+            component = await db.get(Finding, _uuid(cid, "component_id"))
+            if component is None or component.audit_id != aid:
+                raise AppError(ErrorCode.VALIDATION, "component outside audit")
         stmt = (
             insert(Finding)
             .values(
@@ -86,6 +95,7 @@ async def create_finding(audit_id: str, finding: dict[str, Any], ctx: Context | 
                 severity=f.severity,
                 confidence=f.confidence,
                 fingerprint=fp,
+                subject=f.subject,
                 evidence=[e.model_dump() for e in f.evidence],
                 reasoning_summary=f.reasoning_summary,
                 tools_used=f.tools_used,
@@ -96,32 +106,72 @@ async def create_finding(audit_id: str, finding: dict[str, Any], ctx: Context | 
             .returning(Finding.id)
         )
         new_id = (await db.execute(stmt)).scalar_one_or_none()
+        created = new_id is not None
         if new_id is None:
-            existing = (
+            new_id = (
                 await db.execute(select(Finding.id).where(Finding.audit_id == aid, Finding.fingerprint == fp))
             ).scalar_one()
-            return {"finding_id": str(existing), "created": False}
         if f.source == "correlation":
-            comps = [_uuid(c, "component_id") for c in f.component_ids if _is_uuid(c)]
-            db.add(
-                RiskPath(
+            comps = [_uuid(c, "component_id") for c in f.component_ids]
+            path = (
+                await db.execute(select(RiskPath).where(RiskPath.correlation_finding_id == new_id))
+            ).scalar_one_or_none()
+            payload = f.attack_path.model_dump() if f.attack_path else None
+            if path is None:
+                path = RiskPath(
                     audit_id=aid,
+                    correlation_finding_id=new_id,
                     rule_id=f.rule_id or "CORR",
                     severity=f.severity,
                     title=f.title,
                     finding_ids=[new_id, *comps],
                     explanation=f.reasoning_summary,
+                    payload=payload,
                 )
+                db.add(path)
+            elif payload:
+                # Replayed work may add observations; it must never discard earlier references.
+                old = path.payload or {}
+                for key in ("steps", "edges"):
+                    previous = {x["id"]: x for x in old.get(key, [])}
+                    for item in payload[key]:
+                        for evidence in previous.get(item["id"], {}).get("evidence_refs", []):
+                            if evidence not in item["evidence_refs"]:
+                                item["evidence_refs"].append(evidence)
+                for reason in old.get("code_reasons", []):
+                    if reason not in payload.get("code_reasons", []):
+                        payload.setdefault("code_reasons", []).append(reason)
+                path.payload = payload
+        result: dict[str, Any] = {"finding_id": str(new_id), "created": created}
+        if f.source == "correlation":
+            await db.flush()
+            assert path is not None
+            result.update(path_payload=path.payload, risk_path_id=str(path.id))
+        return result
+
+
+@mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))
+async def finalize_probe_verdict(probe_run_id: str, verdict: str, ctx: Context | None = None) -> Any:
+    """Persist a final LLM judgement only for an undetermined run in the current audit."""
+    if verdict not in {"SUCCESS", "BLOCKED"}:
+        raise AppError(ErrorCode.VALIDATION, "invalid final verdict")
+    async with session_scope() as db:
+        row = (
+            await db.execute(
+                select(ProbeRun).where(ProbeRun.id == _uuid(probe_run_id, "probe_run_id")).with_for_update()
             )
-        return {"finding_id": str(new_id), "created": True}
-
-
-def _is_uuid(v: str) -> bool:
-    try:
-        uuid.UUID(v)
-        return True
-    except ValueError:
-        return False
+        ).scalar_one_or_none()
+        if row is None or row.audit_id is None or str(row.audit_id) != str(current_call().audit_id):
+            raise AppError(ErrorCode.FORBIDDEN, "probe outside current audit")
+        await _ensure_audit_writer(db, row.audit_id, row.target_id)
+        if row.verdict == verdict and row.judged_by == "llm":
+            return {"updated": False}
+        if row.verdict != "UNDETERMINED":
+            raise AppError(ErrorCode.CONFLICT, "only undetermined probes may be finalized")
+        row.verdict = verdict
+        row.success = verdict == "SUCCESS"
+        row.judged_by = "llm"
+        return {"updated": True}
 
 
 @mcp_tool(mcp, roles=("ADMIN", "DEVELOPER"))

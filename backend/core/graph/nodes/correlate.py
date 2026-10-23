@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-import re
-import uuid
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
+from core.attack_paths import correlate_paths, correlation_gaps
 from core.graph.deps import get_deps
 from core.graph.nodes._base import node
+from core.path_schema import AttackPath
 from core.schemas import SEVERITY_ORDER, FindingDraft
-
-DESTRUCTIVE_TOOLS = {"delete_customer", "refund_order"}
-SECRET_CATS = {"SECRET_LEAK", "HARDCODED_SECRET"}
 
 
 def _key(f: FindingDraft) -> tuple[str, str, str, int]:
@@ -31,7 +28,14 @@ def dedupe(findings: list[FindingDraft]) -> list[FindingDraft]:
     out: list[FindingDraft] = []
     for f in sorted(findings, key=lambda x: (-SEVERITY_ORDER[x.severity], -x.confidence)):
         t, c, p, line = _key(f)
-        dup = next((o for o in out if _key(o)[:3] == (t, c, p) and abs(_key(o)[3] - line) <= 3 and p), None)
+        dup = next(
+            (
+                o
+                for o in out
+                if _key(o)[:3] == (t, c, p) and abs(_key(o)[3] - line) <= 3 and p and o.subject == f.subject
+            ),
+            None,
+        )
         if dup is None:
             out.append(f)
             continue
@@ -41,141 +45,13 @@ def dedupe(findings: list[FindingDraft]) -> list[FindingDraft]:
     return out
 
 
-def _tool_of(f: FindingDraft) -> str | None:
-    if f.source != "agent" or not f.title or ": " not in f.title:
-        return None
-    return f.title.split(": ", 1)[1]
-
-
-def _corr(rule: str, target_id: str, sev: str, title: str, parts: list[FindingDraft], why: str) -> FindingDraft:
-    return FindingDraft(
-        temp_id=f"c-{uuid.uuid4().hex[:8]}",
-        target_id=target_id,
-        source="correlation",
-        category="COMBINED_RISK",
-        rule_id=rule,
-        title=title,
-        severity=sev,
-        confidence=round(min(p.confidence for p in parts), 2),  # type: ignore[arg-type]
-        evidence=[e for p in parts for e in p.evidence[:1]],
-        reasoning_summary=why,
-        tools_used=sorted({t for p in parts for t in p.tools_used}),
-        verdict="TRUE_POSITIVE",
-        standard_refs=sorted({r for p in parts for r in p.standard_refs}),
-        component_ids=[p.temp_id for p in parts],
-    )
-
-
-ByCat = dict[str, list[FindingDraft]]
-HitTools = dict[str, set[str]]
-
-
-def _probe_of(f: FindingDraft) -> str:
-    return (f.primary.probe_id if f.primary else None) or ""
-
-
-def _corr_001(by_cat: ByCat, hit_tools: HitTools) -> list[FindingDraft]:
-    """TOOL_MISUSE/INDIRECT/JAILBREAK 성공 && 그 probe 가 실행한 파괴 도구 && 승인 없음."""
-    no_approval = {_tool_of(f): f for f in by_cat.get("TOOL_NO_APPROVAL", [])}
-    out = []
-    for f in by_cat.get("TOOL_MISUSE", []) + by_cat.get("INDIRECT_INJECTION", []) + by_cat.get("JAILBREAK", []):
-        pid = _probe_of(f)
-        for tool in sorted(hit_tools.get(pid, set()) & DESTRUCTIVE_TOOLS):
-            if tool in no_approval:
-                out.append(
-                    _corr(
-                        "CORR-001",
-                        f.target_id,
-                        "CRITICAL",
-                        f"인젝션으로 데이터 파괴 가능 ({pid} + {tool} 승인 없음)",
-                        [f, no_approval[tool]],
-                        f"probe {pid} 가 {tool} 실행에 성공했고, 이 도구는 승인 없이 실행된다.",
-                    )
-                )
-    return out
-
-
-def _corr_002(by_cat: ByCat, hit_tools: HitTools) -> list[FindingDraft]:
-    """DATA_EXFILTRATION(또는 send_email 을 부른 간접 인젝션) 성공 && 수신자 제한 없는 발송 도구."""
-    exfil = by_cat.get("TOOL_EXFIL_CHANNEL", [])
-    leaks = by_cat.get("DATA_EXFILTRATION", []) + [
-        f for f in by_cat.get("INDIRECT_INJECTION", []) if "send_email" in hit_tools.get(_probe_of(f), set())
-    ]
-    if not (exfil and leaks):
-        return []
-    why = "외부 발송 probe 가 성공했고 send_email 은 수신자 제한이 없다."
-    return [_corr("CORR-002", leaks[0].target_id, "CRITICAL", "외부 유출 경로 존재", [leaks[0], exfil[0]], why)]
-
-
-def _corr_003(by_cat: ByCat, code: list[FindingDraft]) -> list[FindingDraft]:
-    """코드에 하드코딩된 비밀의 이름 == 에이전트 secrets_env."""
-    why = "에이전트가 쓰는 키와 같은 이름의 비밀값이 코드에 하드코딩되어 있다."
-    out = []
-    for s in by_cat.get("AGENT_SHARED_SECRET", []):
-        env = _tool_of(s) or ""
-        for c in code:
-            snip = (c.primary.snippet_masked or "") if c.primary else ""
-            if c.category in SECRET_CATS and env and re.search(rf"\b{re.escape(env)}\b", snip):
-                out.append(_corr("CORR-003", c.target_id, "CRITICAL", "에이전트 자격증명 노출", [c, s], why))
-    return out
-
-
-def _corr_004(by_cat: ByCat) -> list[FindingDraft]:
-    """SYSTEM_PROMPT_LEAK 성공 && 프롬프트 비밀 내장 → 내장 Finding 을 CRITICAL 로 승격."""
-    leak = by_cat.get("SYSTEM_PROMPT_LEAK", [])
-    if not leak:
-        return []
-    out = []
-    for emb in by_cat.get("PROMPT_SECRET_EMBEDDED", []):
-        emb.severity = "CRITICAL"
-        emb.reasoning_summary += " 시스템 프롬프트 유출 probe 성공으로 CRITICAL 승격 (CORR-004)."
-        why = "프롬프트에 넣은 비밀값이 실제 공격으로 유출됐다."
-        out.append(_corr("CORR-004", emb.target_id, "CRITICAL", "시스템 프롬프트 비밀 유출 확인", [leak[0], emb], why))
-    return out
-
-
-def _corr_005(
-    by_cat: ByCat,
-    code: list[FindingDraft],
-    agent: list[FindingDraft],
-    targets: list[dict[str, Any]],
-    plan: dict[str, Any],
-) -> list[FindingDraft]:
-    """permitAll && 그 앱이 에이전트 도구의 백엔드 API → HIGH 이상 승격."""
-    backends = {a.get("backend_api") for a in plan.get("agents", {}).values()}
-    repo_names = {t["target_id"]: t["name"] for t in targets if t["type"] == "repo"}
-    why = "에이전트 도구가 호출하는 백엔드가 모든 요청을 인증 없이 허용한다."
-    out = []
-    for c in code:
-        if c.category != "SECCONFIG_PERMIT_ALL" or repo_names.get(c.target_id) not in backends:
-            continue
-        if SEVERITY_ORDER[c.severity] < SEVERITY_ORDER["HIGH"]:
-            c.severity = "HIGH"
-        partner = (by_cat.get("TOOL_NO_APPROVAL") or agent or [c])[0]
-        sev = max(c.severity, "HIGH", key=SEVERITY_ORDER.__getitem__)
-        out.append(_corr("CORR-005", c.target_id, sev, "에이전트 백엔드 API 인증 없음", [c, partner], why))
-    return out
-
-
 def apply_correlation(
     findings: list[FindingDraft],
     probe_results: list[dict[str, Any]],
     targets: list[dict[str, Any]],
     plan: dict[str, Any],
 ) -> list[FindingDraft]:
-    agent = [f for f in findings if f.source == "agent"]
-    code = [f for f in findings if f.source == "code"]
-    by_cat: ByCat = {}
-    for f in agent:
-        by_cat.setdefault(f.category, []).append(f)
-    hit_tools: HitTools = {r["probe_id"]: set(r.get("tools_hit") or []) for r in probe_results}
-    return (
-        _corr_001(by_cat, hit_tools)
-        + _corr_002(by_cat, hit_tools)
-        + _corr_003(by_cat, code)
-        + _corr_004(by_cat)
-        + _corr_005(by_cat, code, agent, targets, plan)
-    )
+    return correlate_paths(findings, probe_results, targets, plan)
 
 
 @node("correlate")
@@ -190,8 +66,18 @@ async def correlate(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
     for f in final:
         if f.source == "correlation":
             f.component_ids = [id_map.get(c, c) for c in f.component_ids]
+            if f.attack_path:
+                for reason in f.attack_path.code_reasons:
+                    if reason.ref.finding_id:
+                        reason.ref.finding_id = id_map.get(reason.ref.finding_id, reason.ref.finding_id)
+                for item in [*f.attack_path.steps, *f.attack_path.edges]:
+                    for ref in item.evidence_refs:
+                        if ref.finding_id:
+                            ref.finding_id = id_map.get(ref.finding_id, ref.finding_id)
         res = await deps.call(state, "correlate", "create_finding", audit_id=state["audit_id"], finding=f.model_dump())
         f.finding_id = res["finding_id"]
+        if res.get("path_payload"):
+            f.attack_path = AttackPath.model_validate(res["path_payload"])
         id_map[f.temp_id] = f.finding_id
     final.sort(key=lambda f: (-SEVERITY_ORDER[f.severity], -f.confidence))
     risk_paths = [
@@ -202,10 +88,12 @@ async def correlate(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
             "finding_id": f.finding_id,
             "component_ids": f.component_ids,
             "explanation": f.reasoning_summary,
+            "payload": f.attack_path.model_dump() if f.attack_path else None,
         }
         for f in final
         if f.source == "correlation"
     ]
+    gaps = correlation_gaps(state.get("probe_results", []), state.get("targets", []), state.get("plan", {}))
     needs = any(f.severity == "CRITICAL" for f in final)
     counts: dict[str, int] = {}
     for f in final:
@@ -216,4 +104,9 @@ async def correlate(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
         {"count": len(final), "by_severity": counts, "risk_paths": [r["title"] for r in risk_paths]},
         node="correlate",
     )
-    return {"correlated": [f.model_dump() for f in final], "risk_paths": risk_paths, "needs_approval": needs}
+    return {
+        "correlated": [f.model_dump() for f in final],
+        "risk_paths": risk_paths,
+        "needs_approval": needs,
+        "correlation_gaps": gaps,
+    }

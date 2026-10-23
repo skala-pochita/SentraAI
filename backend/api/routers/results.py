@@ -17,6 +17,8 @@ from core.db.models import Finding, ProbeRun, Report, RiskPath, TraceSpan
 from core.db.session import get_db
 from core.errors import AppError, ErrorCode
 from core.mcp_client import CallCtx, http_gateway
+from core.path_schema import AttackPath
+from core.path_validation import validate_path
 
 router = APIRouter(tags=["audits"])
 
@@ -31,6 +33,7 @@ def finding_out(f: Finding) -> dict[str, Any]:
         "target_id": str(f.target_id),
         "source": f.source,
         "category": f.category,
+        "subject": f.subject,
         "rule_id": f.rule_id,
         "title": f.title,
         "severity": f.severity,
@@ -79,7 +82,15 @@ async def get_finding(
     out = finding_out(f)
     probe_ids = [e.get("probe_transcript_ref") for e in f.evidence if e.get("probe_transcript_ref")]
     if probe_ids:
-        runs = (await db.execute(select(ProbeRun).where(ProbeRun.id.in_([uuid.UUID(x) for x in probe_ids])))).scalars()
+        runs = (
+            await db.execute(
+                select(ProbeRun).where(
+                    ProbeRun.id.in_([uuid.UUID(x) for x in probe_ids]),
+                    ProbeRun.audit_id == f.audit_id,
+                    ProbeRun.target_id == f.target_id,
+                )
+            )
+        ).scalars()
         out["probe_runs"] = [probe_out(r) for r in runs]
     paths = (await db.execute(select(RiskPath).where(RiskPath.audit_id == f.audit_id))).scalars()
     out["risk_paths"] = [risk_out(r) for r in paths if f.id in r.finding_ids]
@@ -130,6 +141,8 @@ def risk_out(r: RiskPath) -> dict[str, Any]:
         "title": r.title,
         "finding_ids": [str(x) for x in r.finding_ids],
         "explanation": r.explanation,
+        "payload": r.payload,
+        "correlation_finding_id": str(r.correlation_finding_id) if r.correlation_finding_id else None,
     }
 
 
@@ -140,6 +153,27 @@ async def risk_paths(
     await require_completed(db, user, audit_id)
     rows = (await db.execute(select(RiskPath).where(RiskPath.audit_id == audit_id))).scalars()
     return [risk_out(r) for r in rows]
+
+
+@router.get("/audits/{audit_id}/risk-paths/{path_id}/evidence")
+async def path_evidence(
+    audit_id: uuid.UUID, path_id: uuid.UUID, user: CurrentUser = LoggedIn, db: AsyncSession = Depends(get_db)
+) -> dict[str, Any]:
+    await require_completed(db, user, audit_id)
+    row = await db.get(RiskPath, path_id)
+    if row is None or row.audit_id != audit_id:
+        raise AppError(ErrorCode.NOT_FOUND, "path not found")
+    if not row.payload:
+        return {"findings": [], "probe_runs": []}
+    path = AttackPath.model_validate(row.payload)
+    await validate_path(db, audit_id, path)
+    await ensure_target_access(user, db, {uuid.UUID(t) for t in path.target_ids})
+    refs = [r for item in [*path.steps, *path.edges] for r in item.evidence_refs] + [
+        reason.ref for reason in path.code_reasons
+    ]
+    findings = [await db.get(Finding, uuid.UUID(fid)) for fid in sorted({r.finding_id for r in refs if r.finding_id})]
+    runs = [await db.get(ProbeRun, uuid.UUID(rid)) for rid in sorted({r.probe_run_id for r in refs if r.probe_run_id})]
+    return {"findings": [finding_out(f) for f in findings if f], "probe_runs": [probe_out(r) for r in runs if r]}
 
 
 def probe_out(r: ProbeRun) -> dict[str, Any]:
@@ -153,6 +187,7 @@ def probe_out(r: ProbeRun) -> dict[str, Any]:
         "reply_masked": r.reply_masked,
         "tool_calls": r.tool_calls,
         "success": r.success,
+        "verdict": r.verdict or "UNKNOWN",
         "judged_by": r.judged_by,
         "latency_ms": r.latency_ms,
         "created_at": _iso(r.created_at),

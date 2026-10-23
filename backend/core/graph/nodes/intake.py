@@ -55,6 +55,8 @@ async def intake(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any
             m = await deps.call(state, "intake", "get_agent_manifest", target_id=t["target_id"])
             plan["agents"][t["target_id"]] = {
                 "tools": [x["name"] for x in m["manifest"].get("tools", [])],
+                "tool_profiles": m["manifest"].get("tools", []),
+                "manifest_path": m.get("manifest_path"),
                 "backend_api": m["manifest"].get("backend_api"),
                 "runtime_status": m.get("runtime_status", "CONFIGURED"),
                 "discovery": m.get("discovery", "explicit_manifest"),

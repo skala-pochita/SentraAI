@@ -8,6 +8,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from core.path_schema import AttackPath
+
 Severity = Literal["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
 SEVERITY_ORDER: dict[str, int] = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
 Verdict = Literal["TRUE_POSITIVE", "FALSE_POSITIVE", "NEEDS_REVIEW"]
@@ -22,6 +24,8 @@ class Evidence(BaseModel):
     probe_id: str | None = None
     probe_transcript_ref: str | None = None  # probe_runs.id
     standard_ref: str | None = None  # "OWASP-LLM01", "CWE-798" 등
+    label: str | None = None
+    relation: str | None = None
     doc_chunk_id: str | None = None  # rag-mcp 청크 ID
 
 
@@ -41,6 +45,8 @@ class FindingDraft(BaseModel):
     finding_id: str | None = None  # DB 저장 후 채움
     standard_refs: list[str] = Field(default_factory=list)
     fix_hint: str | None = None
+    subject: str | None = None
+    attack_path: AttackPath | None = None
     component_ids: list[str] = Field(default_factory=list)  # correlation: 구성 Finding temp_id
 
     @property
@@ -49,6 +55,7 @@ class FindingDraft(BaseModel):
 
 
 class ProbeResult(BaseModel):
+    target_id: str | None = None
     probe_id: str
     category: str
     attempts: int
@@ -94,7 +101,9 @@ def fingerprint(target_id: str, category: str, path: str | None, snippet: str | 
 def finding_fingerprint(f: FindingDraft) -> str:
     ev = f.primary
     if f.source == "correlation":
-        return fingerprint(f.target_id, f.category, f.rule_id, ",".join(sorted(f.component_ids)))
+        return fingerprint(
+            f.target_id, f.category, f.rule_id, ",".join(sorted(f.component_ids)) + "|" + (f.subject or "")
+        )
     path = (ev.file_path or ev.probe_id) if ev else None
     snippet = ev.snippet_masked if ev and ev.snippet_masked else f.rule_id
     return fingerprint(f.target_id, f.category, path, snippet)

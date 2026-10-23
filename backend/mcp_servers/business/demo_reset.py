@@ -1,7 +1,7 @@
 """make demo-reset: targets/ 를 /workspace 로 복사하고 git 저장소로 초기화 (명세 20.1).
 
 /workspace/vuln-spring-app/   취약 코드 (git, main)
-/workspace/agent-config/      manifest.yaml + system_prompt.md (AGENT_VARIANT, git, main)
+/workspace/agent-config/      manifest.yaml + system_prompt.md + 구현 소스 snapshot (AGENT_VARIANT, git, main)
 """
 
 from __future__ import annotations
@@ -48,6 +48,10 @@ def reset(targets_dir: Path, workspace: Path, variant: str) -> None:
     manifest = yaml.safe_load(manifest_src.read_text(encoding="utf-8"))
     shutil.copy(manifest_src, cfg_dst / "manifest.yaml")
     shutil.copy(agent_src / manifest["system_prompt_file"], cfg_dst / "system_prompt.md")
+    # Source snapshots are evidence candidates; they do not prove the running image version.
+    for name in ("app.py", "policy.py"):
+        if (agent_src / name).is_file():
+            shutil.copy(agent_src / name, cfg_dst / name)
     _init_repo(cfg_dst, f"agent config ({variant})")
     log.info("workspace reset: %s (variant=%s)", workspace, variant)
 
