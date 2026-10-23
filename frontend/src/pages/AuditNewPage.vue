@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, get, post, ApiError } from '../api/client'
 import type { BaselineCandidate, Paged, Target } from '../api/types'
@@ -12,6 +12,21 @@ const selected = ref<string[]>([])
 const mode = ref('code')
 const uploading = ref(false)
 const ready = ref(false)
+const executionBlockers = ref<string[]>([])
+const blockersElement = ref<HTMLElement | null>(null)
+const highlightBlockers = ref(false)
+async function revealStartBlockers() {
+  highlightBlockers.value = false
+  await nextTick()
+  const element = blockersElement.value
+  if (!startBlockers.value.length || !element) return
+  highlightBlockers.value = true
+  element.focus({ preventScroll: true })
+  element.scrollIntoView({
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    block: 'center',
+  })
+}
 const previous = ref('') // 수정본 업로드: 이전 버전(업로드 소스 대상)
 const baseline = ref('') // 비교 기준 감사 (같은 프로젝트의 완료된 감사)
 const candidates = ref<BaselineCandidate[]>([])
@@ -36,6 +51,19 @@ const project = computed(() => {
   if (repo) return repo
   const agent = targets.value.find((t) => selected.value.includes(t.id) && t.type === 'agent')
   return agent?.linked_target_id ? targets.value.find((t) => t.id === agent.linked_target_id && t.config?.runtime) : undefined
+})
+watch(() => project.value?.id, () => {
+  ready.value = false
+  executionBlockers.value = ['프로젝트 실행 설정과 준비 조건을 확인하고 있습니다.']
+}, { flush: 'sync' })
+const startBlockers = computed(() => {
+  if (busy.value) return ['감사를 시작하고 있습니다.']
+  if (uploading.value) return ['프로젝트 ZIP 업로드가 진행 중입니다. 업로드가 완료될 때까지 기다려 주세요.']
+  if (!selected.value.length) return ['감사 대상을 하나 이상 선택하세요.']
+  if (project.value && mode.value !== 'code' && !ready.value) {
+    return executionBlockers.value.length ? executionBlockers.value : ['프로젝트 실행 설정의 준비 조건을 확인해 주세요.']
+  }
+  return []
 })
 async function upload(event: Event) {
   const input = event.target as HTMLInputElement
@@ -65,6 +93,7 @@ onMounted(async () => {
   selected.value = []
 })
 async function start() {
+  if (startBlockers.value.length) return
   busy.value = true; error.value = ''
   try {
     const r = await post<{ audit_id: string }>('/audits', { target_ids: selected.value, mode: mode.value, ...(baseline.value ? { baseline_audit_id: baseline.value } : {}) })
@@ -137,17 +166,37 @@ async function start() {
       <p class="muted small mt-s">완료 후 '수정 전후 비교' 탭에서 신규 발견 / 여전히 존재 / 재검증에서 해소·차단 / 확인 불가로 나눠 보여 줍니다. 같은 공격을 다시 실행하려면 전체 또는 에이전트 모드를 선택하세요.</p>
     </template>
 
-    <ExecutionSettingsPanel v-if="project" :key="project.id" :target-id="project.id" @ready="ready = $event" />
-    <p v-if="project && mode !== 'code' && !ready" class="muted mt">실행 설정을 저장하고 전체 검사 준비 조건을 충족해 주세요. 코드 검사는 별도로 실행할 수 있습니다.</p>
+    <ExecutionSettingsPanel v-if="project" :key="project.id" :target-id="project.id" @ready="ready = $event" @blockers="executionBlockers = $event" @checked="revealStartBlockers" />
+    <div v-if="startBlockers.length" id="audit-start-blockers" ref="blockersElement" class="mt start-blockers" :class="{ highlighted: highlightBlockers }" tabindex="-1" role="status" aria-live="polite" @animationend="highlightBlockers = false">
+      <b>감사를 시작할 수 없는 이유</b>
+      <ul><li v-for="reason in startBlockers" :key="reason">{{ reason }}</li></ul>
+      <p v-if="project && mode !== 'code' && !ready" class="muted small">실행 설정에서 위 항목을 보완한 뒤 ‘설정 저장·조건 확인’을 누르세요. 코드만 검사하려면 감사 모드를 ‘코드’로 선택하세요.</p>
+    </div>
     <p v-if="error" class="error mt"><Icon name="alert" :size="16" />{{ error }}</p>
     <div class="row" style="margin-top:24px; justify-content:space-between">
       <span class="muted small">대상 {{ selected.length }}개 선택 · 현재 코드의 문제점과 권장 조치를 제공합니다.</span>
-      <button class="btn primary lg" :disabled="busy || uploading || !selected.length || (!!project && mode !== 'code' && !ready)" @click="start"><Icon name="play" :size="16" />{{ busy ? '시작 중…' : '감사 시작' }}</button>
+      <button class="btn primary lg" :disabled="startBlockers.length > 0" :aria-describedby="startBlockers.length ? 'audit-start-blockers' : undefined" @click="start"><Icon name="play" :size="16" />{{ busy ? '시작 중…' : '감사 시작' }}</button>
     </div>
   </div>
 </template>
 
 <style scoped>
+.start-blockers {
+  scroll-margin-block: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.start-blockers:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.start-blockers.highlighted { animation: highlight-blockers 2.4s ease-out; }
+@keyframes highlight-blockers {
+  0%, 45% { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  100% { background: transparent; border-color: var(--border); box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .start-blockers.highlighted { animation-timing-function: steps(1, end); }
+}
+
 .pick {
   display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 14px; cursor: pointer; position: relative;
   border: 1px solid var(--border); background: var(--surface-2); transition: border-color .15s, background .15s, box-shadow .2s;
