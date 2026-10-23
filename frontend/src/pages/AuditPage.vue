@@ -81,7 +81,7 @@ function onScroll() {
     <div class="stack" style="gap:16px">
       <div class="card">
         <div class="card-head">
-          <h3><Icon name="shield" :size="16" />감사 <span class="mono">{{ id.slice(0, 8) }}</span></h3>
+          <h3><Icon name="shield" :size="16" />{{ audit.name || '보안 감사 진행' }}</h3>
           <span class="status" :class="audit.status">{{ audit.status }}</span>
           <span class="spacer" />
           <span class="badge">{{ audit.mode }}</span>
@@ -99,16 +99,16 @@ function onScroll() {
       </div>
 
       <div v-if="shots.length" class="card">
-        <div class="card-head"><h3><Icon name="crosshair" :size="16" />레드팀 공격</h3>
+        <div class="card-head"><h3><Icon name="crosshair" :size="16" />모의 공격 실행 현황</h3>
           <span class="badge tone" :class="done ? '' : 'ok'"><span v-if="!done" class="live" />{{ done ? '종료' : '실시간' }}</span></div>
         <ProbeArena :feed="shots" :height="320" />
       </div>
 
       <div v-if="audit.status === 'COMPLETED'" class="grid cols-2">
-        <RouterLink class="card hover tile" :to="`/audits/${id}/findings`"><Icon name="bug" /><b>Findings</b><span class="muted small">탐지 결과 {{ audit.summary?.total ?? 0 }}건</span></RouterLink>
-        <RouterLink class="card hover tile" :to="`/audits/${id}/risks`"><Icon name="share" /><b>결합 위험</b><span class="muted small">위험 경로</span></RouterLink>
-        <RouterLink class="card hover tile" :to="`/audits/${id}/redteam`"><Icon name="crosshair" /><b>레드팀</b><span class="muted small">probe 결과·ASR</span></RouterLink>
-        <RouterLink class="card hover tile" :to="`/audits/${id}/report`"><Icon name="file" /><b>보고서</b><span class="muted small">Markdown 보고서</span></RouterLink>
+        <RouterLink class="card hover tile" :to="`/audits/${id}/findings`"><Icon name="bug" /><b>발견된 보안 문제</b><span class="muted small">탐지 결과 {{ audit.summary?.total ?? 0 }}건</span></RouterLink>
+        <RouterLink class="card hover tile" :to="`/audits/${id}/risks`"><Icon name="share" /><b>연결된 공격 경로</b><span class="muted small">보안 문제가 연결되어 생기는 공격 시나리오</span></RouterLink>
+        <RouterLink class="card hover tile" :to="`/audits/${id}/redteam`"><Icon name="crosshair" /><b>모의 공격 검증</b><span class="muted small">공격 시도와 방어 성공 여부</span></RouterLink>
+        <RouterLink class="card hover tile" :to="`/audits/${id}/report`"><Icon name="file" /><b>보고서</b><span class="muted small">결과 요약과 권장 조치</span></RouterLink>
       </div>
     </div>
 

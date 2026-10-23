@@ -6,7 +6,6 @@ import Icon from './Icon.vue'
 const { mode, setMode } = useTheme()
 const OPTIONS: { m: ThemeMode; icon: string; label: string }[] = [
   { m: 'light', icon: 'sun', label: '라이트 모드' },
-  { m: 'system', icon: 'monitor', label: '시스템 설정 따르기' },
   { m: 'dark', icon: 'moon', label: '다크 모드' },
 ]
 const idx = computed(() => OPTIONS.findIndex((o) => o.m === mode.value))

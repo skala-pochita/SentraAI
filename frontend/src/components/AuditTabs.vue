@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 감사 하위 화면(진행·Findings·결합 위험·레드팀·보고서) 사이 이동
+// 감사 하위 화면(진행·Findings·연결된 공격 경로·모의 공격 검증·보고서) 사이 이동
 import Icon from './Icon.vue'
 import { onMounted, ref } from 'vue'
 import { get } from '../api/client'
@@ -8,10 +8,10 @@ const ready = ref(false)
 onMounted(async () => { ready.value = (await get<{ status: string }>(`/audits/${props.id}`)).status === 'COMPLETED' })
 const TABS = [
   { s: '', label: '진행', icon: 'radio' },
-  { s: '/findings', label: 'Findings', icon: 'bug' },
-  { s: '/risks', label: '결합 위험', icon: 'share' },
-  { s: '/redteam', label: '레드팀', icon: 'crosshair' },
-  { s: '/report', label: '보고서', icon: 'file' },
+  { s: '/findings', label: '발견된 보안 문제', icon: 'bug' },
+  { s: '/risks', label: '연결된 공격 경로', icon: 'share' },
+  { s: '/redteam', label: '모의 공격 검증', icon: 'crosshair' },
+  { s: '/report', label: '종합 보고서', icon: 'file' },
   { s: '/compare', label: '수정 전후 비교', icon: 'branch' },
 ]
 </script>

@@ -20,7 +20,7 @@ async function falsePositive() {
 </script>
 <template>
   <div v-if="f">
-    <RouterLink :to="`/audits/${f.audit_id}/findings`" class="btn ghost sm mb"><Icon name="back" :size="14" />Findings 목록</RouterLink>
+    <RouterLink :to="`/audits/${f.audit_id}/findings`" class="btn ghost sm mb"><Icon name="back" :size="14" />보안 문제 목록으로 돌아가기</RouterLink>
     <div class="grid split">
       <div class="stack" style="gap:16px">
         <div class="card" :style="{ borderTop: `3px solid var(--${f.severity.toLowerCase()})` }">
@@ -41,9 +41,9 @@ async function falsePositive() {
             <div class="chips"><span v-for="t in f.tools_used" :key="t" class="badge mono"><Icon name="wrench" />{{ t }}</span></div></template>
         </div>
         <div v-if="auth.user?.role !== 'AUDITOR' && f.status === 'OPEN'" class="card">
-          <p class="section-title">오탐 처리</p>
+          <p class="section-title">보안 문제가 아닌 것으로 표시</p>
           <div class="row"><input v-model="reason" placeholder="오탐 사유를 입력하세요" style="flex:1; min-width:200px" />
-            <button class="btn" :disabled="!reason" @click="falsePositive"><Icon name="minus-circle" :size="15" />오탐 처리</button></div>
+            <button class="btn" :disabled="!reason" @click="falsePositive"><Icon name="minus-circle" :size="15" />보안 문제가 아닌 것으로 표시</button></div>
           <p v-if="error" class="error mt"><Icon name="alert" :size="16" />{{ error }}</p>
         </div>
       </div>
@@ -57,7 +57,7 @@ async function falsePositive() {
           </div>
         </div>
         <div v-if="f.risk_paths?.length" class="card">
-          <div class="card-head"><h3><Icon name="share" :size="16" />결합 위험</h3></div>
+          <div class="card-head"><h3><Icon name="share" :size="16" />연결된 공격 경로</h3></div>
           <div v-for="r in f.risk_paths" :key="r.id" class="row" style="padding:8px 0; border-bottom:1px solid var(--border)"><Sev :v="r.severity" />{{ r.title }}</div>
         </div>
       </div>

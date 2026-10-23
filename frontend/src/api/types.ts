@@ -5,6 +5,7 @@ export interface Target {
   config?: { source?: string; runtime?: { supported: boolean; reason: string }; agent_detected?: boolean; project_id?: string; version?: number; previous_target_id?: string | null }
 }
 export interface Audit {
+  name?: string | null
   id: string; status: string; mode: string; current_node: string | null; progress: number
   created_at: string; started_at: string | null; finished_at: string | null
   summary: { by_severity?: Record<string, number>; total?: number; usd?: number; tokens?: number } | null

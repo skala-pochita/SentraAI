@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 수정본 재업로드 비교: 기준 감사(이전 버전) 대비 Finding 변화와 동일 공격 재검증 결과
+// 수정본 재업로드 비교: 기준 감사(이전 버전) 대비 보안 문제 변화와 동일 공격 재검증 결과
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { get, ApiError } from '../api/client'
@@ -56,10 +56,10 @@ async function download() {
       <label class="field" style="min-width:320px; flex:1">비교 기준 감사 (같은 프로젝트의 이전 감사)
         <select v-model="baseline" aria-label="비교 기준 감사">
           <option value="">기준 감사를 선택하세요</option>
-          <option v-for="c in candidates" :key="c.id" :value="c.id">{{ v(c.version) }} · {{ day(c.created_at) }} · {{ c.mode }} · Finding {{ c.summary?.total ?? 0 }}건 · {{ c.id.slice(0, 8) }}</option>
+          <option v-for="c in candidates" :key="c.id" :value="c.id">{{ v(c.version) }} · {{ day(c.created_at) }} · {{ c.mode }} · 보안 문제 {{ c.summary?.total ?? 0 }}건 · {{ c.id.slice(0, 8) }}</option>
         </select>
       </label>
-      <button class="btn sm" :disabled="!result" @click="download"><Icon name="download" :size="14" />.md 다운로드</button>
+      <button class="btn sm" :disabled="!result" @click="download"><Icon name="download" :size="14" />비교 보고서 다운로드 (.md)</button>
     </div>
     <p v-if="!candidates.length" class="muted small mt-s">비교할 이전 감사가 없습니다. 수정본 ZIP을 올릴 때 이전 버전을 연결한 뒤 감사를 실행하세요.</p>
     <p class="muted small mt-s">확인 불가는 해결로 세지 않습니다. 감사기는 원본을 수정하지 않으며, 사용자가 고친 수정본을 같은 공격으로 다시 검사한 결과입니다.</p>
@@ -122,7 +122,7 @@ async function download() {
           <td class="muted small">{{ f.reason }}</td>
         </tr></tbody>
       </table></div>
-      <div v-else class="empty"><Icon name="inbox" /><b>표시할 Finding 이 없습니다</b></div>
+      <div v-else class="empty"><Icon name="inbox" /><b>표시할 보안 문제가 없습니다</b></div>
     </div>
   </template>
 </template>

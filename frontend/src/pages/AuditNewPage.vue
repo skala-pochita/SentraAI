@@ -7,6 +7,13 @@ import Icon from '../components/Icon.vue'
 import ExecutionSettingsPanel from '../components/ExecutionSettingsPanel.vue'
 
 const router = useRouter()
+const step = ref(1)
+const showSaved = ref(false)
+const targetQuery = ref('')
+const auditName = ref('')
+const selectedTargets = computed(() => targets.value.filter(t => selected.value.includes(t.id)))
+const visibleTargets = computed(() => targets.value.filter(t => (showSaved.value || selected.value.includes(t.id)) && (!showSaved.value || !targetQuery.value || t.name.toLowerCase().includes(targetQuery.value.toLowerCase()))))
+const suggestedName = computed(() => selectedTargets.value.find(t => t.type === 'repo')?.name || selectedTargets.value[0]?.name || '')
 const targets = ref<Target[]>([])
 const selected = ref<string[]>([])
 const mode = ref('code')
@@ -84,19 +91,20 @@ async function upload(event: Event) {
 const error = ref('')
 const busy = ref(false)
 const MODES = [
-  { v: 'full', label: '전체', desc: '코드 + 에이전트', icon: 'layers' },
-  { v: 'code', label: '코드', desc: '정적 규칙 + LLM 조사', icon: 'code' },
-  { v: 'agent', label: '에이전트', desc: '레드팀 probe', icon: 'bot' },
+  { v: 'full', label: '전체 보안 검사', desc: '코드 분석과 모의 공격을 함께 실행', icon: 'layers' },
+  { v: 'code', label: '코드 보안 검사', desc: '소스 코드에서 보안 문제 탐지', icon: 'code' },
+  { v: 'agent', label: '모의 공격 검사', desc: 'AI에 공격을 시도해 방어 성능 확인', icon: 'bot' },
 ]
 onMounted(async () => {
-  targets.value = (await get<Paged<Target>>('/targets')).items
+  try { targets.value = (await get<Paged<Target>>('/targets?size=200')).items }
+  catch { error.value = '저장된 프로젝트를 불러오지 못했습니다. 새로고침해 주세요.' }
   selected.value = []
 })
 async function start() {
   if (startBlockers.value.length) return
   busy.value = true; error.value = ''
   try {
-    const r = await post<{ audit_id: string }>('/audits', { target_ids: selected.value, mode: mode.value, ...(baseline.value ? { baseline_audit_id: baseline.value } : {}) })
+    const r = await post<{ audit_id: string }>('/audits', { name: auditName.value.trim() || suggestedName.value, target_ids: selected.value, mode: mode.value, ...(baseline.value ? { baseline_audit_id: baseline.value } : {}) })
     router.push(`/audits/${r.audit_id}`)
   } catch (e) { error.value = e instanceof ApiError ? e.body.message : String(e) } finally { busy.value = false }
 }
@@ -104,8 +112,11 @@ async function start() {
 
 <template>
   <div class="card" style="max-width:820px">
-    <details class="mb" open>
-      <summary><b>전체 검사를 위한 ZIP 프로젝트 기준</b></summary>
+    <div class="wizard-intro"><span class="badge">새 보안 감사</span><h2>프로젝트의 보안을 확인하세요</h2><p class="muted">프로젝트를 고르고 검사 방식을 선택하면 준비가 끝납니다.</p></div>
+    <nav class="wizard-steps" aria-label="감사 준비 단계"><button v-for="(label, i) in ['프로젝트 선택', '검사 방식', '설정 확인']" :key="label" :class="{ active: step === i + 1 }" :disabled="i > 0 && !selected.length" @click="step = i + 1"><span>{{ i + 1 }}</span>{{ label }}</button></nav>
+    <section v-show="step === 1">
+    <details class="mb">
+      <summary><b>업로드 전 프로젝트 준비 기준 보기</b></summary>
       <ol class="muted small" style="line-height:1.9">
         <li>ZIP 20MiB 이하, 압축 해제 100MiB / 5,000개 항목 이하. 절대 경로·상위 경로·심볼릭 링크는 허용하지 않습니다.</li>
         <li>소스와 의존성 파일을 포함하세요. .venv, node_modules, 빌드 산출물, 실제 키가 든 .env는 제외하세요.</li>
@@ -126,7 +137,7 @@ async function start() {
   audit-probes.yaml    # 프로젝트별 공격·성공 조건
   backend/            # 필요한 의존 서비스 소스</pre></details>
     </details>
-    <p class="section-title">프로젝트 업로드</p>
+    <p class="section-title">검사할 프로젝트 ZIP 업로드</p>
     <p class="muted small">소스 프로젝트 ZIP · 최대 20MB, 압축 해제 100MB / 5,000개 항목. 원본은 변경하지 않습니다. 에이전트가 발견되면 권한 검사와 격리 실행·공격 검사를 함께 선택합니다.</p>
     <label v-if="uploads.length" class="field mb">수정본이면 이전 버전 선택 (선택)
       <select v-model="previous" :disabled="uploading || busy" aria-label="이전 버전">
@@ -137,10 +148,11 @@ async function start() {
     </label>
     <input type="file" accept=".zip,application/zip" :disabled="uploading || busy" aria-label="프로젝트 ZIP 업로드" @change="upload" />
     <p v-if="uploading" class="muted">업로드 중…</p>
-    <p class="section-title mt"><Icon name="layers" :size="14" />1. 감사 대상</p>
+    <div class="row mt mb" style="justify-content:space-between"><b>선택한 프로젝트 · {{ selected.length }}개 대상</b><button class="btn" @click="showSaved = !showSaved">{{ showSaved ? '저장된 대상 접기' : '저장된 프로젝트에서 선택' }}</button></div>
+    <input v-if="showSaved" v-model="targetQuery" class="mb" placeholder="저장된 프로젝트 이름 검색" aria-label="저장된 프로젝트 검색" />
     <div class="grid cols-2">
-      <label v-for="t in targets" :key="t.id" class="pick" :class="{ on: selected.includes(t.id) }">
-        <input type="checkbox" :value="t.id" v-model="selected" />
+      <label v-for="t in visibleTargets" :key="t.id" class="pick" :class="{ on: selected.includes(t.id) }">
+        <input type="checkbox" :disabled="uploading || busy" :value="t.id" v-model="selected" />
         <span class="pick-ico"><Icon :name="t.type === 'repo' ? 'code' : 'bot'" :size="20" /></span>
         <span style="min-width:0"><b>{{ t.name }}</b><span class="muted small mono" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ t.ref || '업로드 프로젝트 에이전트' }}</span><span v-if="t.type === 'repo' && t.config?.runtime" class="muted small" style="display:block">{{ t.config.agent_detected ? '에이전트 정의 발견 · 실행 설정에서 준비 조건 확인' : '소스 검사 대상' }}</span></span>
         <span class="row" style="margin-left:auto; gap:6px"><span v-if="t.type === 'repo' && t.config?.source === 'upload'" class="badge">v{{ version(t) }}</span><span class="badge">{{ t.type }}</span></span>
@@ -148,7 +160,9 @@ async function start() {
     </div>
     <p v-if="!targets.length" class="muted">등록된 대상이 없습니다. 프로젝트 ZIP을 업로드하세요.</p>
 
-    <p class="section-title mt" style="margin-top:24px"><Icon name="zap" :size="14" />2. 감사 모드</p>
+    <label class="field mt">감사 이력에 표시할 이름<input v-model="auditName" maxlength="120" :placeholder="suggestedName || '예: 고객 상담 AI 보안 점검'" /><span class="muted small">비워두면 선택한 프로젝트 이름으로 기록합니다.</span></label>
+    </section><section v-show="step === 2">
+    <p class="section-title mt"><Icon name="zap" :size="14" />어떤 방식으로 검사할까요?</p>
     <div class="grid cols-3" role="radiogroup" aria-label="감사 모드">
       <label v-for="m in MODES" :key="m.v" class="pick" :class="{ on: mode === m.v }">
         <input type="radio" name="mode" :value="m.v" v-model="mode" />
@@ -158,29 +172,40 @@ async function start() {
     </div>
 
     <template v-if="candidates.length">
-      <p class="section-title mt" style="margin-top:24px"><Icon name="branch" :size="14" />3. 수정 전후 비교 (선택)</p>
+      <p class="section-title mt" style="margin-top:24px"><Icon name="branch" :size="14" />이전 버전과 비교하기 (선택)</p>
       <select v-model="baseline" aria-label="비교 기준 감사">
         <option value="">비교하지 않음</option>
-        <option v-for="c in candidates" :key="c.id" :value="c.id">v{{ c.version ?? '?' }} · {{ c.created_at.slice(0, 16).replace('T', ' ') }} · {{ c.mode }} · Finding {{ c.summary?.total ?? 0 }}건</option>
+        <option v-for="c in candidates" :key="c.id" :value="c.id">v{{ c.version ?? '?' }} · {{ c.created_at.slice(0, 16).replace('T', ' ') }} · {{ c.mode }} · 보안 문제 {{ c.summary?.total ?? 0 }}건</option>
       </select>
       <p class="muted small mt-s">완료 후 '수정 전후 비교' 탭에서 신규 발견 / 여전히 존재 / 재검증에서 해소·차단 / 확인 불가로 나눠 보여 줍니다. 같은 공격을 다시 실행하려면 전체 또는 에이전트 모드를 선택하세요.</p>
     </template>
 
-    <ExecutionSettingsPanel v-if="project" :key="project.id" :target-id="project.id" @ready="ready = $event" @blockers="executionBlockers = $event" @checked="revealStartBlockers" />
+    </section><section v-show="step === 3">
+    <div class="review-summary mb"><b>{{ auditName.trim() || suggestedName || '프로젝트를 선택하세요' }}</b><p class="muted">{{ MODES.find(m => m.v === mode)?.label }} · {{ selected.length }}개 대상</p><span class="small muted">{{ mode === 'code' ? '코드 검사에는 실행 환경 설정이 필요하지 않습니다.' : '모의 공격에 필요한 실행 환경과 준비 조건을 확인하세요.' }}</span></div>
+    <ExecutionSettingsPanel v-if="project && mode !== 'code'" :key="project.id" :target-id="project.id" @ready="ready = $event" @blockers="executionBlockers = $event" @checked="revealStartBlockers" />
     <div v-if="startBlockers.length" id="audit-start-blockers" ref="blockersElement" class="mt start-blockers" :class="{ highlighted: highlightBlockers }" tabindex="-1" role="status" aria-live="polite" @animationend="highlightBlockers = false">
       <b>감사를 시작할 수 없는 이유</b>
       <ul><li v-for="reason in startBlockers" :key="reason">{{ reason }}</li></ul>
       <p v-if="project && mode !== 'code' && !ready" class="muted small">실행 설정에서 위 항목을 보완한 뒤 ‘설정 저장·조건 확인’을 누르세요. 코드만 검사하려면 감사 모드를 ‘코드’로 선택하세요.</p>
     </div>
+    </section>
     <p v-if="error" class="error mt"><Icon name="alert" :size="16" />{{ error }}</p>
     <div class="row" style="margin-top:24px; justify-content:space-between">
-      <span class="muted small">대상 {{ selected.length }}개 선택 · 현재 코드의 문제점과 권장 조치를 제공합니다.</span>
-      <button class="btn primary lg" :disabled="startBlockers.length > 0" :aria-describedby="startBlockers.length ? 'audit-start-blockers' : undefined" @click="start"><Icon name="play" :size="16" />{{ busy ? '시작 중…' : '감사 시작' }}</button>
+      <button v-if="step > 1" class="btn" @click="step--">이전 단계</button><span v-else class="muted small">ZIP 업로드 또는 저장된 프로젝트 선택</span>
+      <button v-if="step < 3" class="btn primary lg" :disabled="!selected.length || uploading" @click="step++">{{ step === 1 ? '다음: 검사 방식 선택' : '다음: 설정 확인' }}<Icon name="chevron" :size="16" /></button>
+      <button v-if="step === 3" class="btn primary lg" :disabled="startBlockers.length > 0" :aria-describedby="startBlockers.length ? 'audit-start-blockers' : undefined" @click="start"><Icon name="play" :size="16" />{{ busy ? '시작 중…' : '보안 검사 시작' }}</button>
     </div>
   </div>
 </template>
 
 <style scoped>
+.wizard-intro h2 { margin: 14px 0 8px; font-size: 25px; }
+.wizard-steps { display:flex; gap:10px; margin:26px 0; border-bottom:1px solid var(--border); padding-bottom:20px; }
+.wizard-steps button { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; border:0; border-radius:10px; padding:12px 6px; background:var(--surface-2); color:var(--muted); cursor:pointer; }
+.wizard-steps button.active { background:var(--accent-soft); color:var(--text); font-weight:700; }
+.wizard-steps button span { border:1px solid var(--border); border-radius:50%; width:24px; height:24px; display:grid; place-items:center; }
+.review-summary { padding:20px; background:var(--surface-2); border-radius:12px; }
+
 .start-blockers {
   scroll-margin-block: 24px;
   border: 1px solid var(--border);
