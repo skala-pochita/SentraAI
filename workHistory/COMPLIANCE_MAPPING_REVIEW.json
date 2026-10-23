@@ -1,0 +1,185 @@
+{
+  "reviewer_kind": "assistant",
+  "human_confirmed": false,
+  "actions": [
+    {
+      "key": {
+        "category": "INDIRECT_INJECTION"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "INDIRECT_INJECTION_SURFACE"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "JAILBREAK"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "DATA_EXFILTRATION"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "SYSTEM_PROMPT_LEAK"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "INFO_EXPOSURE"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "INDIRECT_INJECTION"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "JAILBREAK"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "PROMPT_NO_INSTRUCTION_HIERARCHY"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "SYSTEM_PROMPT_LEAK"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "TOOL_EXCESSIVE_SCOPE"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "PRIVILEGE_ESCALATION"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "TOOL_MISUSE"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "category": "SECRET_LEAK"
+      },
+      "action": "replace_page_with_excerpt",
+      "clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1"
+    },
+    {
+      "key": {
+        "category": "HARDCODED_SECRET"
+      },
+      "action": "replace_page_with_excerpt",
+      "clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1"
+    },
+    {
+      "key": {
+        "category": "HARDCODED_CREDENTIAL"
+      },
+      "action": "replace_page_with_excerpt",
+      "clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1"
+    },
+    {
+      "key": {
+        "category": "PROMPT_SECRET_EMBEDDED"
+      },
+      "action": "replace_page_with_excerpt",
+      "clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1"
+    },
+    {
+      "key": {
+        "category": "AGENT_SHARED_SECRET"
+      },
+      "action": "replace_page_with_excerpt",
+      "clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-2"
+    },
+    {
+      "key": {
+        "category": "TOOL_EXCESSIVE_SCOPE"
+      },
+      "action": "replace_page_with_excerpt",
+      "clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-3"
+    },
+    {
+      "key": {
+        "category": "TOOL_EXFIL_CHANNEL"
+      },
+      "action": "replace_page_with_excerpt",
+      "clause": "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4"
+    },
+    {
+      "key": {
+        "category": "TOOL_MISUSE"
+      },
+      "action": "replace_page_with_excerpt",
+      "clause": "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4"
+    },
+    {
+      "key": {
+        "category": "TOOL_NO_APPROVAL"
+      },
+      "action": "replace_page_with_excerpt",
+      "clause": "FSC-AI-SEC:PAGE-057-01:EVIDENCE-TECH-5"
+    },
+    {
+      "key": {
+        "audit": "probe_execution"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    },
+    {
+      "key": {
+        "audit": "audit_execution"
+      },
+      "action": "retain_candidate",
+      "reason": "원문의 실제 점검 항목"
+    }
+  ],
+  "new_excerpt_count": 9,
+  "bootstrap": {
+    "candidates": 28,
+    "verified_links": 28,
+    "unavailable": 0
+  },
+  "legacy_25_review": {
+    "retain_checklist_candidate": 15,
+    "replace_page_with_excerpt": 9,
+    "withhold_prompt_version_vs_instruction_separation": 1
+  }
+}

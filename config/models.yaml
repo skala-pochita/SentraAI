@@ -5,6 +5,7 @@ defaults:
   timeout_s: 60
 
 nodes:
+  compliance_link: {model: "${LLM_SMALL_MODEL}"}
   code_investigate: {model: "${LLM_SMALL_MODEL}"}
   agent_static_check: {model: "${LLM_SMALL_MODEL}"}
   probe_generate: {model: "${LLM_SMALL_MODEL}"}

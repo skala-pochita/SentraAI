@@ -22,6 +22,8 @@ def _default_path(env: str, rel: str) -> Path:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=str(REPO_ROOT / ".env"), extra="ignore")
 
+    sentra_build_sha: str = "unknown"
+
     # LLM
     openai_api_key: str = ""
     llm_small_model: str = "gpt-5.4-nano"
@@ -65,6 +67,9 @@ class Settings(BaseSettings):
     workspace_dir: Path = Field(default_factory=lambda: _default_path("WORKSPACE_DIR", "workspace"))
 
     # Paths
+    compliance_config_dir: Path | None = None
+    # Explicit standalone regulation index; unset keeps PostgreSQL/pgvector.
+    regulation_index_path: Path | None = None
     config_dir: Path = Field(default_factory=lambda: _default_path("CONFIG_DIR", "config"))
     rules_dir: Path = Field(default_factory=lambda: _default_path("RULES_DIR", "rules"))
     datasets_dir: Path = Field(default_factory=lambda: _default_path("DATASETS_DIR", "datasets"))

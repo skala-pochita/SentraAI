@@ -1,0 +1,41 @@
+2026-10-23 17:27:39,462 INFO demo_reset workspace reset: /Users/moon/Documents/product/workspace/SentraAI-main-compliance/workspace/main-compliance-qa-v1 (variant=vuln)
+2026-10-23 17:27:39,500 INFO httpx HTTP Request: POST http://127.0.0.1/api/v1/audits "HTTP/1.1 202 Accepted"
+2026-10-23 17:27:40,893 INFO httpx HTTP Request: GET http://127.0.0.1/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/compliance "HTTP/1.1 200 OK"
+2026-10-23 17:27:40,901 INFO httpx HTTP Request: GET http://127.0.0.1/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/report.md "HTTP/1.1 200 OK"
+2026-10-23 17:27:41,056 INFO demo_reset workspace reset: /Users/moon/Documents/product/workspace/SentraAI-main-compliance/workspace/main-compliance-qa-v2 (variant=hardened)
+2026-10-23 17:27:41,084 INFO httpx HTTP Request: POST http://127.0.0.1/api/v1/audits "HTTP/1.1 202 Accepted"
+2026-10-23 17:27:42,204 INFO httpx HTTP Request: GET http://127.0.0.1/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf/compliance "HTTP/1.1 200 OK"
+2026-10-23 17:27:42,209 INFO httpx HTTP Request: GET http://127.0.0.1/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf/report.md "HTTP/1.1 200 OK"
+2026-10-23 17:27:42,225 INFO httpx HTTP Request: GET http://127.0.0.1/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf/compare "HTTP/1.1 200 OK"
+{
+  "database": "dedicated QA PostgreSQL",
+  "originals": 5,
+  "index": {
+    "documents": 403,
+    "changed": 403,
+    "chunks_per_clause": 1
+  },
+  "queries_passed": 8,
+  "target": "simulated MOCK agent",
+  "redis": "fakeredis",
+  "llm_calls": 0,
+  "kafka": "publish simulated",
+  "audits": [
+    {
+      "audit_id": "e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "version": 1,
+      "findings": 53,
+      "risk_paths": 9,
+      "recommendations": 16,
+      "status": "COMPLETED"
+    },
+    {
+      "audit_id": "23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "version": 2,
+      "findings": 23,
+      "risk_paths": 0,
+      "recommendations": 16,
+      "status": "COMPLETED"
+    }
+  ]
+}

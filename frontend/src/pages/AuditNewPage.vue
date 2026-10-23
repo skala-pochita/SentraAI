@@ -17,6 +17,8 @@ const suggestedName = computed(() => selectedTargets.value.find(t => t.type === 
 const targets = ref<Target[]>([])
 const selected = ref<string[]>([])
 const mode = ref('code')
+const sector = ref<string | null>(null)
+const highImpact = ref('UNDETERMINED')
 const uploading = ref(false)
 const ready = ref(false)
 const executionBlockers = ref<string[]>([])
@@ -104,7 +106,7 @@ async function start() {
   if (startBlockers.value.length) return
   busy.value = true; error.value = ''
   try {
-    const r = await post<{ audit_id: string }>('/audits', { name: auditName.value.trim() || suggestedName.value, target_ids: selected.value, mode: mode.value, ...(baseline.value ? { baseline_audit_id: baseline.value } : {}) })
+    const r = await post<{ audit_id: string }>('/audits', { name: auditName.value.trim() || suggestedName.value, target_ids: selected.value, mode: mode.value, compliance_profile: { sector: sector.value, high_impact_ai: highImpact.value }, ...(baseline.value ? { baseline_audit_id: baseline.value } : {}) })
     router.push(`/audits/${r.audit_id}`)
   } catch (e) { error.value = e instanceof ApiError ? e.body.message : String(e) } finally { busy.value = false }
 }
@@ -182,6 +184,14 @@ async function start() {
 
     </section><section v-show="step === 3">
     <div class="review-summary mb"><b>{{ auditName.trim() || suggestedName || '프로젝트를 선택하세요' }}</b><p class="muted">{{ MODES.find(m => m.v === mode)?.label }} · {{ selected.length }}개 대상</p><span class="small muted">{{ mode === 'code' ? '코드 검사에는 실행 환경 설정이 필요하지 않습니다.' : '모의 공격에 필요한 실행 환경과 준비 조건을 확인하세요.' }}</span></div>
+    <details class="mt mb">
+      <summary>규제 검토 조건 (선택)</summary>
+      <p class="muted small">입력값은 검토 조건을 표시하는 데 사용합니다. 적용 여부는 사용자가 판단합니다.</p>
+      <div class="row">
+        <label>업종 <select v-model="sector"><option :value="null">미입력</option><option value="finance">금융</option><option value="general">일반</option></select></label>
+        <label>고영향 AI 해당 여부 <select v-model="highImpact"><option value="UNDETERMINED">미판정</option><option value="YES">해당 (사용자 판단)</option><option value="NO">비해당 (사용자 판단)</option></select></label>
+      </div>
+    </details>
     <ExecutionSettingsPanel v-if="project && mode !== 'code'" :key="project.id" :target-id="project.id" @ready="ready = $event" @blockers="executionBlockers = $event" @checked="revealStartBlockers" />
     <div v-if="startBlockers.length" id="audit-start-blockers" ref="blockersElement" class="mt start-blockers" :class="{ highlighted: highlightBlockers }" tabindex="-1" role="status" aria-live="polite" @animationend="highlightBlockers = false">
       <b>감사를 시작할 수 없는 이유</b>

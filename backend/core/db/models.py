@@ -63,7 +63,7 @@ AUDIT_STATUSES = (
     "CANCELLED",
 )
 FINDING_STATUSES = ("OPEN", "FIXING", "RESOLVED", "ACCEPTED_RISK", "FALSE_POSITIVE", "MANUAL_REQUIRED")
-KB_SOURCE_TYPES = ("owasp_top10", "owasp_llm", "owasp_agentic", "cwe", "framework", "policy", "past_case")
+KB_SOURCE_TYPES = ("owasp_top10", "owasp_llm", "owasp_agentic", "cwe", "framework", "policy", "past_case", "kr_law", "kr_guideline")
 
 
 class User(Base):

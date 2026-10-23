@@ -1,0 +1,76 @@
+{
+  "index": {
+    "documents": 403,
+    "changed": 403,
+    "chunks_per_clause": 1
+  },
+  "queries": [
+    {
+      "id": "approval_en",
+      "passed": true,
+      "hits": [
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4",
+        "FSC-AI-GL:7-CHK-05",
+        "FSC-AI-SEC:PAGE-057-01:EVIDENCE-TECH-5",
+        "FSC-AI-GL:7-CHK-19",
+        "FSC-AI-GL:7-CHK-21"
+      ]
+    },
+    {
+      "id": "approval_ko",
+      "passed": true,
+      "hits": [
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4",
+        "FSC-AI-GL:7-CHK-05",
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TOOL-MISUSE",
+        "FSC-AI-GL:7-CHK-21",
+        "FSC-AI-GL:7-CHK-27"
+      ]
+    },
+    {
+      "id": "privilege_en",
+      "passed": true,
+      "hits": [
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-3",
+        "FSC-AI-GL:7-CHK-24",
+        "FSC-AI-GL:7-CHK-12",
+        "FSC-AI-GL:7-CHK-38",
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-2"
+      ]
+    },
+    {
+      "id": "secrets_en",
+      "passed": true,
+      "hits": [
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-2",
+        "FSC-AI-GL:7-CHK-21",
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4"
+      ]
+    },
+    {
+      "id": "high_impact_ko",
+      "passed": true,
+      "hits": [
+        "KR-AIBA:34:EVIDENCE-HUMAN-OVERSIGHT"
+      ]
+    },
+    {
+      "id": "retention_ko",
+      "passed": true,
+      "hits": [
+        "KR-AIBA-DECREE:27:EVIDENCE-RETENTION"
+      ]
+    },
+    {
+      "id": "unrelated_en",
+      "passed": true,
+      "hits": []
+    },
+    {
+      "id": "unrelated_ko",
+      "passed": true,
+      "hits": []
+    }
+  ]
+}

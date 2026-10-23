@@ -1,0 +1,21 @@
+........................................................................ [ 36%]
+......................................................................F. [ 73%]
+....................................................                     [100%]
+=================================== FAILURES ===================================
+___________________ test_legacy_revision_can_upgrade_to_head ___________________
+
+    def test_legacy_revision_can_upgrade_to_head() -> None:
+        root = Path(__file__).resolve().parents[2]
+        scripts = ScriptDirectory.from_config(Config(str(root / "alembic.ini")))
+>       assert scripts.get_current_head() == "0006"
+E       AssertionError: assert '0007' == '0006'
+E
+E         - 0006
+E         ?    ^
+E         + 0007
+E         ?    ^
+
+tests/unit/test_migration_history.py:12: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_migration_history.py::test_legacy_revision_can_upgrade_to_head
+1 failed, 195 passed, 3 deselected in 11.00s

@@ -1,0 +1,11 @@
+{
+  "audit_id": "d34b5d40-91ac-4acb-bdcd-b58569fdaff8",
+  "browser": "Chrome",
+  "role": "AUDITOR",
+  "same_y": 97.9340362548828,
+  "tab_height": 40.190975189208984,
+  "horizontal_group_gap_px": 20,
+  "regulation_tab_switch": "PASS",
+  "regulation_preview": "MOCK and NOT_ASSESSED displayed with source and citation position",
+  "alerts": []
+}

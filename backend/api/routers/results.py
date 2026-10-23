@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends
@@ -13,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import Admin, CurrentUser, LoggedIn, ensure_target_access, require_roles
 from api.routers.audits import _iso, require_completed
+from core.compliance import render_compliance, verify_report
 from core.db.models import Finding, ProbeRun, Report, RiskPath, TraceSpan
 from core.db.session import get_db
 from core.errors import AppError, ErrorCode
@@ -21,6 +23,27 @@ from core.path_schema import AttackPath
 from core.path_validation import validate_path
 
 router = APIRouter(tags=["audits"])
+
+
+def _verify_stored_report(report: dict[str, Any]) -> None:
+    section = report.get("compliance")
+    if section and (
+        not isinstance(section, dict)
+        or ((section.get("schema") == 2 or "integrity" in section) and not verify_report(report))
+    ):
+        raise AppError(ErrorCode.VALIDATION, "stored report integrity mismatch")
+
+
+def _report_for_role(report: dict[str, Any], user: CurrentUser) -> dict[str, Any]:
+    if user.role in {"ADMIN", "AUDITOR"}:
+        return report
+    visible = deepcopy(report)
+    for key in ("compliance", "compliance_profile"):
+        visible.pop(key, None)
+    for finding in visible.get("findings", []):
+        finding.pop("compliance_refs", None)
+        finding.pop("compliance_mapping", None)
+    return visible
 
 
 # ---------------- Findings ----------------
@@ -94,6 +117,13 @@ async def get_finding(
         out["probe_runs"] = [probe_out(r) for r in runs]
     paths = (await db.execute(select(RiskPath).where(RiskPath.audit_id == f.audit_id))).scalars()
     out["risk_paths"] = [risk_out(r) for r in paths if f.id in r.finding_ids]
+    stored = (await db.execute(select(Report).where(Report.audit_id == f.audit_id))).scalar_one_or_none()
+    saved = (
+        next((item for item in stored.report_json.get("findings", []) if item.get("finding_id") == str(f.id)), {})
+        if stored
+        else {}
+    )
+    out["compliance_refs"] = saved.get("compliance_refs", []) if user.role in {"ADMIN", "AUDITOR"} else []
     return out
 
 
@@ -234,7 +264,8 @@ async def report_json(
     r = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
     if r is None:
         raise AppError(ErrorCode.NOT_FOUND, "report not ready")
-    return {"report_id": str(r.id), "created_at": _iso(r.created_at), **r.report_json}
+    _verify_stored_report(r.report_json)
+    return {"report_id": str(r.id), "created_at": _iso(r.created_at), **_report_for_role(r.report_json, user)}
 
 
 @router.get("/audits/{audit_id}/report.md", response_class=PlainTextResponse)
@@ -245,8 +276,14 @@ async def report_md(
     r = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
     if r is None:
         raise AppError(ErrorCode.NOT_FOUND, "report not ready")
+    _verify_stored_report(r.report_json)
+    markdown = r.report_md
+    if user.role not in {"ADMIN", "AUDITOR"} and r.report_json.get("compliance"):
+        from core.graph.nodes.report import render_md
+
+        markdown = render_md(_report_for_role(r.report_json, user))
     return PlainTextResponse(
-        r.report_md,
+        markdown,
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="audit-{str(audit_id)[:8]}.md"'},
     )
@@ -282,3 +319,44 @@ async def traces(
         }
         for s in (await db.execute(q.limit(5000))).scalars()
     ]
+
+
+async def _compliance_snapshot(audit_id: uuid.UUID, user: CurrentUser, db: AsyncSession) -> dict[str, Any]:
+    await require_completed(db, user, audit_id)
+    stored = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
+    if stored is None:
+        raise AppError(ErrorCode.NOT_FOUND, "report not ready")
+    _verify_stored_report(stored.report_json)
+    return dict(stored.report_json)
+
+
+@router.get("/audits/{audit_id}/compliance")
+async def compliance_json(
+    audit_id: uuid.UUID,
+    user: CurrentUser = Depends(require_roles("ADMIN", "AUDITOR")),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    report = await _compliance_snapshot(audit_id, user, db)
+    return {
+        "audit_id": report.get("audit_id"),
+        "generated_at": report.get("generated_at"),
+        "targets": report.get("targets", []),
+        "agent_coverage": report.get("agent_coverage", []),
+        "eval_config": report.get("eval_config"),
+        "report_snapshot": report,
+        **report.get("compliance", {"schema": 0, "status": "NOT_ASSESSED"}),
+    }
+
+
+@router.get("/audits/{audit_id}/compliance.md", response_class=PlainTextResponse)
+async def compliance_md(
+    audit_id: uuid.UUID,
+    user: CurrentUser = Depends(require_roles("ADMIN", "AUDITOR")),
+    db: AsyncSession = Depends(get_db),
+) -> PlainTextResponse:
+    report = await _compliance_snapshot(audit_id, user, db)
+    return PlainTextResponse(
+        render_compliance(report),
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="compliance-{str(audit_id)[:8]}.md"'},
+    )

@@ -1,0 +1,32 @@
+{
+  "database": "dedicated QA PostgreSQL",
+  "originals": 5,
+  "index": {
+    "documents": 403,
+    "changed": 403,
+    "chunks_per_clause": 1
+  },
+  "queries_passed": 8,
+  "target": "simulated external agent (not a real LLM)",
+  "redis": "fakeredis",
+  "llm_calls": 0,
+  "kafka": "publish simulated",
+  "audits": [
+    {
+      "audit_id": "e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "version": 1,
+      "findings": 53,
+      "risk_paths": 9,
+      "recommendations": 16,
+      "status": "COMPLETED"
+    },
+    {
+      "audit_id": "23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "version": 2,
+      "findings": 23,
+      "risk_paths": 0,
+      "recommendations": 16,
+      "status": "COMPLETED"
+    }
+  ]
+}

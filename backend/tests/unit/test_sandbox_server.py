@@ -46,6 +46,8 @@ class FakeContainer:
 
     def exec_run(self, cmd: list[str], user: str) -> Obj:
         req = json.loads(base64.b64decode(cmd[-1]))
+        if isinstance(req, list):
+            return Obj(exit_code=0, output=json.dumps({"ready": self.docker.service_ports_ready}).encode())
         self.docker.http.append(req)
         path = req["url"].split(":8000", 1)[1]
         reply = self.docker.replies.get(path, {"status": 200, "data": {}})
@@ -67,8 +69,14 @@ class Containers:
         c.start()
         return c
 
-    def list(self, all: bool = False, filters: dict[str, str] | None = None) -> list[FakeContainer]:
-        return list(self.items)
+    def list(self, all: bool = False, filters: dict[str, Any] | None = None) -> list[FakeContainer]:
+        labels = (filters or {}).get("label", [])
+        if isinstance(labels, str):
+            labels = [labels]
+        return [c for c in self.items if not any(
+            (c.labels.get(key) != value if sep else key not in c.labels)
+            for key, sep, value in (item.partition("=") for item in labels)
+        )]
 
 
 class FakeDocker:
@@ -76,6 +84,7 @@ class FakeDocker:
         self.containers = Containers(self)
         self.removed: list[str] = []
         self.http: list[dict[str, Any]] = []
+        self.service_ports_ready = True
         self.builds: list[bytes] = []
         self.replies: dict[str, Any] = {"/health": {"status": 200, "data": {"mode": "mock"}}}
         self.build_events: list[dict[str, Any]] | None = None
@@ -259,6 +268,26 @@ def test_build_failure_without_tool_error_line_keeps_docker_message() -> None:
     assert "(ERROR: No matching distribution found for nope==9.9)" in server.build_failure("agent", "code: 1", pip)
 
 
+async def test_agent_health_alone_does_not_mark_backend_ready(fake: FakeDocker) -> None:
+    fake.service_ports_ready = False
+    aid = str(uuid.uuid4())
+    async with api() as c:
+        response = await c.post("/start", json=body(aid), headers=AUTH)
+    assert response.status_code == 422
+    assert "health check timed out" in response.json()["error"]["message"]
+    assert aid not in server.active
+
+
+def test_maven_dependency_failure_reports_fatal_cause() -> None:
+    recent = [
+        "[ERROR] [ERROR] Some problems were encountered while processing the POMs:",
+        "[FATAL] Non-resolvable parent POM: dependency repository unavailable",
+        "[ERROR] The build could not read 1 project",
+    ]
+    message = server.build_failure("backend", "code: 1", recent)
+    assert "repository unavailable" in message and "Some problems" not in message
+
+
 async def test_sandbox_client_keeps_reason_and_only_retries_transient_failures(monkeypatch: pytest.MonkeyPatch) -> None:
     from core import sandbox_client
     from core.errors import AppError, ErrorCode
@@ -290,7 +319,17 @@ async def test_sandbox_client_keeps_reason_and_only_retries_transient_failures(m
 def test_reaper_stops_only_expired(fake: FakeDocker, monkeypatch: pytest.MonkeyPatch) -> None:
     stopped: list[str] = []
     monkeypatch.setattr(server, "stop", stopped.append)
-    fake.containers.create("x", labels={server.LABEL: "old", "auditor.expires": "0"})
-    fake.containers.create("x", labels={server.LABEL: "new", "auditor.expires": "9999999999"})
+    namespace = {server.NAMESPACE_LABEL: "ai-security-auditor"}
+    fake.containers.create("x", labels={**namespace, server.LABEL: "old", "auditor.expires": "0"})
+    fake.containers.create("x", labels={**namespace, server.LABEL: "new", "auditor.expires": "9999999999"})
+    fake.containers.create("x", labels={server.NAMESPACE_LABEL: "another-stack", server.LABEL: "foreign", "auditor.expires": "0"})
     server.reap_expired()
     assert stopped == ["old"]
+
+
+def test_cleanup_cannot_remove_another_stack_resources(fake: FakeDocker) -> None:
+    aid = str(uuid.uuid4())
+    own = fake.containers.create("own", labels={server.LABEL: aid, server.NAMESPACE_LABEL: "ai-security-auditor"})
+    foreign = fake.containers.create("foreign", labels={server.LABEL: aid, server.NAMESPACE_LABEL: "another-stack"})
+    server.stop(aid)
+    assert own.id in fake.removed and foreign.id not in fake.removed

@@ -1,0 +1,28 @@
+# Frozen acceptance cases for this implementation; not an independent benchmark.
+cases:
+- id: approval_en
+  query: external API MCP human approval
+  expected_prefixes: ['FSC-AI-SEC:PAGE-052-01:EVIDENCE-', 'KR-AIBA-HIGH-GL:PAGE-055-01:EVIDENCE-']
+- id: approval_ko
+  query: 외부 도구 사전 승인 절차
+  expected_prefixes: ['FSC-AI-SEC:PAGE-052-01:EVIDENCE-']
+- id: privilege_en
+  query: tool_excessive_scope least privilege
+  expected_prefixes: ['FSC-AI-GL:7-CHK-24', 'FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-3']
+- id: secrets_en
+  query: hardcoded_secret API key
+  expected_prefixes: ['FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1']
+- id: high_impact_ko
+  query: 고영향 인공지능 사람 관리 감독
+  source: KR-AIBA
+  expected_prefixes: ['KR-AIBA:34:EVIDENCE-HUMAN-OVERSIGHT']
+- id: retention_ko
+  query: 문서 5년 보관
+  source: KR-AIBA-DECREE
+  expected_prefixes: ['KR-AIBA-DECREE:27:EVIDENCE-RETENTION']
+- id: unrelated_en
+  query: banana galaxy xylophone 9f83a24b
+  expect_empty: true
+- id: unrelated_ko
+  query: 바나나 은하 실로폰 9f83a24b
+  expect_empty: true

@@ -1,0 +1,23 @@
+ version_num
+-------------
+ 0008
+(1 row)
+
+                  id                  |          baseline_audit_id           |     summary
+--------------------------------------+--------------------------------------+------------------
+ 22222222-2222-2222-2222-222222222222 |                                      | {"before": true}
+ 33333333-3333-3333-3333-333333333333 | 22222222-2222-2222-2222-222222222222 | {}
+(2 rows)
+
+      column_name
+------------------------
+ correlation_finding_id
+ payload
+(2 rows)
+
+                                                                            indexdef
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ CREATE UNIQUE INDEX uq_kb_regulation_ref ON public.kb_documents USING btree (ref_code) WHERE (source_type = ANY (ARRAY['kr_law'::text, 'kr_guideline'::text]))
+(1 row)
+
+INSERT 0 1
