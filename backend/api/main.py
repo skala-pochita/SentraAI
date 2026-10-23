@@ -14,7 +14,7 @@ from starlette.middleware.base import RequestResponseEndpoint
 
 from api.errors import install_error_handlers
 from api.local_mode import is_local, reject_reason
-from api.routers import audits, auth, eval_runs, execution, knowledge, ops, results, targets
+from api.routers import audits, auth, compare, eval_runs, execution, knowledge, ops, results, targets
 from core.kafka.producer import close_producer
 
 API_PREFIX = "/api/v1"
@@ -88,6 +88,7 @@ for r in (
     execution.router,
     audits.router,
     results.router,
+    compare.router,
     knowledge.router,
     ops.router,
     eval_runs.router,

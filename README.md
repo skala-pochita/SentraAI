@@ -166,6 +166,23 @@ sentraai setup      # 키 다시 입력          sentraai stop   # 서버 멈춤
 
 자세한 실행 계약은 [업로드 프로젝트 전체 감사](workHistory/UPLOADED_PROJECT_AUDIT.md)를 참고한다.
 
+### 수정 전후 비교 (수정본 재업로드)
+감사기는 원본을 고치지 않는다. 개발자가 직접 고친 수정본을 다시 올리면 같은 공격을 다시 실행해 이전 감사와 비교한다.
+
+1. 감사 실행 화면에서 "이전 버전"을 고르고 수정본 ZIP을 올린다 → 같은 프로젝트의 다음 버전(v2…)으로 등록되고 실행 설정·비밀값을 이어받는다.
+2. "수정 전후 비교"에서 기준 감사(이전 버전의 완료된 감사)를 고르고 전체 또는 에이전트 모드로 감사한다.
+3. 완료 후 "수정 전후 비교" 탭에서 Finding·공격을 **신규 발견 / 여전히 존재 / 재검증에서 해소·차단 / 확인 불가**로 나눠 본다. 미실행·오류·판정 불확실·실행 모드(실제 LLM·모의) 불일치·정상 대조군 실패는 확인 불가이며 해결로 세지 않는다.
+
+API로도 같은 흐름을 쓸 수 있다.
+
+```bash
+curl -F file=@fixed.zip -F previous_target_id=$V1_TARGET -H "Authorization: Bearer $TOKEN" $API/api/v1/targets/upload
+curl -H "Authorization: Bearer $TOKEN" $API/api/v1/targets/$V2_TARGET/baselines            # 기준 감사 후보
+curl -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+     -d '{"target_ids":["'$V2_TARGET'"],"mode":"full","baseline_audit_id":"'$V1_AUDIT'"}' $API/api/v1/audits
+curl -H "Authorization: Bearer $TOKEN" $API/api/v1/audits/$V2_AUDIT/compare                # .md 도 가능
+```
+
 ## 개발
 
 ```bash
