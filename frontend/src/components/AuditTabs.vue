@@ -12,6 +12,7 @@ const TABS = [
   { s: '/risks', label: '결합 위험', icon: 'share' },
   { s: '/redteam', label: '레드팀', icon: 'crosshair' },
   { s: '/report', label: '보고서', icon: 'file' },
+  { s: '/compare', label: '수정 전후 비교', icon: 'branch' },
 ]
 </script>
 <template>

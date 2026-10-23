@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, get, post, ApiError } from '../api/client'
-import type { Paged, Target } from '../api/types'
+import type { BaselineCandidate, Paged, Target } from '../api/types'
 import Icon from '../components/Icon.vue'
 import ExecutionSettingsPanel from '../components/ExecutionSettingsPanel.vue'
 
@@ -12,6 +12,25 @@ const selected = ref<string[]>([])
 const mode = ref('code')
 const uploading = ref(false)
 const ready = ref(false)
+const previous = ref('') // 수정본 업로드: 이전 버전(업로드 소스 대상)
+const baseline = ref('') // 비교 기준 감사 (같은 프로젝트의 완료된 감사)
+const candidates = ref<BaselineCandidate[]>([])
+const uploads = computed(() => targets.value.filter((t) => t.type === 'repo' && t.config?.source === 'upload'))
+const version = (t: Target) => t.config?.version ?? 1
+// 비교 후보는 선택한 소스(또는 에이전트에 연결된 소스) 기준으로 찾는다
+const anchor = computed(() => {
+  const picked = targets.value.filter((t) => selected.value.includes(t.id))
+  const repo = picked.find((t) => t.type === 'repo')
+  return repo?.id ?? picked.find((t) => t.type === 'agent')?.linked_target_id ?? picked[0]?.id ?? ''
+})
+watch(anchor, async (tid) => {
+  candidates.value = []; baseline.value = ''
+  if (!tid) return
+  try { candidates.value = await get<BaselineCandidate[]>(`/targets/${tid}/baselines`) } catch { candidates.value = [] }
+  const t = targets.value.find((x) => x.id === tid)
+  // 이전 버전과 연결된 수정본이면 가장 최근 감사를 기준으로 미리 고른다
+  if (t?.config?.previous_target_id && candidates.value.length) baseline.value = candidates.value[0].id
+})
 const project = computed(() => {
   const repo = targets.value.find((t) => selected.value.includes(t.id) && t.type === 'repo' && t.config?.runtime)
   if (repo) return repo
@@ -25,10 +44,12 @@ async function upload(event: Event) {
   uploading.value = true; error.value = ''
   try {
     const form = new FormData(); form.append('file', file)
+    if (previous.value) form.append('previous_target_id', previous.value)
     const target = await api<Target>('/targets/upload', { method: 'POST', body: form })
     targets.value = (await get<Paged<Target>>('/targets?size=200')).items
     selected.value = [target.id, ...(target.linked_target_id ? [target.linked_target_id] : [])]
     mode.value = target.linked_target_id ? 'full' : 'code'
+    previous.value = ''
   } catch (e) { error.value = e instanceof ApiError ? e.body.message : String(e) }
   finally { uploading.value = false; input.value = '' }
 }
@@ -46,7 +67,7 @@ onMounted(async () => {
 async function start() {
   busy.value = true; error.value = ''
   try {
-    const r = await post<{ audit_id: string }>('/audits', { target_ids: selected.value, mode: mode.value })
+    const r = await post<{ audit_id: string }>('/audits', { target_ids: selected.value, mode: mode.value, ...(baseline.value ? { baseline_audit_id: baseline.value } : {}) })
     router.push(`/audits/${r.audit_id}`)
   } catch (e) { error.value = e instanceof ApiError ? e.body.message : String(e) } finally { busy.value = false }
 }
@@ -78,6 +99,13 @@ async function start() {
     </details>
     <p class="section-title">프로젝트 업로드</p>
     <p class="muted small">소스 프로젝트 ZIP · 최대 20MB, 압축 해제 100MB / 5,000개 항목. 원본은 변경하지 않습니다. 에이전트가 발견되면 권한 검사와 격리 실행·공격 검사를 함께 선택합니다.</p>
+    <label v-if="uploads.length" class="field mb">수정본이면 이전 버전 선택 (선택)
+      <select v-model="previous" :disabled="uploading || busy" aria-label="이전 버전">
+        <option value="">새 프로젝트로 등록</option>
+        <option v-for="t in uploads" :key="t.id" :value="t.id">{{ t.name }} · v{{ version(t) }}</option>
+      </select>
+      <span class="muted small" style="font-weight:400">같은 프로젝트의 다음 버전으로 등록하고 실행 설정(비밀값 포함)을 이어받습니다. 감사 후 이전 감사와 비교할 수 있습니다.</span>
+    </label>
     <input type="file" accept=".zip,application/zip" :disabled="uploading || busy" aria-label="프로젝트 ZIP 업로드" @change="upload" />
     <p v-if="uploading" class="muted">업로드 중…</p>
     <p class="section-title mt"><Icon name="layers" :size="14" />1. 감사 대상</p>
@@ -86,7 +114,7 @@ async function start() {
         <input type="checkbox" :value="t.id" v-model="selected" />
         <span class="pick-ico"><Icon :name="t.type === 'repo' ? 'code' : 'bot'" :size="20" /></span>
         <span style="min-width:0"><b>{{ t.name }}</b><span class="muted small mono" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ t.ref || '업로드 프로젝트 에이전트' }}</span><span v-if="t.type === 'repo' && t.config?.runtime" class="muted small" style="display:block">{{ t.config.agent_detected ? '에이전트 정의 발견 · 실행 설정에서 준비 조건 확인' : '소스 검사 대상' }}</span></span>
-        <span class="badge" style="margin-left:auto">{{ t.type }}</span>
+        <span class="row" style="margin-left:auto; gap:6px"><span v-if="t.type === 'repo' && t.config?.source === 'upload'" class="badge">v{{ version(t) }}</span><span class="badge">{{ t.type }}</span></span>
       </label>
     </div>
     <p v-if="!targets.length" class="muted">등록된 대상이 없습니다. 프로젝트 ZIP을 업로드하세요.</p>
@@ -99,6 +127,15 @@ async function start() {
         <span><b>{{ m.label }}</b><span class="muted small" style="display:block">{{ m.desc }}</span></span>
       </label>
     </div>
+
+    <template v-if="candidates.length">
+      <p class="section-title mt" style="margin-top:24px"><Icon name="branch" :size="14" />3. 수정 전후 비교 (선택)</p>
+      <select v-model="baseline" aria-label="비교 기준 감사">
+        <option value="">비교하지 않음</option>
+        <option v-for="c in candidates" :key="c.id" :value="c.id">v{{ c.version ?? '?' }} · {{ c.created_at.slice(0, 16).replace('T', ' ') }} · {{ c.mode }} · Finding {{ c.summary?.total ?? 0 }}건</option>
+      </select>
+      <p class="muted small mt-s">완료 후 '수정 전후 비교' 탭에서 신규 발견 / 여전히 존재 / 재검증에서 해소·차단 / 확인 불가로 나눠 보여 줍니다. 같은 공격을 다시 실행하려면 전체 또는 에이전트 모드를 선택하세요.</p>
+    </template>
 
     <ExecutionSettingsPanel v-if="project" :key="project.id" :target-id="project.id" @ready="ready = $event" />
     <p v-if="project && mode !== 'code' && !ready" class="muted mt">실행 설정을 저장하고 전체 검사 준비 조건을 충족해 주세요. 코드 검사는 별도로 실행할 수 있습니다.</p>
