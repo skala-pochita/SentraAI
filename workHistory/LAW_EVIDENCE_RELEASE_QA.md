@@ -41,7 +41,7 @@ push 직전 main을 다시 fetch해 README 이미지 추가만 포함한 `4e24d0
 | 운영 Python 의존성 / 프런트 의존성 감사 | Python 88개에서 알려진 취약점 0 / 프런트 0 | [Python](../reports/release-law-qa/dependency-audit.json), [frontend](../reports/release-law-qa/frontend-audit.json) |
 | 실제 sandbox 격리 | 컨테이너 3개, 비루트·읽기 전용 루트·privileged 금지·호스트 bind/포트 없음. 직접/간접 공격 실행 후 정리 | [sandbox-isolation.txt](../reports/release-law-qa/sandbox-isolation.txt) |
 | API 재시작 후 nginx 복구 | 같은 frontend 컨테이너에서 502→200 | [nginx-recovery.json](../reports/release-law-qa/nginx-recovery.json) |
-| 실제 보고서 화면 | 정렬·간격·규제 탭·경고 없음 | [browser-checks.json](../reports/release-law-qa/browser-checks.json) |
+| 실제 보고서 화면 | 정렬·간격·규제 탭·경고 없음 | [browser-checks.json](../reports/release-law-qa/browser-checks.json), [화면](../reports/release-law-qa/report-alignment.jpg) |
 
 기본 검사에서 deselect한 3개를 위 E2E로 별도 실행했다. PostgreSQL을 제공했으므로 기본 DB 통합 검사를 건너뛰지 않았다. Python 의존성 감사는 고정 lock에서 운영 의존성을 추출해 수행했으며, 알려지지 않은 취약점이나 base OS 전체 안전성까지 증명하지 않는다.
 
