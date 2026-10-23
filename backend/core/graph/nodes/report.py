@@ -8,7 +8,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from core.compliance import build_compliance, load_catalog, render_compliance, seal_report
+from core.compliance import build_compliance_safely, render_compliance, seal_report
 from core.graph.deps import get_deps
 from core.graph.nodes._base import node
 from core.redis.locks import release_target_lock
@@ -88,7 +88,7 @@ def build_report(state: dict[str, Any], db_findings: list[dict[str, Any]]) -> di
         "compliance_profile": state.get("compliance_profile", {}),
         "audit_mode": state.get("mode", "full"),
     }
-    rep["compliance"] = build_compliance(rep, load_catalog(), state.get("compliance_profile"))
+    rep["compliance"] = build_compliance_safely(rep, state.get("compliance_profile"))
     return seal_report(rep)
 
 
@@ -181,7 +181,7 @@ async def report(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any
             coverage["reason"] = "실제 제공자 호출 성공을 확인하지 못했습니다."
 
     # Finalize recommendations after model verification above.
-    rep["compliance"] = build_compliance(rep, load_catalog(), state.get("compliance_profile"))
+    rep["compliance"] = build_compliance_safely(rep, state.get("compliance_profile"))
     rep = seal_report(rep)
     res = await deps.call(
         state, "report", "save_report", audit_id=state["audit_id"], report_json=rep, report_md=render_md(rep)

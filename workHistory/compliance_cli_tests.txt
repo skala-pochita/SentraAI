@@ -1,0 +1,17 @@
+✔ buildZip 결과를 Python zipfile 이 그대로 연다 (압축·무압축·한글 파일명) (26.968833ms)
+✔ isEnvFile: 실제 .env 는 제외, 예시 파일은 포함 (0.191083ms)
+✔ collect: 산출물·.env·심볼릭 링크를 빼고 상대 경로로 모은다 (18.157292ms)
+✔ collect: target·build 같은 이름은 빌드 파일 옆일 때만 산출물로 뺀다 (Java 패키지 lab/target 은 남김) (23.036541ms)
+✔ CLI compose 는 저장소 compose 와 같은 서비스를 갖고, 대시보드만 127.0.0.1 에 연다 (0.680625ms)
+✔ writeConfig: 본인만 읽는 권한, 비밀값은 처음 한 번 만들고 유지 (5.360459ms)
+✔ collect: 큰 바이너리·아주 큰 파일은 빼고, 작은 바이너리(빌드 파일)는 남긴다 (6.028375ms)
+✔ ignoreMatcher: 디렉터리·확장자·경로 패턴 (0.307459ms)
+✔ collect: .sentraaiignore 와 exclude 옵션 (4.26225ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 131.708625

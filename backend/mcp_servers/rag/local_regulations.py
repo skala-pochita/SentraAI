@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import json
 import math
-import re
 import sqlite3
 from pathlib import Path
 from typing import Any
 
 from core.embeddings import DIM, embed, provider
 from core.errors import AppError, ErrorCode
+from core.regulation_retrieval import expand_query, lexical_support, retrieval_candidate
 from core.regulation_sources import Clause, canonical_hash, load_clauses
 from core.settings import get_settings
 
@@ -87,14 +87,16 @@ async def search(path: Path, query: str, source: str | None, k: int) -> list[dic
         rows = db.execute(
             "SELECT data, vector FROM clauses WHERE (? IS NULL OR source = ?)", (source, source)
         ).fetchall()
+    query = expand_query(query)
     [query_vector] = await embed([query])
-    tokens = set(re.findall(r"[A-Za-z0-9_]+|[가-힣]{2,}", query.lower()))
     hits = []
     for data, encoded_vector in rows:
         clause = verified(data, originals)
+        if not retrieval_candidate(query, clause):
+            continue
         vector = json.loads(encoded_vector)
         cosine = max(0.0, sum(a * b for a, b in zip(query_vector, vector, strict=True)))
-        keyword = sum(token in clause.text.lower() for token in tokens) / max(1, len(tokens))
+        keyword = lexical_support(query, clause)
         score = 0.5 * cosine + 0.5 * keyword
         if score <= 0:
             continue
@@ -112,6 +114,9 @@ async def search(path: Path, query: str, source: str | None, k: int) -> list[dic
                 "page_start": clause.page_start,
                 "page_end": clause.page_end,
                 "candidate_only": True,
+                "content_kind": clause.content_kind,
+                "evidence_scope": clause.evidence_scope,
+                "parent_id": clause.parent_id,
                 "backend": "sqlite",
                 "embedding": fingerprint(),
             }

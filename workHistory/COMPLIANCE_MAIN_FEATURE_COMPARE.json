@@ -1,0 +1,224 @@
+{
+  "main": "0240c71",
+  "feature_base": "bf06310",
+  "base_main_files_removed": [],
+  "current_main_change_states": {
+    "BOTH_CHANGED_NEEDS_MERGE": 13,
+    "OLD_MAIN_VERSION": 21,
+    "MISSING": 19
+  },
+  "files": [
+    {
+      "file": "README.md",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "backend/api/main.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/api/routers/audits.py",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "backend/api/routers/compare.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/api/routers/results.py",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "backend/api/routers/targets.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/core/attack_paths.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/core/audit_compare.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/core/db/models.py",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "backend/core/graph/nodes/agent_static_check.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/core/graph/nodes/correlate.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/core/graph/nodes/intake.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/core/graph/nodes/probe_judge.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/core/graph/nodes/probe_run.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/core/graph/nodes/report.py",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "backend/core/graph/state.py",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "backend/core/path_schema.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/core/path_validation.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/core/project_versions.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/core/rules/engine.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/core/schemas/__init__.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/core/tool_code_evidence.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/harness/tools.py",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "backend/mcp_servers/business/demo_reset.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/mcp_servers/business/tools/execute.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/mcp_servers/business/tools/mutate.py",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "backend/mcp_servers/business/tools/query.py",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "backend/migrations/versions/0005_audit_baseline.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/migrations/versions/0006_attack_paths.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/migrations/versions/0007_repair_audit_baseline.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/tests/integration/test_attack_paths.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/tests/integration/test_reupload_compare.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/tests/unit/test_attack_paths.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/tests/unit/test_audit_compare.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "backend/tests/unit/test_migration_history.py",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "backend/tests/unit/test_tool_code_evidence.py",
+      "state": "MISSING"
+    },
+    {
+      "file": "frontend/src/api/types.ts",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "frontend/src/components/AttackPathDetails.vue",
+      "state": "MISSING"
+    },
+    {
+      "file": "frontend/src/components/AuditTabs.vue",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "frontend/src/components/ExecutionSettingsPanel.vue",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "frontend/src/components/RiskGraph3D.vue",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "frontend/src/pages/AuditNewPage.vue",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "frontend/src/pages/ComparePage.vue",
+      "state": "MISSING"
+    },
+    {
+      "file": "frontend/src/pages/FindingPage.vue",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "frontend/src/pages/FindingsPage.vue",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "frontend/src/pages/RedTeamPage.vue",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "frontend/src/pages/RisksPage.vue",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "frontend/src/router/index.ts",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "frontend/src/style.css",
+      "state": "OLD_MAIN_VERSION"
+    },
+    {
+      "file": "workHistory/ATTACK_PATH_IMPLEMENTATION.md",
+      "state": "MISSING"
+    },
+    {
+      "file": "workHistory/ATTACK_PATH_PLAN.md",
+      "state": "MISSING"
+    },
+    {
+      "file": "workHistory/DECISIONS.md",
+      "state": "BOTH_CHANGED_NEEDS_MERGE"
+    },
+    {
+      "file": "workHistory/기획서.md",
+      "state": "OLD_MAIN_VERSION"
+    }
+  ]
+}

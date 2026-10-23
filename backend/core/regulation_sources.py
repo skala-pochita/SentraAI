@@ -57,8 +57,85 @@ class Clause(BaseModel):
     issuer: str
     source_url: str | None = None
     version: str | None = None
+    content_kind: Literal["requirement", "recommendation", "example", "toc", "definition", "addendum", "unknown"] = (
+        "unknown"
+    )
+    classification_basis: Literal["unreviewed", "structure", "curated_excerpt"] = "unreviewed"
+    parent_id: str | None = None
     page_start: int | None = Field(default=None, ge=1)
     page_end: int | None = Field(default=None, ge=1)
+
+
+def evidence_candidate(clause: Clause) -> bool:
+    """A searchable candidate is still not a relevance or applicability decision."""
+    return clause.content_kind in {"requirement", "recommendation"} and clause.classification_basis != "unreviewed"
+
+
+def classify_clauses(root: Path, clauses: dict[str, Clause], *, include_policy: bool = True) -> dict[str, Clause]:
+    # Legacy page chunks are unclassified. Only genuine checklist boundaries get
+    # structural classification; local YAML flags alone cannot promote a page.
+    out = {}
+    for cid, original in clauses.items():
+        checklist = bool(re.fullmatch(r"[^:]+:[1-7]-CHK-\d+", cid))
+        out[cid] = original.model_copy(
+            update={
+                "content_kind": "recommendation" if checklist else "addendum" if ":ADDENDUM-" in cid else "unknown",
+                "classification_basis": "structure" if checklist else "unreviewed",
+                "parent_id": None,
+                "assessable": original.assessable if checklist else False,
+            }
+        )
+    policy = root / "evidence_policy.yaml"
+    if not include_policy or not policy.exists():
+        return out
+    records = yaml.safe_load(policy.read_text(encoding="utf-8")) or {}
+    for item in records.get("classifications", []):
+        clause = out.get(item["clause"])
+        if clause is None:
+            continue
+        if clause.source_sha256 != item["source_sha256"] or not evidence_candidate(clause):
+            raise AppError(ErrorCode.VALIDATION, "stale checklist classification")
+        scope = item["evidence_scope"]
+        out[clause.id] = Clause.model_validate(
+            {
+                **clause.model_dump(),
+                "evidence_scope": scope,
+                "assessable": scope != "organization",
+                "condition": item.get("condition", clause.condition),
+            }
+        )
+    for item in records.get("excerpts", []):
+        parent = out.get(item["parent_id"])
+        if parent is None:
+            # A checkout without local originals must remain usable.
+            if any(c.source == item["parent_id"].split(":")[0] for c in out.values()):
+                raise AppError(ErrorCode.VALIDATION, "evidence policy parent missing")
+            continue
+        text = item["text"]
+        cid = parent.id + ":EVIDENCE-" + item["slug"]
+        if (
+            item["source_sha256"] != parent.source_sha256
+            or not compact(text)
+            or compact(text) not in compact(parent.text)
+            or cid in out
+            or item["content_kind"] not in {"requirement", "recommendation"}
+        ):
+            raise AppError(ErrorCode.VALIDATION, "stale or invalid evidence policy excerpt")
+        out[cid] = Clause.model_validate(
+            {
+                **parent.model_dump(),
+                "id": cid,
+                "parent_id": parent.id,
+                "heading": item["heading"],
+                "text": text,
+                "content_kind": item["content_kind"],
+                "classification_basis": "curated_excerpt",
+                "condition": item.get("condition", parent.condition),
+                "evidence_scope": item.get("evidence_scope", "finding"),
+                "assessable": item.get("evidence_scope", "finding") != "organization",
+            }
+        )
+    return out
 
 
 def clean_text(text: str, title: str) -> str:
@@ -158,6 +235,8 @@ def normalize_clauses(source: dict[str, Any], text: str) -> list[Clause]:
             version=source.get("version"),
             page_start=first,
             page_end=last,
+            content_kind="recommendation" if source["format"] == "checklist" else "unknown",
+            classification_basis="structure" if source["format"] == "checklist" else "unreviewed",
         )
         if cid in out and out[cid].text != body:
             raise AppError(ErrorCode.VALIDATION, f"ambiguous clause ID {cid}; remove table-of-contents duplicates")
@@ -184,14 +263,22 @@ def read_manifest(root: Path) -> dict[str, Any]:
     return dict(base)
 
 
-def load_clauses(root: Path | None = None) -> tuple[dict[str, Clause], list[dict[str, str]]]:
+def load_clauses(
+    root: Path | None = None, *, include_policy: bool = True
+) -> tuple[dict[str, Clause], list[dict[str, str]]]:
     root = root or sources_root()
     manifest = read_manifest(root)
     out: dict[str, Clause] = {}
     missing = []
     for source in manifest["sources"]:
+        scope = source.get("scope_role", "evidence" if source.get("regulatory_evidence", True) else "reference")
+        if scope not in {"evidence", "reference", "excluded"}:
+            raise AppError(ErrorCode.VALIDATION, "invalid source scope_role")
+        if scope == "excluded":
+            continue
         if source.get("status") != "AVAILABLE":
-            missing.append({"source": source["id"], "title": source["title"], "reason": "원문 미확보"})
+            if scope == "evidence":
+                missing.append({"source": source["id"], "title": source["title"], "reason": "원문 미확보"})
             continue
         original = local_path(root, source["raw_file"]).read_bytes()
         raw = local_path(root, source["text_file"]).read_bytes()
@@ -202,7 +289,7 @@ def load_clauses(root: Path | None = None) -> tuple[dict[str, Clause], list[dict
             and sha256(local_path(root, source["markdown_file"]).read_bytes()) != source["markdown_sha256"]
         ):
             raise AppError(ErrorCode.VALIDATION, f"Markdown hash mismatch: {source['id']}")
-        if source.get("format") == "notice" or not source.get("regulatory_evidence", True):
+        if scope == "reference" or source.get("format") == "notice" or not source.get("regulatory_evidence", True):
             continue
         content = compact(clean_text(raw.decode("utf-8"), source["title"]))
         records = yaml.safe_load(local_path(root, source["clauses_file"]).read_text(encoding="utf-8"))
@@ -237,5 +324,10 @@ def load_clauses(root: Path | None = None) -> tuple[dict[str, Clause], list[dict
                 source["source_type"],
             ):
                 raise AppError(ErrorCode.VALIDATION, f"clause metadata mismatch: {c.id}")
+            if source.get("default_evidence_scope"):
+                scope = source["default_evidence_scope"]
+                c = Clause.model_validate(
+                    {**c.model_dump(), "evidence_scope": scope, "assessable": scope != "organization"}
+                )
             out[c.id] = c
-    return out, missing
+    return classify_clauses(root, out, include_policy=include_policy), missing

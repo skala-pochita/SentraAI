@@ -50,10 +50,13 @@ function download() {
   <div class="card" style="padding:28px 32px">
     <div class="row mb" style="justify-content:flex-end">
       <div class="tabs" style="margin:0"><button :class="{ on: !raw }" @click="raw = false">미리보기</button><button :class="{ on: raw }" @click="raw = true">원문</button></div>
-      <button v-if="view === 'compliance'" class="btn sm" :disabled="loading" @click="downloadJson">JSON 다운로드</button>
+      <button v-if="view === 'compliance'" class="btn sm" :disabled="loading || !!error || !md" @click="downloadJson">JSON 다운로드</button>
       <button class="btn sm" :disabled="!md" @click="download"><Icon name="download" :size="14" />.md 다운로드</button>
     </div>
-    <p v-if="error" class="error">{{ error }}</p>
+    <div v-if="error" role="alert">
+      <p class="error">{{ error }}</p>
+      <button class="btn sm" @click="load(view)">다시 불러오기</button>
+    </div>
     <p v-else-if="loading" class="muted">보고서를 불러오는 중…</p>
     <pre v-else-if="raw" style="white-space:pre-wrap">{{ md }}</pre>
     <!-- renderMarkdown 은 입력 전체를 먼저 이스케이프한다 -->

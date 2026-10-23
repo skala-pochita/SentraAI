@@ -49,5 +49,6 @@ knowledge/sources/index/
 knowledge/sources/MANIFEST.local.yaml
 config/compliance/links.local/
 config/compliance/links/generated.yaml
+config/compliance/last_generation.local.yaml
 
 /frontend/node_modules

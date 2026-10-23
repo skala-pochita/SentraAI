@@ -102,3 +102,36 @@ async def test_report_finalizes_live_verification_before_mapping(originals, monk
     await mod.report.__wrapped__(state, {})
     assert saved[1]["compliance"]["recommendations"][0]["status"] == "NOT_ASSESSED"
     assert verify_report(saved[1])
+
+
+async def test_link_timeout_preserves_previous_links_and_records_deferral(originals, monkeypatch):
+    import yaml
+
+    import core.compliance_cli as cli
+    import mcp_servers.rag.regulations as rag
+    from core.errors import ErrorCode
+
+    _, cfg, clauses = originals
+    atomic_yaml(
+        cfg / "link.yaml",
+        {"candidates": 2, "max_tokens": 50000, "max_cost_usd": 1, "max_pairs": 60, "confidence_threshold": 0.8},
+    )
+    atomic_yaml(cfg.parent / "models.yaml", {"defaults": {"model": "test"}})
+    atomic_yaml(cfg.parent / "pricing.yaml", {"models": {}})
+    rules = cfg.parent / "rules"
+    rules.mkdir()
+    atomic_yaml(rules / "R.yaml", {"id": "R", "category": "INDIRECT_INJECTION", "title": "입력 공격"})
+    atomic_yaml(cfg / "links/generated.yaml", [link().model_dump()])
+    before = (cfg / "links/generated.yaml").read_bytes()
+    monkeypatch.setenv("RULES_DIR", str(rules))
+    get_settings.cache_clear()
+    load_config.cache_clear()
+    monkeypatch.setattr(cli, "llm_available", lambda: True)
+    monkeypatch.setattr(cli, "make_chat_model", lambda name: object())
+    monkeypatch.setattr(cli, "structured_call", AsyncMock(side_effect=AppError(ErrorCode.UPSTREAM_TIMEOUT, "timeout")))
+    monkeypatch.setattr(rag, "search_clauses", AsyncMock(return_value=[{"clause_id": "TEST:7-CHK-09"}]))
+    monkeypatch.setattr(rag, "exact_clause", AsyncMock(return_value=clauses["TEST:7-CHK-09"].model_dump()))
+    result = await generate_links()
+    assert not result["written"] and result["deferred"][0]["reason"] == "EVALUATION_FAILED"
+    assert (cfg / "links/generated.yaml").read_bytes() == before
+    assert yaml.safe_load((cfg / "last_generation.local.yaml").read_text())["deferred"] == result["deferred"]

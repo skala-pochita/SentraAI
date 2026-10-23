@@ -12,6 +12,7 @@ from core.db.models import KbChunk, KbDocument
 from core.db.session import session_scope
 from core.embeddings import embed, provider
 from core.errors import AppError, ErrorCode
+from core.regulation_retrieval import expand_query, retrieval_candidate
 from core.regulation_sources import Clause, load_clauses
 from core.settings import get_settings
 from mcp_servers.rag.ingest import bump_rag_version
@@ -88,8 +89,24 @@ async def search_clauses(query: str, source: str | None, k: int) -> list[dict[st
         from mcp_servers.rag.local_regulations import search
 
         return await search(path, query, source, k)
-    hits = await hybrid_search(query, REGULATION_SOURCES, k, ref_prefix=(source + ":") if source else None)
-    return [{**hit, "clause_id": hit["ref_code"], "candidate_only": True} for hit in hits if hit["ref_code"] in clauses]
+    query = expand_query(query)
+    hits = await hybrid_search(query, REGULATION_SOURCES, max(k, 40), ref_prefix=(source + ":") if source else None)
+    eligible = []
+    for hit in hits:
+        clause = clauses.get(hit["ref_code"])
+        if clause is None or not retrieval_candidate(query, clause) or hit["text"] != clause.text:
+            continue
+        eligible.append(
+            {
+                **hit,
+                "clause_id": clause.id,
+                "candidate_only": True,
+                "content_kind": clause.content_kind,
+                "evidence_scope": clause.evidence_scope,
+                "parent_id": clause.parent_id,
+            }
+        )
+    return eligible[:k]
 
 
 async def exact_clause(clause_id: str) -> dict[str, Any]:

@@ -214,6 +214,9 @@ def test_sensitive_quote_cannot_keep_verified_label(originals):
     r["compliance"] = build_compliance(r, c)
     sealed = seal_report(r)
     assert sealed["compliance"]["recommendations"] == [] and verify_report(sealed)
+    assert sealed["findings"][0]["compliance_refs"] == []
+    assert sealed["findings"][0]["compliance_mapping"]["reason"] == "SOURCE_REDACTED"
+    assert sealed["compliance"]["mapping_decisions"][0]["status"] == "DEFERRED"
 
 
 def test_human_decisions_preserved_and_review_is_explicit(originals):

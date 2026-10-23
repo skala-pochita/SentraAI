@@ -23,6 +23,7 @@ from core.errors import AppError, ErrorCode
 from core.regulation_sources import (
     canonical_hash,
     compact,
+    evidence_candidate,
     load_clauses,
     normalize_clauses,
     read_manifest,
@@ -145,7 +146,20 @@ def merge_links(existing: list[Link], generated: list[Link]) -> list[Link]:
     merged = {link.identity: link for link in existing}
     for link in generated:
         previous = merged.get(link.identity)
-        if previous is None or previous.relevance == "ai_estimated":
+        if (
+            previous is not None
+            and previous.source_sha256 != link.source_sha256
+            and previous.relevance != "ai_estimated"
+        ):
+            merged[link.identity] = link.model_copy(
+                update={
+                    "relevance": "review_required",
+                    "confirmed_by": None,
+                    "confirmed_at": None,
+                    "generated_by": {**link.generated_by, "previous_review": previous.model_dump()},
+                }
+            )
+        elif previous is None or previous.relevance == "ai_estimated":
             merged[link.identity] = link
     return sorted(merged.values(), key=lambda link: link.identity)
 
@@ -179,11 +193,14 @@ async def generate_links(root: Path | None = None) -> dict[str, Any]:
         for rule_path in sorted(get_settings().rules_dir.glob("**/*.yaml"))
     ]
     rule_inputs.extend(cfg.get("extra_queries", []))
+    deferred = []
+    path = get_settings().compliance_config_dir or get_settings().config_dir / "compliance"
     for rule in rule_inputs:
         if not rule.get("category"):
             continue
         query = " ".join(str(rule.get(k, "")) for k in ("name", "title", "description", "category", "fix_hint"))
         candidates = await search_clauses(query, None, int(cfg["candidates"]))
+        before_count = len(generated)
         for candidate in candidates:
             if pairs >= int(cfg["max_pairs"]) or budget.exceeded():
                 raise AppError(ErrorCode.BUDGET_EXCEEDED, "link budget exhausted; previous links unchanged")
@@ -191,17 +208,43 @@ async def generate_links(root: Path | None = None) -> dict[str, Any]:
             clause = clauses.get(fetched["id"])
             if clause is None or fetched != clause.model_dump():
                 raise AppError(ErrorCode.VALIDATION, "RAG/source snapshot mismatch; reindex first")
-            decision = await structured_call(
-                model,
-                prompt,
-                RelevanceDecision,
-                node="compliance_link",
-                model_name=model_name,
-                budget=budget,
-                usage=usage,
-                rule=wrap_untrusted(json.dumps(rule, ensure_ascii=False), "security_rule"),
-                clause=wrap_untrusted(clause.text, "regulation_clause"),
-            )
+            if not evidence_candidate(clause):
+                continue
+            try:
+                decision = await structured_call(
+                    model,
+                    prompt,
+                    RelevanceDecision,
+                    node="compliance_link",
+                    model_name=model_name,
+                    budget=budget,
+                    usage=usage,
+                    rule=wrap_untrusted(json.dumps(rule, ensure_ascii=False), "security_rule"),
+                    clause=wrap_untrusted(
+                        json.dumps(
+                            {
+                                "text": clause.text,
+                                "condition": clause.condition,
+                                "evidence_scope": clause.evidence_scope,
+                            },
+                            ensure_ascii=False,
+                        ),
+                        "regulation_clause",
+                    ),
+                )
+            except (AppError, TimeoutError) as exc:
+                deferred.append({"rule": rule.get("id", rule["category"]), "reason": "EVALUATION_FAILED"})
+                # Preserve the entire previous generation; never commit a partial run.
+                result = {
+                    "pairs": pairs,
+                    "generated": 0,
+                    "written": False,
+                    "deferred": deferred,
+                    "usage": usage,
+                    "error_type": type(exc).__name__,
+                }
+                atomic_yaml(path / "last_generation.local.yaml", result)
+                return result
             pairs += 1
             if not decision.relevant or decision.confidence < float(cfg["confidence_threshold"]):
                 continue
@@ -230,10 +273,19 @@ async def generate_links(root: Path | None = None) -> dict[str, Any]:
                         generated_by=metadata,
                     )
                 )
+        if len(generated) == before_count:
+            deferred.append({"rule": rule.get("id", rule["category"]), "reason": "NO_RELEVANT_EVIDENCE"})
     path = get_settings().compliance_config_dir or get_settings().config_dir / "compliance"
     catalog = load_catalog(path, root)
-    merged = merge_links(catalog.links, generated)
-    validate_links(merged, clauses)
+    merged = merge_links([*catalog.links, *catalog.review_queue], generated)
+    validate_links(
+        [
+            link
+            for link in merged
+            if link.clause in clauses and link.source_sha256 == clauses[link.clause].source_sha256
+        ],
+        clauses,
+    )
     # Consolidate only into generated.yaml; other curated files must not duplicate generated identities.
     generated_path = path / "links/generated.yaml"
     other_ids: set[str] = set()
@@ -243,7 +295,16 @@ async def generate_links(root: Path | None = None) -> dict[str, Any]:
                 Link.model_validate(item).identity for item in (yaml.safe_load(file.read_text(encoding="utf-8")) or [])
             )
     atomic_yaml(generated_path, [link.model_dump() for link in merged if link.identity not in other_ids])
-    return {"pairs": pairs, "generated": len(generated), "usage": usage, "budget": budget.snapshot()}
+    result = {
+        "pairs": pairs,
+        "generated": len(generated),
+        "written": True,
+        "deferred": deferred,
+        "usage": usage,
+        "budget": budget.snapshot(),
+    }
+    atomic_yaml(path / "last_generation.local.yaml", result)
+    return result
 
 
 def bootstrap_links(source_root: Path | None = None) -> dict[str, int]:
@@ -258,6 +319,7 @@ def bootstrap_links(source_root: Path | None = None) -> dict[str, int]:
             c
             for c in catalog.clauses.values()
             if c.source == candidate["source"]
+            and evidence_candidate(c)
             and compact(candidate["quote"]) in compact(c.text)
             and (not candidate.get("clause") or c.id == candidate["clause"])
         ]
@@ -273,18 +335,25 @@ def bootstrap_links(source_root: Path | None = None) -> dict[str, int]:
                 quote=candidate["quote"],
                 quote_sha256=sha256(candidate["quote"]),
                 source_sha256=matches[0].source_sha256,
-                reason="이전 AI 설계의 초기 관련성 추정. 실제 모델 재평가 전.",
+                reason=candidate.get("reason", "이전 AI 설계의 초기 관련성 추정. 실제 모델 재평가 전."),
                 generated_by={
-                    "model": "prior_design_estimate",
-                    "prompt": "user_supplied_design_v2",
+                    "model": "assistant_source_review" if candidate.get("reason") else "prior_design_estimate",
+                    "prompt": "evidence_policy_v1" if candidate.get("reason") else "user_supplied_design_v2",
                     "at": datetime.now(UTC).isoformat(),
                 },
             )
         )
-    merged = merge_links(catalog.links, generated)
-    validate_links(merged, catalog.clauses)
+    merged = merge_links([*catalog.links, *catalog.review_queue], generated)
+    validate_links(
+        [
+            link
+            for link in merged
+            if link.clause in catalog.clauses and link.source_sha256 == catalog.clauses[link.clause].source_sha256
+        ],
+        catalog.clauses,
+    )
     target = path / "links/generated.yaml"
-    others = {link.identity for link in catalog.links}
+    others = {link.identity for link in [*catalog.links, *catalog.review_queue]}
     if target.exists():
         others -= {Link.model_validate(x).identity for x in (yaml.safe_load(target.read_text()) or [])}
     atomic_yaml(target, [link.model_dump() for link in merged if link.identity not in others])

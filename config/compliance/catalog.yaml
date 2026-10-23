@@ -1,4 +1,4 @@
-version: '2026.10-v2.1'
+version: '2026.10-v2.2'
 schema: 2
 runtime_llm: false
 access_roles: [ADMIN, AUDITOR]
