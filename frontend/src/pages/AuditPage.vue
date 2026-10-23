@@ -32,7 +32,8 @@ function onProbe(p: Record<string, unknown>) {
 
 const done = computed(() => audit.value && ['COMPLETED', 'FAILED', 'CANCELLED'].includes(audit.value.status))
 async function refresh() {
-  audit.value = await get<Audit>(`/audits/${id}`)
+  try { audit.value = await get<Audit>(`/audits/${id}`); error.value = '' }
+  catch { error.value = '검사 상태를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' }
 }
 async function subscribe() {
   // 연결이 끊기면 상태 조회로 복구한 뒤 재구독한다
@@ -44,7 +45,7 @@ async function subscribe() {
           if ((d.type ?? m.event) === 'probe.progress') onProbe(d.payload ?? {})
           if (follow.value) void nextTick(() => logEl.value?.scrollTo({ top: logEl.value.scrollHeight }))
         } catch { /* ping */ }
-        if (m.event.startsWith('audit.') || m.event === 'node.finished') void refresh()
+        if (m.event.startsWith('audit.') || m.event === 'node.finished' || m.event === 'node.started') void refresh()
       }, ctl.signal)
     } catch { if (ctl.signal.aborted) return }
     await refresh()
@@ -59,6 +60,24 @@ const ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']
 const sevs = computed(() => {
   const s = audit.value?.summary?.by_severity ?? {}
   return [...ORDER.filter((k) => k in s), ...Object.keys(s).filter((k) => !ORDER.includes(k))].map((k) => [k, s[k]] as const)
+})
+const statusNames: Record<string, string> = { QUEUED: '검사 대기 중', RUNNING: '보안 검사 진행 중', COMPLETED: '보안 검사 완료', FAILED: '검사가 중단되었습니다', CANCELLED: '검사가 취소되었습니다', WAITING_APPROVAL: '승인 대기 중' }
+const modeNames: Record<string, string> = { full: '코드 + AI 에이전트 검사', code: '코드 보안 검사', agent: 'AI 에이전트 공격 검증' }
+const stages = computed(() => [
+  { key: 'intake', label: '프로젝트 준비' },
+  ...(audit.value?.mode !== 'agent' ? [{ key: 'code', label: '코드 분석' }] : []),
+  ...(audit.value?.mode !== 'code' ? [{ key: 'agent', label: '공격 검증' }] : []),
+  { key: 'correlate', label: '위험 분석' }, { key: 'report', label: '보고서 작성' },
+])
+const activeStage = computed(() => {
+  const node = audit.value?.current_node ?? ''
+  if (node.startsWith('code')) return 'code'
+  if (node.startsWith('agent') || node.startsWith('probe') || node === 'prepare_sandbox') return 'agent'
+  return node
+})
+const currentWork = computed(() => {
+  if (audit.value?.status !== 'RUNNING') return statusNames[audit.value?.status ?? ''] ?? '검사 상태 확인 중'
+  return stages.value.find(s => s.key === activeStage.value)?.label.concat(' 중') ?? '검사 결과 처리 중'
 })
 const pct = computed(() => Math.round((audit.value?.progress ?? 0) * 100))
 const evClass = (t: string) => t.split('.')[0]
@@ -77,22 +96,39 @@ function onScroll() {
 <template>
   <AuditTabs :id="id" :completed="audit?.status === 'COMPLETED'" />
   <p v-if="error" class="error"><Icon name="alert" :size="16" />{{ error }}</p>
-  <div v-if="audit" class="grid split">
+  <section v-if="audit" class="card demo-summary mb" aria-live="polite">
+    <span class="badge">{{ modeNames[audit.mode] || audit.mode }}</span>
+    <p class="muted">{{ audit.name || '프로젝트 보안 검사' }}</p>
+    <h2>{{ audit.status === 'COMPLETED' ? '보안 검사 완료' : currentWork }}</h2>
+    <template v-if="audit.status === 'COMPLETED'">
+      <div class="demo-metrics">
+        <div><span>발견된 보안 문제</span><strong>{{ audit.summary?.total ?? '—' }}<small>건</small></strong></div>
+        <div><span>긴급 · CRITICAL</span><strong class="critical">{{ audit.summary?.by_severity?.CRITICAL ?? 0 }}<small>건</small></strong></div>
+      </div>
+      <RouterLink class="btn primary lg" :to="`/audits/${id}/findings`">검사 결과 확인<Icon name="chevron" :size="18" /></RouterLink>
+    </template>
+    <template v-else-if="!done">
+      <p class="muted">현재 진행 중인 작업을 강조해서 표시합니다.</p>
+      <ol class="demo-stages"><li v-for="stage in stages" :key="stage.key" :class="{ active: audit.status === 'RUNNING' && activeStage === stage.key }" :aria-current="audit.status === 'RUNNING' && activeStage === stage.key ? 'step' : undefined">{{ stage.label }}</li></ol>
+    </template>
+    <p v-else class="muted">검사가 완료되지 않았습니다. 실행 기록을 확인한 뒤 다시 검사를 시작해 주세요. <RouterLink to="/audits/new">새 검사 시작</RouterLink></p>
+  </section>
+  <div v-if="audit" class="stack" style="gap:16px">
     <div class="stack" style="gap:16px">
       <div class="card">
         <div class="card-head">
           <h3><Icon name="shield" :size="16" />{{ audit.name || '보안 감사 진행' }}</h3>
-          <span class="status" :class="audit.status">{{ audit.status }}</span>
+          <span class="status" :class="audit.status">{{ statusNames[audit.status] || audit.status }}</span>
           <span class="spacer" />
-          <span class="badge">{{ audit.mode }}</span>
+          <span class="badge">{{ modeNames[audit.mode] || audit.mode }}</span>
         </div>
         <div class="row" style="justify-content:space-between; margin-bottom:8px">
           <span class="muted small">진행률</span><span class="num strong">{{ pct }}%</span>
         </div>
         <div class="progress" :class="{ active: !done }"><span :style="{ width: `${pct}%` }" /></div>
         <div class="grid cols-2 mt">
-          <div class="kv"><span class="muted small">현재 노드</span><span class="mono">{{ audit.current_node ?? '-' }}</span></div>
-          <div class="kv"><span class="muted small">시작</span><span class="mono">{{ audit.created_at?.slice(0, 19).replace('T', ' ') }}</span></div>
+          <div class="kv"><span class="muted small">현재 작업</span><span class="mono">{{ currentWork }}</span></div>
+          <div class="kv"><span class="muted small">시작</span><span class="mono">{{ audit.started_at ? new Date(audit.started_at).toLocaleString('ko-KR') : '시작 대기' }}</span></div>
         </div>
         <p class="section-title mt">심각도</p>
         <div class="chips"><Sev v-for="[k, v] in sevs" :key="k" :v="k" :n="v" /><span v-if="!sevs.length" class="muted small">결과 대기</span></div>
@@ -112,10 +148,11 @@ function onScroll() {
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-head">
+    <details class="card">
+      <summary>상세 실행 기록 · {{ events.length }}건</summary>
+      <div class="card-head mt">
         <h3><Icon name="terminal" :size="16" />진행 이벤트</h3>
-        <span class="badge tone" :class="done ? '' : 'ok'"><span v-if="!done" class="live" />{{ done ? '종료' : 'SSE 연결' }}</span>
+        <span class="badge tone" :class="done ? '' : 'ok'"><span v-if="!done" class="live" />{{ done ? '종료' : '진행 기록' }}</span>
         <span class="spacer" /><span class="muted small num">{{ events.length }} events</span>
       </div>
       <div ref="logEl" class="log" @scroll="onScroll">
@@ -126,12 +163,24 @@ function onScroll() {
         </div>
         <div v-if="!events.length"><span class="t" /><span class="ev">waiting</span><span class="p">이벤트를 기다리는 중…</span></div>
       </div>
-    </div>
+    </details>
   </div>
 
 </template>
 
 <style scoped>
+.demo-summary { border-top: 4px solid var(--accent); }
+.demo-summary h2 { font-size: clamp(26px, 4vw, 38px); margin: 12px 0 24px; }
+.demo-metrics { display:flex; flex-wrap:wrap; gap:40px; margin-bottom:24px; }
+.demo-metrics span { display:block; color:var(--text-2); }
+.demo-metrics strong { display:block; font-size:44px; }
+.demo-metrics small { font-size:18px; margin-left:8px; }
+.critical { color:var(--critical); }
+.demo-stages { display:flex; flex-wrap:wrap; gap:12px; padding:0; list-style:none; }
+.demo-stages li { padding:14px 20px; border:1px solid var(--border); border-radius:12px; color:var(--muted); }
+.demo-stages li.active { background:var(--accent-soft); color:var(--text); border-color:var(--accent); font-weight:700; }
+summary { cursor:pointer; font-weight:600; }
+
 .kv { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); min-width: 0; }
 .kv .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
 .tile { display: flex !important; flex-direction: column; gap: 4px; padding: 16px; }

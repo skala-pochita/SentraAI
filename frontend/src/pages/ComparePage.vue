@@ -37,6 +37,11 @@ watch(baseline, async (b) => {
   catch (e) { error.value = e instanceof ApiError ? e.body.message : String(e) }
   finally { loading.value = false }
 })
+const pairedProbes = computed(() => (result.value?.probes ?? []).filter(p => p.baseline && p.current))
+const attackTotals = computed(() => pairedProbes.value.reduce((sum, p) => ({
+  before: sum.before + p.baseline!.successes, beforeAttempts: sum.beforeAttempts + p.baseline!.attempts,
+  after: sum.after + p.current!.successes, afterAttempts: sum.afterAttempts + p.current!.attempts,
+}), { before: 0, beforeAttempts: 0, after: 0, afterAttempts: 0 }))
 const shown = computed(() => (result.value?.findings ?? []).filter((f) => !filter.value || f.status === filter.value))
 const v = (n: number | null | undefined) => (n ? `v${n}` : '버전 미지정')
 const day = (s: string) => s.slice(0, 16).replace('T', ' ')
@@ -69,6 +74,16 @@ async function download() {
   <p v-if="loading" class="muted">비교 중…</p>
 
   <template v-if="result">
+    <section class="card comparison-hero mb">
+      <h2>수정 전후 검증 결과</h2>
+      <div class="version-comparison">
+        <div><span class="muted">수정 전 · {{ v(result.baseline.version) }}</span><template v-if="pairedProbes.length"><strong>{{ attackTotals.before }}<small> / {{ attackTotals.beforeAttempts }}회</small></strong><span>공격 성공 / 시도</span></template></div>
+        <Icon name="chevron" :size="28" />
+        <div><span class="muted">수정 후 · {{ v(result.current.version) }}</span><template v-if="pairedProbes.length"><strong>{{ attackTotals.after }}<small> / {{ attackTotals.afterAttempts }}회</small></strong><span>공격 성공 / 시도</span></template></div>
+      </div>
+      <p v-if="pairedProbes.length" class="muted small">양쪽에 실행 기록이 있는 {{ pairedProbes.length }}개 공격 유형 기준입니다. 확인 불가 판정과 실행 조건은 아래에서 함께 확인하세요.</p>
+      <p v-else class="muted">양쪽 실행 기록이 있는 공격이 없습니다. 아래 보안 문제 변화와 확인 불가 항목을 확인하세요.</p>
+    </section>
     <div class="row mb muted small">
       <span class="badge">기준 {{ v(result.baseline.version) }} · {{ result.baseline.model_verification }}</span>
       <Icon name="chevron" :size="14" />
@@ -126,3 +141,12 @@ async function download() {
     </div>
   </template>
 </template>
+
+<style scoped>
+.comparison-hero { border-top:4px solid var(--accent); }
+.comparison-hero h2 { font-size:28px; margin-bottom:24px; }
+.version-comparison { display:flex; align-items:center; gap:32px; flex-wrap:wrap; }
+.version-comparison > div { flex:1; min-width:160px; display:flex; flex-direction:column; gap:8px; }
+.version-comparison strong { font-size:44px; }
+.version-comparison small { font-size:20px; color:var(--text-2); }
+</style>
