@@ -1,5 +1,6 @@
 <p align="center">
   <img src="frontend/public/logo.png" alt="SentraAI" width="320" />
+  <img width="1388" height="805" alt="image" src="https://github.com/user-attachments/assets/7c2df03c-b809-4d0b-b9cd-5d8f973454dd" />
 </p>
 
 # SentraAI — AI Security Auditor
