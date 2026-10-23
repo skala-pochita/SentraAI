@@ -89,6 +89,8 @@ python scripts/qa_deployed_stack.py --mode live --zip workspace/qa-runtime.zip
 
 ## 배포 경계와 남은 한계
 
+- 원격 반영: [PR #6](https://github.com/skala-pochita/SentraAI/pull/6), squash merge `46f9c6b48263b74a52d5f931fdfa242da8089491`. 최신 feature head `e2288ab`의 [push CI](https://github.com/skala-pochita/SentraAI/actions/runs/39932531982)와 [PR CI](https://github.com/skala-pochita/SentraAI/actions/runs/39932538222)는 각각 backend·frontend/CLI·이미지 3종의 5개 작업 모두 성공했다. 첫 실행의 healthcheck 인용 문제는 수정 후 재검증했다.
+
 - CI는 PR 및 main/feat push에서 실행한다. 기존 release는 버전 태그에서 GHCR 이미지와 CLI를 게시한다. 이번 작업은 새 버전 발행이나 사용자가 지정하지 않은 운영 서버 배포를 수행하지 않는다. 실제 Docker 전체 흐름 검증과 원격 운영 배포 완료를 혼동하지 않는다.
 - SHA256은 저장 데이터의 일관성 검사이며 서명이나 관리자에 의한 악의적 DB 변경 방지 수단은 아니다. 원문·검토 이력·DB·vault master key의 접근 제어와 백업은 별도로 필요하다.
 - Docker는 VM 수준 격리가 아니다. controller의 Docker socket은 신뢰되는 전용 실행 서버에서 관리해야 한다.

@@ -5,6 +5,8 @@
 
 # SentraAI — AI Security Auditor
 
+[![CI](https://github.com/skala-pochita/SentraAI/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/skala-pochita/SentraAI/actions/workflows/ci.yml)
+
 > AI 에이전트 프로젝트를 ZIP으로 올리면 **도구 권한·프롬프트를 점검하고, 격리된 환경에서 실제로 공격해 보고, 코드 취약점과 엮어 결합 위험까지** 근거와 함께 보고하는 읽기 전용 보안감사 에이전트.
 
 SKALA 팀 Capstone · LangGraph / LangChain · MCP · Redis · Kafka · Vue 3
@@ -251,7 +253,7 @@ workHistory/ 기획서·설계 결정·품질 보고서 등 작업 기록
 
 ## 검증과 CI/CD
 
-2026-10-23 규제 기능 통합 후 검증했다. 최신 상세 결과·명령·실행 환경은 [최종 보안·배포 QA](workHistory/LAW_EVIDENCE_RELEASE_QA.md)에 기록한다.
+2026-10-23 [PR #6](https://github.com/skala-pochita/SentraAI/pull/6)의 브랜치·병합 조합 CI 전체 통과 후 규제 기능을 main에 통합했다(`46f9c6b`). [병합 전 Actions](https://github.com/skala-pochita/SentraAI/actions/runs/39932538222)와 위 main 상태 배지에서 원격 결과를 확인할 수 있다. 최신 상세 결과·명령·실행 환경은 [최종 보안·배포 QA](workHistory/LAW_EVIDENCE_RELEASE_QA.md)에 기록한다.
 
 | 범위 | 확인 내용 |
 |---|---|
