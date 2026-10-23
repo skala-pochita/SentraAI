@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "bin": { "sentraai": "bin/sentraai.js" },
-  "files": ["bin", "lib", "compose.yml"],
+  "files": ["bin", "lib", "compose.yml", "resources"],
   "scripts": {
     "test": "node --test \"test/*.test.js\""
   },

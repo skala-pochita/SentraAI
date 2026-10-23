@@ -1,0 +1,378 @@
+{
+  "reviewer_kind": "assistant",
+  "human_confirmed": false,
+  "reviewed": 28,
+  "decisions": {
+    "hold": 8,
+    "keep": 9,
+    "revise": 11
+  },
+  "active_links": 20,
+  "human_confirmed_links": 0,
+  "items": [
+    {
+      "link_id": "01b545cfe70abbd163973670e4fc4859445483159cb01a12ff59dc692a2d220f",
+      "key": {
+        "category": "INFO_EXPOSURE"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-08",
+      "after_clause": "FSC-AI-GL:7-CHK-08",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "hold",
+      "reason": "현재 규칙은 일반 스택트레이스 노출도 탐지하므로 AI 모델 정보 노출이라고 가정할 수 없음.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "054d70cbfdc45f793d91a4089943df985a2589da03695f14a565328bdd7ccb44",
+      "key": {
+        "category": "JAILBREAK"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-09",
+      "after_clause": "FSC-AI-GL:7-CHK-09",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "keep",
+      "reason": "문제 유형과 원문 통제의 기술적 관련성을 확인. 적용 조건과 통제 효과는 별도 검토 필요.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "0714403e5ab0f731cd02c46cd07fc7383fa3f462f2d4ab6472adffc569aa873d",
+      "key": {
+        "category": "TOOL_NO_APPROVAL"
+      },
+      "before_clause": "KR-AIBA:34:EVIDENCE-HUMAN-OVERSIGHT",
+      "after_clause": "KR-AIBA:34:EVIDENCE-HUMAN-OVERSIGHT",
+      "source_sha256": "f95d5f1f4c73e803211b601a5921338369d45fdb771767f8f97bfbe1ceba8314",
+      "quote_verified": true,
+      "decision": "keep",
+      "reason": "사람 승인 누락은 감독 체계 검토의 단서이며, 특정 승인 절차의 법정 의무나 감독 체계 전체의 이행 여부를 확정하지 않습니다. 코드 Findings 및 보고서 생성만으로 조직 의무 이행을 확인하지 않습니다.",
+      "scope_before": "organization"
+    },
+    {
+      "link_id": "1ac01aed6f04c874692f40161ba7eebe5cf74c2f95bcbf0d77844a75495109d4",
+      "key": {
+        "category": "TOOL_EXCESSIVE_SCOPE"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-24",
+      "after_clause": "FSC-AI-GL:7-CHK-24",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "keep",
+      "reason": "문제 유형과 원문 통제의 기술적 관련성을 확인. 적용 조건과 통제 효과는 별도 검토 필요.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "21abbf5418aff6a18260a5254e6b8983af405528871627eb0e5a9bfc05828f23",
+      "key": {
+        "category": "INDIRECT_INJECTION"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-09",
+      "after_clause": "FSC-AI-GL:7-CHK-09",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "keep",
+      "reason": "문제 유형과 원문 통제의 기술적 관련성을 확인. 적용 조건과 통제 효과는 별도 검토 필요.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "3245313340ffd55f2f76ba95c9b14c7c29c7db6b27918910e013bc60569fd1e3",
+      "key": {
+        "category": "PROMPT_NO_INSTRUCTION_HIERARCHY"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-09",
+      "after_clause": "FSC-AI-GL:7-CHK-09",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "keep",
+      "reason": "지시 계층 부재는 인젝션 방어 검토의 단서이며, 특정 프롬프트 문구 유무만으로 방어 전체의 이행을 판정하지 않습니다.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "340ba531d0a0e7a9eb6afd0be7566edde2dab41be3d61c8caecb866801ad114b",
+      "key": {
+        "category": "TOOL_NO_APPROVAL"
+      },
+      "before_clause": "FSC-AI-SEC:PAGE-057-01:EVIDENCE-TECH-5",
+      "after_clause": "FSC-AI-SEC:PAGE-057-01:EVIDENCE-TECH-5",
+      "source_sha256": "b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "고객 영향도가 큰 금융 의사결정에 한정된 통제임을 명시하며 모든 도구 호출에 승인을 요구하지 않음.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "347295082c2bd5cbcd964dcfe52bc1a05de6e4e68415283d58e8c53a6e1b65a7",
+      "key": {
+        "category": "SYSTEM_PROMPT_LEAK"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-13",
+      "after_clause": "FSC-AI-GL:7-CHK-13",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "정기 모의훈련·운영 검증은 조직 운영 증적이 필요하며 이번 단발 감사로 이행 여부를 확인할 수 없음.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "39de6ab19d1e353eb121a6b809924b3e8013b199a534c5429d6013b7ae14af3f",
+      "key": {
+        "category": "TOOL_MISUSE"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-24",
+      "after_clause": "FSC-AI-GL:7-CHK-24",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "hold",
+      "reason": "도구 오남용이 항상 권한 과다를 의미하지 않아 최소 권한 항목과의 일괄 연결을 보류함.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "3b0b5841e825af9be8df9aa2d8f0743b132679ce11ecb1763494c8e5580498e1",
+      "key": {
+        "category": "TOOL_MISUSE"
+      },
+      "before_clause": "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4",
+      "after_clause": "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TOOL-MISUSE",
+      "source_sha256": "b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "사전 도입 승인 문구 대신 연결된 외부 도구의 오남용·의도하지 않은 행동에 대한 위험 완화 문구로 교체.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "427b132f9df2064a8d87ff39bc992b5090253f61063f70dc7301d482932c148a",
+      "key": {
+        "category": "HARDCODED_SECRET"
+      },
+      "before_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+      "after_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+      "source_sha256": "b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c",
+      "quote_verified": true,
+      "decision": "hold",
+      "reason": "비밀 변수의 고엔트로피 문자열만으로 API 키인지 AI 시스템 자격증명인지 확인할 수 없음.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "45ae9ef9f94f890e224b9c511f6cee5a0e5ab55c0c456be5f47382842a02b28c",
+      "key": {
+        "category": "TOOL_EXCESSIVE_SCOPE"
+      },
+      "before_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-3",
+      "after_clause": "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TOOL-SCOPE",
+      "source_sha256": "b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "개발자·운영자 역할 권한 문구 대신 외부 AI 서비스 연결 범위·권한 제한 문구로 교체.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "5495e6ff9b67013b039aac5e5691b7ce4496f9b2eb55bb863f523192c07f83e6",
+      "key": {
+        "category": "TOOL_NO_APPROVAL"
+      },
+      "before_clause": "KR-AIBA-HIGH-GL:PAGE-055-01:EVIDENCE-HUMAN-INTERVENTION",
+      "after_clause": "KR-AIBA-HIGH-GL:PAGE-055-01:EVIDENCE-HUMAN-INTERVENTION",
+      "source_sha256": "82c67bc56a0eed0d353226517f1d9aa1e75e04ef7dcb358e23903c9ca291bdd4",
+      "quote_verified": true,
+      "decision": "keep",
+      "reason": "고영향 AI에서 사람의 개입을 지원하는 제어 절차의 구현 예에 해당합니다. 모든 도구 호출에 같은 승인 방식을 요구한다는 의미는 아닙니다. 고영향 AI 적용 여부와 개입이 필요한 상황인지 확인해야 합니다.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "59023b55ce16ab358cc8ce661f3a5b2789497f3dcb29bd44ac86de0cab9c0f55",
+      "key": {
+        "category": "DATA_EXFILTRATION"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-07",
+      "after_clause": "FSC-AI-GL:7-CHK-07",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "639129c87290817d9f2f6f8b44f57606bf89e13944ccca3411ab83e57a109033",
+      "key": {
+        "category": "INDIRECT_INJECTION_SURFACE"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-05",
+      "after_clause": "FSC-AI-GL:7-CHK-05",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "68fcf27fb8a9e0877ab9d925ce393018692231470efccbaa0766be806cfc4bc3",
+      "key": {
+        "category": "INDIRECT_INJECTION"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-05",
+      "after_clause": "FSC-AI-GL:7-CHK-05",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "791ab0059da39cf4a4eb9d2b564de4126dc1c7eaa8440d78333c78eab6ceb5e3",
+      "key": {
+        "category": "SYSTEM_PROMPT_LEAK"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-08",
+      "after_clause": "FSC-AI-GL:7-CHK-08",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "7dda90f75be508d6670fd43718198d5b61a51bfdc5c0526ee46bf02c5e67f06d",
+      "key": {
+        "audit": "audit_execution"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-29",
+      "after_clause": "FSC-AI-GL:7-CHK-29",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "정기 모의훈련·운영 검증은 조직 운영 증적이 필요하며 이번 단발 감사로 이행 여부를 확인할 수 없음.",
+      "scope_before": "audit"
+    },
+    {
+      "link_id": "82d0d4e0720f33f59e940b24bd46caa1b5d0b90cc24135a254939b78562b955a",
+      "key": {
+        "category": "PROMPT_SECRET_EMBEDDED"
+      },
+      "before_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+      "after_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+      "source_sha256": "b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c",
+      "quote_verified": true,
+      "decision": "hold",
+      "reason": "프롬프트 안의 임의 기밀 문자열이 API 키라는 전제가 확인되지 않음.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "a6f9491d7c1a86c9959d7d04120111299cd2c1216d0113893e956016ac3ac94c",
+      "key": {
+        "category": "PRIVILEGE_ESCALATION"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-24",
+      "after_clause": "FSC-AI-GL:7-CHK-24",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "keep",
+      "reason": "AI 에이전트의 권한 상승 시나리오와 최소 권한 통제의 관련성을 검토하는 후보. 일반 웹 권한 문제로 확대 적용하지 않습니다.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "aa9120a122c5d88b8f859c5ce2fe3dbfa06cda4ef1a51aced48421f44735fecb",
+      "key": {
+        "audit": "report_document"
+      },
+      "before_clause": "KR-AIBA-DECREE:27:EVIDENCE-RETENTION",
+      "after_clause": "KR-AIBA-DECREE:27:EVIDENCE-RETENTION",
+      "source_sha256": "0e3584bccab1ca2a6aa641dced393acb0e661cce714e467afafb27a19b1fedbd",
+      "quote_verified": true,
+      "decision": "keep",
+      "reason": "보고서 작성은 근거 보관 체계 검토의 시작점이며, 5년 보관과 전체 조치 이행은 별도 조직 증적이 필요합니다. 코드 Findings 및 보고서 생성만으로 조직 의무 이행을 확인하지 않습니다.",
+      "scope_before": "organization"
+    },
+    {
+      "link_id": "ad57275c0b7a02d617b60fc372067bdb93884caa31439d6452f773efcda7494f",
+      "key": {
+        "category": "AGENT_SHARED_SECRET"
+      },
+      "before_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-2",
+      "after_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-2",
+      "source_sha256": "b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c",
+      "quote_verified": true,
+      "decision": "hold",
+      "reason": "코드와 에이전트에서 같은 환경변수 이름을 쓴다는 사실만으로 서비스별 키 분리 위반을 확정할 수 없음.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "b7eb09645206843ec010ba76708a71ef639d1b8ee0fa88a46d372a4bbe2a17c8",
+      "key": {
+        "category": "TOOL_EXFIL_CHANNEL"
+      },
+      "before_clause": "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4",
+      "after_clause": "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4",
+      "source_sha256": "b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c",
+      "quote_verified": true,
+      "decision": "hold",
+      "reason": "도구의 사전 도입 승인과 수신자 도메인 제한은 다른 통제이므로 직접 연결을 보류함.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "d3f0563850115f13f412bd5742a13315093ce284b7d099a68c22cf52329f91ee",
+      "key": {
+        "category": "JAILBREAK"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-06",
+      "after_clause": "FSC-AI-GL:7-CHK-06",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "df72fc9b7fb34c3cce5b32574fe4f189a50ad66fa1a744bc984ca65fd037b7f9",
+      "key": {
+        "audit": "report_document"
+      },
+      "before_clause": "KR-AIBA:34:EVIDENCE-DOCUMENTATION",
+      "after_clause": "KR-AIBA:34:EVIDENCE-DOCUMENTATION",
+      "source_sha256": "f95d5f1f4c73e803211b601a5921338369d45fdb771767f8f97bfbe1ceba8314",
+      "quote_verified": true,
+      "decision": "keep",
+      "reason": "보고서는 증적 자료의 일부가 될 수 있으나 전체 조치 이행과 보관 의무를 입증하지 않습니다. 코드 Findings 및 보고서 생성만으로 조직 의무 이행을 확인하지 않습니다.",
+      "scope_before": "organization"
+    },
+    {
+      "link_id": "e0f09414c816d0f57ca028e8a0da9c192175a60f3801db2c98f892ce99ae673d",
+      "key": {
+        "audit": "probe_execution"
+      },
+      "before_clause": "FSC-AI-GL:7-CHK-10",
+      "after_clause": "FSC-AI-GL:7-CHK-10",
+      "source_sha256": "edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be",
+      "quote_verified": true,
+      "decision": "revise",
+      "reason": "정기 모의훈련·운영 검증은 조직 운영 증적이 필요하며 이번 단발 감사로 이행 여부를 확인할 수 없음.",
+      "scope_before": "audit"
+    },
+    {
+      "link_id": "ef074c7c65768904b8f1c9c39bb606058fbbf3fe48e41a804624e36e8e2b28fb",
+      "key": {
+        "category": "HARDCODED_CREDENTIAL"
+      },
+      "before_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+      "after_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+      "source_sha256": "b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c",
+      "quote_verified": true,
+      "decision": "hold",
+      "reason": "현재 규칙은 일반 DB 비밀번호도 탐지하므로 AI API 키 전용 문구와 일괄 연결하지 않음.",
+      "scope_before": "finding"
+    },
+    {
+      "link_id": "fd709108a9f39ad61daed62ab67527dda1b7d40be53568c05ff253ad192e465f",
+      "key": {
+        "category": "SECRET_LEAK"
+      },
+      "before_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+      "after_clause": "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+      "source_sha256": "b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c",
+      "quote_verified": true,
+      "decision": "hold",
+      "reason": "현재 규칙은 AWS 키·JWT·개인키도 탐지하므로 AI API 키 보관 항목과 일괄 연결할 수 없음.",
+      "scope_before": "finding"
+    }
+  ]
+}

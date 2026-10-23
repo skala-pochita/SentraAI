@@ -1,0 +1,5 @@
+tests/e2e/test_demo_flow.py::test_full_flow_read_only_report
+tests/e2e/test_demo_flow.py::test_sse_receives_events
+tests/e2e/test_probe_smoke.py::test_smoke
+
+3/263 tests collected (260 deselected) in 0.72s

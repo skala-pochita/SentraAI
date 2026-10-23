@@ -4,7 +4,7 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/opt/venv PATH="/opt/venv/bin:$PATH"
 
-RUN apt-get update && apt-get install -y --no-install-recommends git curl \
+RUN apt-get update && apt-get install -y --no-install-recommends git curl poppler-utils \
     && rm -rf /var/lib/apt/lists/* \
     && git config --global user.email "auditor-bot@demo.io" \
     && git config --global user.name "AI Security Auditor" \

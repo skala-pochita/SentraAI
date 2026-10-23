@@ -1,0 +1,146 @@
+{
+  "index": {
+    "documents": 403,
+    "changed": 0,
+    "backend": "sqlite",
+    "provider": "hash",
+    "model": "hash-v1"
+  },
+  "sources": {
+    "KR-AIBA": 51,
+    "KR-AIBA-DECREE": 43,
+    "FSC-AI-GL": 99,
+    "FSC-AI-SEC": 78,
+    "KR-AIBA-HIGH-GL": 132
+  },
+  "candidate_units": 110,
+  "active_mapping_sources": [
+    "FSC-AI-GL",
+    "FSC-AI-SEC",
+    "KR-AIBA",
+    "KR-AIBA-DECREE",
+    "KR-AIBA-HIGH-GL"
+  ],
+  "human_confirmed_links": 0,
+  "missing_sources": [],
+  "queries": [
+    {
+      "id": "approval_en",
+      "query": "external API MCP human approval",
+      "expected_prefixes": [
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-",
+        "KR-AIBA-HIGH-GL:PAGE-055-01:EVIDENCE-"
+      ],
+      "passed": true,
+      "hit_ids": [
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4",
+        "FSC-AI-GL:7-CHK-21",
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TOOL-MISUSE",
+        "FSC-AI-GL:7-CHK-05",
+        "FSC-AI-SEC:PAGE-057-01:EVIDENCE-TECH-5"
+      ]
+    },
+    {
+      "id": "approval_ko",
+      "query": "외부 도구 사전 승인 절차",
+      "expected_prefixes": [
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-"
+      ],
+      "passed": true,
+      "hit_ids": [
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4",
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TOOL-MISUSE",
+        "FSC-AI-GL:7-CHK-21",
+        "FSC-AI-GL:7-CHK-15",
+        "FSC-AI-GL:7-CHK-05"
+      ]
+    },
+    {
+      "id": "privilege_en",
+      "query": "tool_excessive_scope least privilege",
+      "expected_prefixes": [
+        "FSC-AI-GL:7-CHK-24",
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-3"
+      ],
+      "passed": true,
+      "hit_ids": [
+        "FSC-AI-GL:7-CHK-24",
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-3",
+        "FSC-AI-GL:7-CHK-38",
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-2",
+        "FSC-AI-GL:7-CHK-12"
+      ]
+    },
+    {
+      "id": "secrets_en",
+      "query": "hardcoded_secret API key",
+      "expected_prefixes": [
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1"
+      ],
+      "passed": true,
+      "hit_ids": [
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-1",
+        "FSC-AI-SEC:PAGE-040-01:EVIDENCE-TECH-2",
+        "FSC-AI-GL:7-CHK-21",
+        "FSC-AI-SEC:PAGE-052-01:EVIDENCE-TECH-4"
+      ]
+    },
+    {
+      "id": "high_impact_ko",
+      "query": "고영향 인공지능 사람 관리 감독",
+      "source": "KR-AIBA",
+      "expected_prefixes": [
+        "KR-AIBA:34:EVIDENCE-HUMAN-OVERSIGHT"
+      ],
+      "passed": true,
+      "hit_ids": [
+        "KR-AIBA:34:EVIDENCE-HUMAN-OVERSIGHT"
+      ]
+    },
+    {
+      "id": "retention_ko",
+      "query": "문서 5년 보관",
+      "source": "KR-AIBA-DECREE",
+      "expected_prefixes": [
+        "KR-AIBA-DECREE:27:EVIDENCE-RETENTION"
+      ],
+      "passed": true,
+      "hit_ids": [
+        "KR-AIBA-DECREE:27:EVIDENCE-RETENTION"
+      ]
+    },
+    {
+      "id": "unrelated_en",
+      "query": "banana galaxy xylophone 9f83a24b",
+      "expect_empty": true,
+      "passed": true,
+      "hit_ids": []
+    },
+    {
+      "id": "unrelated_ko",
+      "query": "바나나 은하 실로폰 9f83a24b",
+      "expect_empty": true,
+      "passed": true,
+      "hit_ids": []
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario": "unsafe",
+      "detected": 4,
+      "mapped": 3,
+      "withheld_legacy_links": 20,
+      "snapshot_verified": true,
+      "unrelated_deferred": true
+    },
+    {
+      "scenario": "safe",
+      "detected": 0,
+      "mapped": 0,
+      "withheld_legacy_links": 20,
+      "snapshot_verified": true,
+      "unrelated_deferred": true
+    }
+  ],
+  "passed": true
+}

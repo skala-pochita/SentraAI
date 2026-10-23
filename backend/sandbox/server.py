@@ -36,10 +36,16 @@ from core.settings import get_settings
 from harness.masking import mask_text
 
 LABEL = "auditor.sandbox"
+NAMESPACE_LABEL = "auditor.namespace"
 TTL = 900
 lock = threading.RLock()
 active: dict[str, dict[str, Any]] = {}
 log = logging.getLogger("sandbox")
+
+
+def resource_filter(aid: str | None = None) -> dict[str, list[str]]:
+    namespace = os.environ.get("SANDBOX_NAMESPACE", "ai-security-auditor")
+    return {"label": [f"{NAMESPACE_LABEL}={namespace}", f"{LABEL}={aid}" if aid else LABEL]}
 
 
 def reap_expired() -> None:
@@ -47,7 +53,7 @@ def reap_expired() -> None:
     d = client()
     expired = {
         c.labels[LABEL]
-        for c in d.containers.list(all=True, filters={"label": LABEL})
+        for c in d.containers.list(all=True, filters=resource_filter())
         if float(c.labels.get("auditor.expires", "0")) < time.time()
     }
     for aid in expired:
@@ -86,13 +92,13 @@ def client() -> Any:
 def stop(aid: str) -> None:
     with lock:
         d = client()
-        for c in d.containers.list(all=True, filters={"label": f"{LABEL}={aid}"}):
+        for c in d.containers.list(all=True, filters=resource_filter(aid)):
             with contextlib.suppress(docker.errors.DockerException):
                 c.remove(force=True, v=True)
-        for n in d.networks.list(filters={"label": f"{LABEL}={aid}"}):
+        for n in d.networks.list(filters=resource_filter(aid)):
             with contextlib.suppress(docker.errors.DockerException):
                 n.remove()
-        for im in d.images.list(filters={"label": f"{LABEL}={aid}"}):
+        for im in d.images.list(filters=resource_filter(aid)):
             with contextlib.suppress(docker.errors.DockerException):
                 d.images.remove(im.id, force=True)
         active.pop(aid, None)
@@ -142,8 +148,10 @@ class SandboxBusy(RuntimeError):
 
 
 # Lines where Maven/Gradle/pip/npm/compilers report an error, and the boilerplate that follows Maven's real one.
-BUILD_ERROR_LINE = re.compile(r"^(\[ERROR\]|ERROR[: ]|error[:\[]|npm (ERR!|error)|FAILURE:|E: )")
-BUILD_NOISE = re.compile(r"^\[ERROR\]\s*(To see|Re-run|For more information|\[Help \d+\]|$)")
+BUILD_ERROR_LINE = re.compile(r"^(\[(?:ERROR|FATAL)\]|ERROR[: ]|error[:\[]|npm (ERR!|error)|FAILURE:|E: )")
+BUILD_NOISE = re.compile(
+    r"^\[ERROR\]\s*(?:\[ERROR\]\s*)?(To see|Re-run|For more information|Some problems were encountered|The build could not read|\[Help \d+\]|$)"
+)
 
 
 def build_failure(service: str, error: str, recent: Iterable[str]) -> str:
@@ -160,6 +168,24 @@ try:
 except urllib.error.HTTPError as e:
  print(json.dumps({'status':e.code,'data':{'error':'target HTTP error'}}))
 """
+
+
+PORT_SCRIPT = """import socket,json,base64,sys
+ports=json.loads(base64.b64decode(sys.argv[1])); waiting=[]
+for host,port in ports:
+ try:
+  with socket.create_connection((host,port),timeout=1): pass
+ except OSError: waiting.append(host)
+print(json.dumps({'ready':not waiting}))
+"""
+
+
+def service_ports_ready(helper: Any, services: list[dict[str, Any]]) -> bool:
+    data = base64.b64encode(json.dumps([(s["name"], s["port"]) for s in services]).encode()).decode()
+    result = helper.exec_run(["python", "-c", PORT_SCRIPT, data], user="10001:10001")
+    if result.exit_code:
+        return False
+    return bool(json.loads(result.output).get("ready"))
 
 
 def request(aid: str, path: str, body: Any = None, method: str = "POST") -> dict[str, Any]:
@@ -192,7 +218,11 @@ def start(
         if active:
             raise SandboxBusy("another sandbox audit is running; retry later")
         d = client()
-        labels = {LABEL: aid, "auditor.expires": str(time.time() + TTL)}
+        labels = {
+            LABEL: aid,
+            NAMESPACE_LABEL: os.environ.get("SANDBOX_NAMESPACE", "ai-security-auditor"),
+            "auditor.expires": str(time.time() + TTL),
+        }
         try:
             net = d.networks.create("audit-" + aid, internal=True, labels=labels)
             images = {}
@@ -285,7 +315,7 @@ def start(
             }
             for _ in range(45):
                 try:
-                    health = request(aid, "/health", method="GET")
+                    health = request(aid, "/health", method="GET") if service_ports_ready(helper, spec["services"]) else {"status": 503}
                     if health["status"] == 200:
                         mode = health["data"].get("mode", "unknown")
                         active[aid]["mode"] = mode

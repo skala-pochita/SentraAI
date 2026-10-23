@@ -22,6 +22,7 @@ class AuditState(TypedDict, total=False):
     actor_role: str  # ADMIN | DEVELOPER | AUDITOR
     eval_config: str | None  # 비교 실험 시 "B_nano_harness" 등, 일반 감사는 None
     mode: str  # full | code | agent
+    compliance_profile: dict[str, Any]
     # 대상
     targets: list[dict[str, Any]]  # [{target_id, type: repo|agent, ref, name, linked_target_id}]
     plan: dict[str, Any]  # intake 가 정한 검사 범위, 위험 파일 후보

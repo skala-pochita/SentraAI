@@ -39,3 +39,16 @@ docs/*
 
 # sentraai CLI 패키지 (npm pack 산출물)
 cli/*.tgz
+# 사용자 원문·추출물은 로컬 RAG 전용
+knowledge/sources/raw/
+knowledge/sources/text/
+knowledge/sources/clauses/
+knowledge/sources/markdown/
+knowledge/sources/downloads/
+knowledge/sources/index/
+knowledge/sources/MANIFEST.local.yaml
+config/compliance/links.local/
+config/compliance/links/generated.yaml
+config/compliance/last_generation.local.yaml
+
+/frontend/node_modules

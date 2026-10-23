@@ -60,3 +60,16 @@ cli-images:
 
 cli-pack:
 	cd cli && npm test && npm pack
+compliance-validate:
+	$(BACKEND) uv run python -m core.compliance_cli validate
+
+compliance-index:
+	$(BACKEND) uv run python -m core.compliance_cli index
+
+compliance-link:
+	$(BACKEND) uv run python -m core.compliance_cli link
+
+compliance-bootstrap:
+	$(BACKEND) uv run python -m core.compliance_cli bootstrap
+
+.PHONY: compliance-validate compliance-index compliance-link compliance-bootstrap

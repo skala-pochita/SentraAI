@@ -9,11 +9,13 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
+from core.compliance import build_compliance_safely, render_compliance, seal_report
 from core.graph.deps import get_deps
 from core.graph.nodes._base import node
 from core.path_schema import LEVEL_LABELS
 from core.redis.locks import release_target_lock
 from core.schemas import SEVERITY_ORDER
+from core.settings import get_settings
 
 SEV_KO = {"CRITICAL": "치명", "HIGH": "높음", "MEDIUM": "중간", "LOW": "낮음", "INFO": "참고"}
 
@@ -37,6 +39,7 @@ def _report_finding(f: dict[str, Any], status_of: dict[str, str]) -> dict[str, A
     location = f"{ev.get('file_path')}:{ev.get('line_start')}" if ev.get("file_path") else ev.get("probe_id")
     return {
         "finding_id": f.get("finding_id"),
+        "target_id": f.get("target_id"),
         "title": f["title"],
         "severity": f["severity"],
         "category": f["category"],
@@ -76,8 +79,9 @@ def build_report(state: dict[str, Any], db_findings: list[dict[str, Any]]) -> di
     findings.sort(key=lambda x: (-SEVERITY_ORDER[x["severity"]], -x["confidence"]))
     usage = state.get("token_usage", [])
     probes = [{k: r.get(k) for k in PROBE_FIELDS} for r in state.get("probe_results", [])]
-    return {
+    rep = {
         "audit_id": state["audit_id"],
+        "sentra_build_sha": get_settings().sentra_build_sha,
         "generated_at": datetime.now(UTC).isoformat(),
         "eval_config": state.get("eval_config"),
         "targets": [
@@ -95,7 +99,11 @@ def build_report(state: dict[str, Any], db_findings: list[dict[str, Any]]) -> di
             "usd": round(sum(u.get("usd", 0) for u in usage), 6),
         },
         "errors": state.get("errors", []),
+        "compliance_profile": state.get("compliance_profile", {}),
+        "audit_mode": state.get("mode", "full"),
     }
+    rep["compliance"] = build_compliance_safely(rep, state.get("compliance_profile"))
+    return seal_report(rep)
 
 
 def render_md(r: dict[str, Any]) -> str:
@@ -165,6 +173,8 @@ def render_md(r: dict[str, Any]) -> str:
             for condition in payload["missing_evidence"]:
                 lines.append(f"  - 미확인: {condition}")
         lines.append("")
+    if r.get("compliance"):
+        lines += [render_compliance(r), ""]
     lines += ["## Finding 목록", "", "| 심각도 | 제목 | 위치 | 상태 | 근거 표준 |", "|---|---|---|---|---|"]
     for f in r["findings"]:
         lines.append(
@@ -222,6 +232,9 @@ async def report(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any
             coverage["attacks"] = "UNVERIFIED"
             coverage["reason"] = "실제 제공자 호출 성공을 확인하지 못했습니다."
 
+    # Finalize recommendations after model verification above.
+    rep["compliance"] = build_compliance_safely(rep, state.get("compliance_profile"))
+    rep = seal_report(rep)
     res = await deps.call(
         state, "report", "save_report", audit_id=state["audit_id"], report_json=rep, report_md=render_md(rep)
     )

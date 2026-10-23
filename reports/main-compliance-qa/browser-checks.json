@@ -1,0 +1,294 @@
+{
+  "origin": "http://127.0.0.1:4180",
+  "backend": "actual FastAPI + dedicated PostgreSQL",
+  "pages": {
+    "report": "rendered main attack evidence and compliance",
+    "compliance": "source quotations, conditions, deferred findings; download succeeded",
+    "risks": "main code reasons and step evidence API returned 200",
+    "compare": "versions 1 and 2; persisted and resolved findings displayed",
+    "audit_new": "main modes/start blockers and optional compliance conditions displayed"
+  },
+  "requests": [
+    {
+      "path": "/api/v1/auth/mode",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/me",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/report.md",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/compliance.md",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/compliance",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/report",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/risk-paths",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/risk-paths/e70dbc02-d476-454d-896e-da1daeddfb4a/evidence",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/risk-paths/a9f6ad53-0163-431a-befe-1514def1b835/evidence",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/probes",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/risk-paths",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/report",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/e566c18c-a680-40f8-87f4-0f6755d4c53c/probes",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/auth/mode",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/me",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/targets/2ee93412-dbf4-4389-a49b-f617c0736ed6/baselines",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf/compare?baseline=e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf/probes",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/targets/2ee93412-dbf4-4389-a49b-f617c0736ed6/baselines",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf/compare?baseline=e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf/findings",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf/events",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/targets/2ee93412-dbf4-4389-a49b-f617c0736ed6/baselines",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits/23a900f9-bb32-4ee0-bea4-3bd40657a1bf/compare?baseline=e566c18c-a680-40f8-87f4-0f6755d4c53c",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/targets",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits?size=50",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits?size=100",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/targets",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/eval-runs",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/targets",
+      "status": 200
+    },
+    {
+      "path": "/api/v1/audits?size=50",
+      "status": 200
+    }
+  ],
+  "console_errors_checked": false
+}

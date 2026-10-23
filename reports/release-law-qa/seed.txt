@@ -1,0 +1,8 @@
+INFO:seed:seeded users=['ADMIN', 'DEVELOPER', 'AUDITOR'] targets=eb4a17f1-3408-4906-9255-0f9688a7c419,c2473146-c52b-4a58-939b-8a27e9a05a3e
+INFO:rag.ingest:indexed company_security_policy.md chunks=7
+INFO:rag.ingest:indexed cwe_selected.md chunks=10
+INFO:rag.ingest:indexed owasp_agentic_top10_summary.md chunks=7
+INFO:rag.ingest:indexed owasp_llm_top10_summary.md chunks=6
+INFO:rag.ingest:indexed owasp_top10_2021_summary.md chunks=7
+INFO:rag.ingest:indexed spring_security_guide.md chunks=8
+INFO:seed:indexed knowledge documents: [('데모샵 사내 보안 정책 (가상)', 7), ('주요 CWE 요약', 10), ('OWASP Agentic AI 위협 요약', 7), ('OWASP Top 10 for LLM Applications (2025) 요약', 6), ('OWASP Top 10 (2021) 요약', 7), ('Spring Security 올바른 설정 가이드', 8)]

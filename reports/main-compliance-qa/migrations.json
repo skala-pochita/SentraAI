@@ -1,0 +1,50 @@
+[
+  {
+    "step": "create sentra_qa_fresh",
+    "code": 0,
+    "stdout": "CREATE DATABASE\n",
+    "stderr": ""
+  },
+  {
+    "step": "create sentra_qa_upgrade",
+    "code": 0,
+    "stdout": "CREATE DATABASE\n",
+    "stderr": ""
+  },
+  {
+    "step": "create sentra_qa_runtime",
+    "code": 0,
+    "stdout": "CREATE DATABASE\n",
+    "stderr": ""
+  },
+  {
+    "step": "main base -> 0007",
+    "code": 0,
+    "stdout": "",
+    "stderr": "INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.\nINFO  [alembic.runtime.migration] Will assume transactional DDL.\nINFO  [alembic.runtime.migration] Running upgrade  -> 0001, initial schema (명세 13장)\nINFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, Compatibility marker for the retired Cloud schema revision.\nINFO  [alembic.runtime.migration] Running upgrade 0002 -> 0003, trace_spans.trace_id (Observability: 감사 1건 = trace_id 1개)\nINFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, Execution settings with opaque vault references.\nRevision ID: 0004\nRevises: 0003\nINFO  [alembic.runtime.migration] Running upgrade 0004 -> 0005, audits.baseline_audit_id (수정본 재업로드 비교의 기준 감사)\nINFO  [alembic.runtime.migration] Running upgrade 0005 -> 0006, Evidence-backed paths; 0001 creates current models, so additions are idempotent.\nINFO  [alembic.runtime.migration] Running upgrade 0006 -> 0007, Repair databases marked current while missing the audit comparison column.\n"
+  },
+  {
+    "step": "seed existing main data",
+    "code": 0,
+    "stdout": "INSERT 0 1\nINSERT 0 1\nINSERT 0 1\n",
+    "stderr": ""
+  },
+  {
+    "step": "sentra_qa_fresh -> 0008",
+    "code": 0,
+    "stdout": "",
+    "stderr": "INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.\nINFO  [alembic.runtime.migration] Will assume transactional DDL.\nINFO  [alembic.runtime.migration] Running upgrade  -> 0001, initial schema (명세 13장)\nINFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, Compatibility marker for the retired Cloud schema revision.\nINFO  [alembic.runtime.migration] Running upgrade 0002 -> 0003, trace_spans.trace_id (Observability: 감사 1건 = trace_id 1개)\nINFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, Execution settings with opaque vault references.\nRevision ID: 0004\nRevises: 0003\nINFO  [alembic.runtime.migration] Running upgrade 0004 -> 0005, audits.baseline_audit_id (수정본 재업로드 비교의 기준 감사)\nINFO  [alembic.runtime.migration] Running upgrade 0005 -> 0006, Evidence-backed paths; 0001 creates current models, so additions are idempotent.\nINFO  [alembic.runtime.migration] Running upgrade 0006 -> 0007, Repair databases marked current while missing the audit comparison column.\nINFO  [alembic.runtime.migration] Running upgrade 0007 -> 0008, Add regulatory knowledge types without changing the Finding/report schema.\n"
+  },
+  {
+    "step": "sentra_qa_upgrade -> 0008",
+    "code": 0,
+    "stdout": "",
+    "stderr": "INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.\nINFO  [alembic.runtime.migration] Will assume transactional DDL.\nINFO  [alembic.runtime.migration] Running upgrade 0007 -> 0008, Add regulatory knowledge types without changing the Finding/report schema.\n"
+  },
+  {
+    "step": "sentra_qa_runtime -> 0008",
+    "code": 0,
+    "stdout": "",
+    "stderr": "INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.\nINFO  [alembic.runtime.migration] Will assume transactional DDL.\nINFO  [alembic.runtime.migration] Running upgrade  -> 0001, initial schema (명세 13장)\nINFO  [alembic.runtime.migration] Running upgrade 0001 -> 0002, Compatibility marker for the retired Cloud schema revision.\nINFO  [alembic.runtime.migration] Running upgrade 0002 -> 0003, trace_spans.trace_id (Observability: 감사 1건 = trace_id 1개)\nINFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, Execution settings with opaque vault references.\nRevision ID: 0004\nRevises: 0003\nINFO  [alembic.runtime.migration] Running upgrade 0004 -> 0005, audits.baseline_audit_id (수정본 재업로드 비교의 기준 감사)\nINFO  [alembic.runtime.migration] Running upgrade 0005 -> 0006, Evidence-backed paths; 0001 creates current models, so additions are idempotent.\nINFO  [alembic.runtime.migration] Running upgrade 0006 -> 0007, Repair databases marked current while missing the audit comparison column.\nINFO  [alembic.runtime.migration] Running upgrade 0007 -> 0008, Add regulatory knowledge types without changing the Finding/report schema.\n"
+  }
+]

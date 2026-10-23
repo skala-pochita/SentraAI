@@ -1,0 +1,1004 @@
+ Image sentraai-law-qa/frontend:local Building
+ Image sentraai-law-qa/target-agent:local Building
+ Image sentraai-law-qa/backend:local Building
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.70kB done
+#1 DONE 0.0s
+
+#2 [frontend internal] load build definition from Dockerfile
+#2 transferring dockerfile: 341B done
+#2 DONE 0.0s
+
+#3 [api internal] load build definition from Dockerfile
+#3 transferring dockerfile: 1.10kB done
+#3 DONE 0.0s
+
+#4 [target-agent internal] load build definition from Dockerfile
+#4 transferring dockerfile: 429B done
+#4 DONE 0.0s
+
+#5 [target-agent internal] load metadata for docker.io/library/python:3.12-slim
+#5 ...
+
+#6 [api internal] load metadata for ghcr.io/astral-sh/uv:0.12.21
+#6 DONE 0.7s
+
+#5 [api internal] load metadata for docker.io/library/python:3.12-slim
+#5 DONE 0.8s
+
+#7 [frontend internal] load metadata for docker.io/library/nginx:1.27-alpine
+#7 DONE 0.8s
+
+#8 [api internal] load .dockerignore
+#8 transferring context: 648B done
+#8 DONE 0.0s
+
+#9 [frontend internal] load metadata for docker.io/library/node:22-alpine
+#9 DONE 0.8s
+
+#10 [target-agent internal] load build context
+#10 transferring context: 625B done
+#10 DONE 0.0s
+
+#11 [frontend internal] load .dockerignore
+#11 transferring context: 58B done
+#11 DONE 0.0s
+
+#12 [api internal] load build context
+#12 transferring context: 19.66kB 0.0s done
+#12 DONE 0.0s
+
+#13 [api 1/6] FROM docker.io/library/python:3.12-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
+#13 resolve docker.io/library/python:3.12-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704 0.0s done
+#13 CACHED
+
+#14 [api] FROM ghcr.io/astral-sh/uv:0.12.21@sha256:a7aed3216253ee804de3e2d8afa5073baa1a177335345d43845cd4165e43b711
+#14 resolve ghcr.io/astral-sh/uv:0.12.21@sha256:a7aed3216253ee804de3e2d8afa5073baa1a177335345d43845cd4165e43b711 0.0s done
+#14 CACHED
+
+#15 [target-agent 3/6] WORKDIR /app
+#15 CACHED
+
+#16 [target-agent 2/6] RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+#16 CACHED
+
+#17 [target-agent 4/6] COPY targets/target-agent/requirements.txt ./
+#17 CACHED
+
+#18 [frontend build 1/7] FROM docker.io/library/node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+#18 resolve docker.io/library/node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 0.0s done
+#18 DONE 0.0s
+
+#19 [frontend stage-1 1/3] FROM docker.io/library/nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+#19 resolve docker.io/library/nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10 0.0s done
+#19 DONE 0.0s
+
+#20 [frontend internal] load build context
+#20 transferring context: 6.04kB done
+#20 DONE 0.0s
+
+#21 [frontend build 2/7] RUN corepack enable
+#21 CACHED
+
+#22 [frontend build 3/7] WORKDIR /app
+#22 CACHED
+
+#23 [frontend build 4/7] COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+#23 CACHED
+
+#24 [frontend stage-1 2/3] COPY nginx.conf /etc/nginx/conf.d/default.conf
+#24 CACHED
+
+#25 [frontend build 5/7] RUN pnpm install --frozen-lockfile
+#25 CACHED
+
+#26 [frontend build 6/7] COPY . .
+#26 DONE 0.0s
+
+#27 [frontend build 7/7] RUN pnpm run build
+#27 0.398 $ vue-tsc --noEmit && vite build
+#27 2.634 vite v7.3.7 building client environment for production...
+#27 2.664 transforming...
+#27 ...
+
+#28 [target-agent 5/6] RUN pip install --no-cache-dir -r requirements.txt
+#28 1.041 Collecting fastapi==0.146.0 (from -r requirements.txt (line 1))
+#28 1.071   Downloading fastapi-0.146.0-py3-none-any.whl.metadata (26 kB)
+#28 1.096 Collecting uvicorn==0.54.0 (from -r requirements.txt (line 2))
+#28 1.102   Downloading uvicorn-0.54.0-py3-none-any.whl.metadata (6.6 kB)
+#28 1.153 Collecting pyyaml==6.0.3 (from -r requirements.txt (line 3))
+#28 1.160   Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.4 kB)
+#28 1.193 Collecting langchain-core==1.6.12 (from -r requirements.txt (line 4))
+#28 1.201   Downloading langchain_core-1.6.12-py3-none-any.whl.metadata (4.8 kB)
+#28 1.226 Collecting langchain-openai==1.7.2 (from -r requirements.txt (line 5))
+#28 1.233   Downloading langchain_openai-1.7.2-py3-none-any.whl.metadata (3.6 kB)
+#28 1.265 Collecting starlette>=0.46.0 (from fastapi==0.146.0->-r requirements.txt (line 1))
+#28 1.272   Downloading starlette-1.9.0-py3-none-any.whl.metadata (6.6 kB)
+#28 1.352 Collecting pydantic>=2.9.0 (from fastapi==0.146.0->-r requirements.txt (line 1))
+#28 1.359   Downloading pydantic-2.14.1-py3-none-any.whl.metadata (133 kB)
+#28 1.388 Collecting typing-extensions>=4.8.0 (from fastapi==0.146.0->-r requirements.txt (line 1))
+#28 1.394   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+#28 1.403 Collecting typing-inspection>=0.4.2 (from fastapi==0.146.0->-r requirements.txt (line 1))
+#28 1.410   Downloading typing_inspection-0.4.4-py3-none-any.whl.metadata (2.6 kB)
+#28 1.424 Collecting annotated-doc>=0.0.2 (from fastapi==0.146.0->-r requirements.txt (line 1))
+#28 1.431   Downloading annotated_doc-0.0.5-py3-none-any.whl.metadata (6.5 kB)
+#28 1.447 Collecting opentelemetry-api>=1.44.0 (from fastapi==0.146.0->-r requirements.txt (line 1))
+#28 1.454   Downloading opentelemetry_api-1.45.1-py3-none-any.whl.metadata (1.4 kB)
+#28 1.468 Collecting click>=7.0 (from uvicorn==0.54.0->-r requirements.txt (line 2))
+#28 1.475   Downloading click-8.5.0-py3-none-any.whl.metadata (2.6 kB)
+#28 1.484 Collecting h11>=0.8 (from uvicorn==0.54.0->-r requirements.txt (line 2))
+#28 1.490   Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+#28 1.504 Collecting httpx<1.0.0,>=0.23.0 (from langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.510   Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+#28 1.527 Collecting jsonpatch<2.0.0,>=1.33.0 (from langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.534   Downloading jsonpatch-1.36-py3-none-any.whl.metadata (3.7 kB)
+#28 1.543 Collecting langchain-protocol>=0.0.17 (from langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.550   Downloading langchain_protocol-0.0.20-py3-none-any.whl.metadata (2.4 kB)
+#28 1.593 Collecting langsmith<1.0.0,>=0.14.9 (from langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.599   Downloading langsmith-0.14.12-py3-none-any.whl.metadata (38 kB)
+#28 1.616 Collecting packaging>=23.2.0 (from langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.624   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+#28 1.640 Collecting tenacity!=8.4.0,<10.0.0,>=8.1.0 (from langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.646   Downloading tenacity-9.2.1-py3-none-any.whl.metadata (1.4 kB)
+#28 1.714 Collecting uuid-utils<1.0,>=0.12.0 (from langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.720   Downloading uuid_utils-0.18.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (6.4 kB)
+#28 1.741 Collecting certifi>=2024.6.2 (from langchain-openai==1.7.2->-r requirements.txt (line 5))
+#28 1.748   Downloading certifi-2026.10.19-py3-none-any.whl.metadata (2.5 kB)
+#28 1.815 Collecting openai<4.0.0,>=2.45.0 (from langchain-openai==1.7.2->-r requirements.txt (line 5))
+#28 1.822   Downloading openai-3.37.0-py3-none-any.whl.metadata (44 kB)
+#28 1.849 Collecting tiktoken<1.0.0,>=0.7.0 (from langchain-openai==1.7.2->-r requirements.txt (line 5))
+#28 1.856   Downloading tiktoken-0.14.0-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (6.7 kB)
+#28 1.871 Collecting anyio (from httpx<1.0.0,>=0.23.0->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.877   Downloading anyio-4.15.1-py3-none-any.whl.metadata (4.7 kB)
+#28 1.890 Collecting httpcore==1.* (from httpx<1.0.0,>=0.23.0->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.897   Downloading httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+#28 1.910 Collecting idna (from httpx<1.0.0,>=0.23.0->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.917   Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+#28 1.942 Collecting jsonpointer>=3.2 (from jsonpatch<2.0.0,>=1.33.0->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.948   Downloading jsonpointer-3.4-py3-none-any.whl.metadata (2.6 kB)
+#28 1.963 Collecting distro<2,>=1.7.0 (from langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.971   Downloading distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+#28 1.982 Collecting httpx2<3,>=2 (from langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 1.988   Downloading httpx2-2.16.0-py3-none-any.whl.metadata (10 kB)
+#28 2.154 Collecting orjson>=3.9.14 (from langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 2.160   Downloading orjson-3.13.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (42 kB)
+#28 2.181 Collecting requests-toolbelt>=1.0.0 (from langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 2.188   Downloading requests_toolbelt-1.0.0-py2.py3-none-any.whl.metadata (14 kB)
+#28 2.205 Collecting requests>=2.0.0 (from langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 2.212   Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+#28 2.221 Collecting sniffio (from langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 2.227   Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+#28 2.288 Collecting websockets>=15.0 (from langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 2.295   Downloading websockets-17.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (6.3 kB)
+#28 2.380 Collecting xxhash>=3.0.0 (from langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 2.388   Downloading xxhash-4.0.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (17 kB)
+#28 2.422 Collecting zstandard>=0.23.0 (from langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 2.429   Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (3.3 kB)
+#28 2.484 Collecting jiter<1,>=0.16.0 (from openai<4.0.0,>=2.45.0->langchain-openai==1.7.2->-r requirements.txt (line 5))
+#28 2.491   Downloading jiter-0.17.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (5.2 kB)
+#28 2.515 Collecting annotated-types>=0.6.0 (from pydantic>=2.9.0->fastapi==0.146.0->-r requirements.txt (line 1))
+#28 2.522   Downloading annotated_types-0.8.0-py3-none-any.whl.metadata (15 kB)
+#28 2.993 Collecting pydantic-core==2.50.1 (from pydantic>=2.9.0->fastapi==0.146.0->-r requirements.txt (line 1))
+#28 3.009   Downloading pydantic_core-2.50.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (6.5 kB)
+#28 3.345 Collecting regex (from tiktoken<1.0.0,>=0.7.0->langchain-openai==1.7.2->-r requirements.txt (line 5))
+#28 3.376   Downloading regex-2026.9.29-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (40 kB)
+#28 3.416 Collecting httpcore2==2.16.0 (from httpx2<3,>=2->langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 3.443   Downloading httpcore2-2.16.0-py3-none-any.whl.metadata (27 kB)
+#28 3.486 Collecting truststore>=0.10 (from httpx2<3,>=2->langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 3.515   Downloading truststore-0.10.5-py3-none-any.whl.metadata (4.5 kB)
+#28 3.645 Collecting charset_normalizer<4,>=2 (from requests>=2.0.0->langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 3.677   Downloading charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (46 kB)
+#28 3.713 Collecting urllib3<3,>=1.26 (from requests>=2.0.0->langsmith<1.0.0,>=0.14.9->langchain-core==1.6.12->-r requirements.txt (line 4))
+#28 3.737   Downloading urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
+#28 3.786 Downloading fastapi-0.146.0-py3-none-any.whl (144 kB)
+#28 3.809 Downloading uvicorn-0.54.0-py3-none-any.whl (87 kB)
+#28 3.851 Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (775 kB)
+#28 4.007    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 775.1/775.1 kB 5.6 MB/s eta 0:00:00
+#28 4.017 Downloading langchain_core-1.6.12-py3-none-any.whl (573 kB)
+#28 4.100    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 573.8/573.8 kB 8.8 MB/s eta 0:00:00
+#28 4.116 Downloading langchain_openai-1.7.2-py3-none-any.whl (146 kB)
+#28 4.158 Downloading annotated_doc-0.0.5-py3-none-any.whl (5.3 kB)
+#28 4.189 Downloading certifi-2026.10.19-py3-none-any.whl (136 kB)
+#28 4.229 Downloading click-8.5.0-py3-none-any.whl (125 kB)
+#28 4.261 Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+#28 4.317 Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+#28 4.342 Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
+#28 4.373 Downloading jsonpatch-1.36-py3-none-any.whl (17 kB)
+#28 4.424 Downloading langchain_protocol-0.0.20-py3-none-any.whl (7.3 kB)
+#28 4.444 Downloading langsmith-0.14.12-py3-none-any.whl (883 kB)
+#28 4.587    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 883.6/883.6 kB 5.7 MB/s eta 0:00:00
+#28 4.609 Downloading openai-3.37.0-py3-none-any.whl (2.3 MB)
+#28 4.920    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 7.1 MB/s eta 0:00:00
+#28 4.939 Downloading opentelemetry_api-1.45.1-py3-none-any.whl (60 kB)
+#28 4.975 Downloading packaging-26.3-py3-none-any.whl (129 kB)
+#28 5.024 Downloading pydantic-2.14.1-py3-none-any.whl (488 kB)
+#28 5.081 Downloading pydantic_core-2.50.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (2.0 MB)
+#28 5.390    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 7.0 MB/s eta 0:00:00
+#28 5.403 Downloading starlette-1.9.0-py3-none-any.whl (80 kB)
+#28 5.454 Downloading tenacity-9.2.1-py3-none-any.whl (32 kB)
+#28 5.469 Downloading tiktoken-0.14.0-cp312-cp312-manylinux_2_28_aarch64.whl (1.2 MB)
+#28 5.606    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 8.6 MB/s eta 0:00:00
+#28 5.630 Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+#28 5.655 Downloading typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+#28 5.668 Downloading uuid_utils-0.18.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (320 kB)
+#28 5.727 Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
+#28 5.740 Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
+#28 5.768 Downloading distro-1.9.0-py3-none-any.whl (20 kB)
+#28 5.786 Downloading httpx2-2.16.0-py3-none-any.whl (97 kB)
+#28 5.811 Downloading httpcore2-2.16.0-py3-none-any.whl (85 kB)
+#28 5.841 Downloading idna-3.20-py3-none-any.whl (69 kB)
+#28 5.867 Downloading jiter-0.17.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (341 kB)
+#28 5.951 Downloading jsonpointer-3.4-py3-none-any.whl (9.0 kB)
+#28 5.982 Downloading orjson-3.13.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (129 kB)
+#28 6.012 Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+#28 6.037 Downloading requests_toolbelt-1.0.0-py2.py3-none-any.whl (54 kB)
+#28 6.055 Downloading websockets-17.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (227 kB)
+#28 6.107 Downloading xxhash-4.0.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (276 kB)
+#28 6.173 Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (5.1 MB)
+#28 6.526    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.1/5.1 MB 15.1 MB/s eta 0:00:00#28 ...
+
+#27 [frontend build 7/7] RUN pnpm run build
+#27 5.725 ✓ 696 modules transformed.
+#27 5.882 rendering chunks...
+#27 6.315 computing gzip size...
+#27 6.343 dist/index.html                                                          1.03 kB │ gzip:   0.59 kB
+#27 6.343 dist/assets/RedTeamPage-CclDdqq6.css                                     0.19 kB │ gzip:   0.14 kB
+#27 6.344 dist/assets/ReportPage-BJm_YCo3.css                                      0.22 kB │ gzip:   0.15 kB
+#27 6.344 dist/assets/FindingPage-EZYyqZgU.css                                     0.28 kB │ gzip:   0.21 kB
+#27 6.345 dist/assets/OverviewPage-BSTXznkj.css                                    0.35 kB │ gzip:   0.22 kB
+#27 6.345 dist/assets/OpsPage-BDJq-beb.css                                         0.55 kB │ gzip:   0.30 kB
+#27 6.345 dist/assets/CodeEvalPage-DS2wU_qx.css                                    0.95 kB │ gzip:   0.46 kB
+#27 6.345 dist/assets/KnowledgePage-BadbyyFM.css                                   0.96 kB │ gzip:   0.42 kB
+#27 6.345 dist/assets/AuditPage-QZc9NvV1.css                                       1.05 kB │ gzip:   0.46 kB
+#27 6.345 dist/assets/RiskGraph3D-gVGlrW45.css                                     1.38 kB │ gzip:   0.59 kB
+#27 6.345 dist/assets/RisksPage-D4cdzkRQ.css                                       1.48 kB │ gzip:   0.56 kB
+#27 6.345 dist/assets/ProbeArena-DYTMY3Tp.css                                      1.51 kB │ gzip:   0.59 kB
+#27 6.345 dist/assets/AuditNewPage-B8xigxuZ.css                                    1.67 kB │ gzip:   0.61 kB
+#27 6.345 dist/assets/index-CBuyrzZN.css                                          27.15 kB │ gzip:   7.05 kB
+#27 6.345 dist/assets/_plugin-vue_export-helper-DlAUqK2U.js                        0.09 kB │ gzip:   0.10 kB
+#27 6.345 dist/assets/Sev.vue_vue_type_script_setup_true_lang-CcWhONRt.js          0.30 kB │ gzip:   0.24 kB
+#27 6.345 dist/assets/Stat.vue_vue_type_script_setup_true_lang-bbDe4o0Z.js         0.58 kB │ gzip:   0.36 kB
+#27 6.345 dist/assets/AuditTabs.vue_vue_type_script_setup_true_lang-BsrG69Yf.js    0.93 kB │ gzip:   0.65 kB
+#27 6.345 dist/assets/AuditsPage-Bssq0ZeP.js                                       2.44 kB │ gzip:   1.27 kB
+#27 6.345 dist/assets/LoginPage-Djp5PohY.js                                        2.78 kB │ gzip:   1.54 kB
+#27 6.345 dist/assets/FindingsPage-DGbM5eqE.js                                     2.97 kB │ gzip:   1.61 kB
+#27 6.346 dist/assets/OpsPage-D7LBDIg_.js                                          2.97 kB │ gzip:   1.53 kB
+#27 6.346 dist/assets/TracesPage-BU2c3T4L.js                                       3.51 kB │ gzip:   1.77 kB
+#27 6.346 dist/assets/KnowledgePage-DTPjsmOT.js                                    4.57 kB │ gzip:   2.09 kB
+#27 6.346 dist/assets/ReportPage-JCtQv7TX.js                                       4.67 kB │ gzip:   2.21 kB
+#27 6.346 dist/assets/RedTeamPage-C5Sg9w3p.js                                      5.21 kB │ gzip:   2.49 kB
+#27 6.346 dist/assets/FindingPage-CaQ7E0Mk.js                                      5.55 kB │ gzip:   2.48 kB
+#27 6.346 dist/assets/RiskGraph3D-DdXXyU2j.js                                      5.79 kB │ gzip:   3.04 kB
+#27 6.346 dist/assets/OverviewPage-Fgpp_ROK.js                                     5.89 kB │ gzip:   2.83 kB
+#27 6.346 dist/assets/ProbeArena-C_Y8RcR-.js                                       7.09 kB │ gzip:   3.32 kB
+#27 6.346 dist/assets/AuditPage-D8EQzkvI.js                                        7.14 kB │ gzip:   3.23 kB
+#27 6.346 dist/assets/ComparePage-Dt_nPBXB.js                                      7.22 kB │ gzip:   3.15 kB
+#27 6.346 dist/assets/RisksPage-Csx20jW7.js                                        9.94 kB │ gzip:   4.14 kB
+#27 6.346 dist/assets/AuditNewPage-Bh6U62m4.js                                    21.37 kB │ gzip:   8.03 kB
+#27 6.346 dist/assets/index-Z-5iP8zg.js                                          126.19 kB │ gzip:  49.43 kB
+#27 6.346 dist/assets/stage-ybrWVY5f.js                                          504.46 kB │ gzip: 127.88 kB
+#27 6.346 dist/assets/CodeEvalPage-B39pJuey.js                                   545.65 kB │ gzip: 187.07 kB
+#27 6.347
+#27 6.347 (!) Some chunks are larger than 500 kB after minification. Consider:
+#27 6.347 - Using dynamic import() to code-split the application
+#27 6.347 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#27 6.347 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#27 6.347 ✓ built in 3.70s
+#27 DONE 6.5s
+
+#28 [target-agent 5/6] RUN pip install --no-cache-dir -r requirements.txt
+#28 6.526    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.1/5.1 MB 15.1 MB/s eta 0:00:00
+#28 6.533 Downloading regex-2026.9.29-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (805 kB)
+#28 6.587    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 805.9/805.9 kB 18.5 MB/s eta 0:00:00
+#28 6.593 Downloading sniffio-1.3.1-py3-none-any.whl (10 kB)
+#28 6.601 Downloading charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (246 kB)
+#28 6.621 Downloading truststore-0.10.5-py3-none-any.whl (19 kB)
+#28 6.631 Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)
+#28 ...
+
+#29 [api stage-0  2/12] RUN apt-get update && apt-get install -y --no-install-recommends git curl poppler-utils     && rm -rf /var/lib/apt/lists/*     && git config --global user.email "auditor-bot@demo.io"     && git config --global user.name "AI Security Auditor"     && git config --global --add safe.directory '*'
+#29 0.261 Hit:1 http://deb.debian.org/debian trixie InRelease
+#29 0.262 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+#29 0.274 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#29 0.287 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9614 kB]
+#29 0.964 Get:5 http://deb.debian.org/debian trixie-updates/main arm64 Packages [720 B]
+#29 0.971 Get:6 http://deb.debian.org/debian-security trixie-security/main arm64 Packages [271 kB]
+#29 1.528 Fetched 9976 kB in 1s (7505 kB/s)
+#29 1.528 Reading package lists...
+#29 1.796 Reading package lists...
+#29 2.080 Building dependency tree...
+#29 2.160 Reading state information...
+#29 2.276 The following additional packages will be installed:
+#29 2.276   dirmngr fontconfig-config fonts-dejavu-core fonts-dejavu-mono git-man gnupg
+#29 2.276   gnupg-l10n gpg gpg-agent gpgconf gpgsm libassuan9 libbrotli1 libcairo2
+#29 2.276   libcom-err2 libcurl3t64-gnutls libcurl4t64 libdeflate0 liberror-perl
+#29 2.276   libexpat1 libfontconfig1 libfreetype6 libgcrypt20 libgdbm-compat4t64
+#29 2.276   libgnutls30t64 libgpg-error0 libgpgme11t64 libgpgmepp6t64 libgssapi-krb5-2
+#29 2.276   libidn2-0 libjbig0 libjpeg62-turbo libk5crypto3 libkeyutils1 libkrb5-3
+#29 2.276   libkrb5support0 libksba8 liblcms2-2 libldap2 liblerc4 libnghttp2-14
+#29 2.276   libnghttp3-9 libngtcp2-16 libngtcp2-crypto-gnutls8 libnpth0t64 libnspr4
+#29 2.276   libnss3 libopenjp2-7 libp11-kit0 libperl5.40 libpixman-1-0 libpng16-16t64
+#29 2.276   libpoppler147 libpsl5t64 librtmp1 libsasl2-2 libsasl2-modules-db
+#29 2.276   libsharpyuv0 libssh2-1t64 libtasn1-6 libtiff6 libunistring5 libwebp7
+#29 2.276   libx11-6 libx11-data libxau6 libxcb-render0 libxcb-shm0 libxcb1 libxdmcp6
+#29 2.277   libxext6 libxrender1 perl perl-modules-5.40 pinentry-curses
+#29 2.277 Suggested packages:
+#29 2.277   dbus-user-session libpam-systemd pinentry-gnome3 tor gettext-base git-doc
+#29 2.277   git-email git-gui gitk gitweb git-cvs git-mediawiki git-svn gpg-wks-server
+#29 2.277   parcimonie xloadimage scdaemon tpm2daemon rng-tools gnutls-bin krb5-doc
+#29 2.277   krb5-user liblcms2-utils sensible-utils perl-doc libterm-readline-gnu-perl
+#29 2.277   | libterm-readline-perl-perl make libtap-harness-archive-perl pinentry-doc
+#29 2.277 Recommended packages:
+#29 2.277   bash-completion patch less ssh-client gnupg-utils gpg-wks-client gpgv
+#29 2.277   libgpg-error-l10n krb5-locales libldap-common poppler-data publicsuffix
+#29 2.277   libsasl2-modules
+#29 2.499 The following NEW packages will be installed:
+#29 2.499   curl dirmngr fontconfig-config fonts-dejavu-core fonts-dejavu-mono git
+#29 2.499   git-man gnupg gnupg-l10n gpg gpg-agent gpgconf gpgsm libassuan9 libbrotli1
+#29 2.499   libcairo2 libcom-err2 libcurl3t64-gnutls libcurl4t64 libdeflate0
+#29 2.499   liberror-perl libexpat1 libfontconfig1 libfreetype6 libgcrypt20
+#29 2.499   libgdbm-compat4t64 libgnutls30t64 libgpg-error0 libgpgme11t64 libgpgmepp6t64
+#29 2.499   libgssapi-krb5-2 libidn2-0 libjbig0 libjpeg62-turbo libk5crypto3
+#29 2.499   libkeyutils1 libkrb5-3 libkrb5support0 libksba8 liblcms2-2 libldap2 liblerc4
+#29 2.499   libnghttp2-14 libnghttp3-9 libngtcp2-16 libngtcp2-crypto-gnutls8 libnpth0t64
+#29 2.499   libnspr4 libnss3 libopenjp2-7 libp11-kit0 libperl5.40 libpixman-1-0
+#29 2.499   libpng16-16t64 libpoppler147 libpsl5t64 librtmp1 libsasl2-2
+#29 2.499   libsasl2-modules-db libsharpyuv0 libssh2-1t64 libtasn1-6 libtiff6
+#29 2.499   libunistring5 libwebp7 libx11-6 libx11-data libxau6 libxcb-render0
+#29 2.499   libxcb-shm0 libxcb1 libxdmcp6 libxext6 libxrender1 perl perl-modules-5.40
+#29 2.499   pinentry-curses poppler-utils
+#29 2.526 0 upgraded, 78 newly installed, 0 to remove and 1 not upgraded.
+#29 2.526 Need to get 38.1 MB of archives.
+#29 2.526 After this operation, 166 MB of additional disk space will be used.
+#29 2.526 Get:1 http://deb.debian.org/debian-security trixie-security/main arm64 libexpat1 arm64 2.9.0-1~deb13u1 [114 kB]
+#29 2.574 Get:2 http://deb.debian.org/debian trixie/main arm64 perl-modules-5.40 all 5.40.1-6+deb13u1 [3014 kB]
+#29 2.940 Get:3 http://deb.debian.org/debian trixie/main arm64 libgdbm-compat4t64 arm64 1.24-2 [50.3 kB]
+#29 2.944 Get:4 http://deb.debian.org/debian trixie/main arm64 libperl5.40 arm64 5.40.1-6+deb13u1 [4138 kB]
+#29 3.343 Get:5 http://deb.debian.org/debian trixie/main arm64 perl arm64 5.40.1-6+deb13u1 [268 kB]
+#29 3.357 Get:6 http://deb.debian.org/debian trixie/main arm64 libbrotli1 arm64 1.1.0-2+b7 [308 kB]
+#29 3.388 Get:7 http://deb.debian.org/debian trixie/main arm64 libkrb5support0 arm64 1.21.3-5+deb13u1 [32.5 kB]
+#29 3.390 Get:8 http://deb.debian.org/debian trixie/main arm64 libcom-err2 arm64 1.47.2-3+b12 [24.9 kB]
+#29 3.392 Get:9 http://deb.debian.org/debian trixie/main arm64 libk5crypto3 arm64 1.21.3-5+deb13u1 [81.4 kB]
+#29 3.396 Get:10 http://deb.debian.org/debian trixie/main arm64 libkeyutils1 arm64 1.6.3-6 [9716 B]
+#29 3.396 Get:11 http://deb.debian.org/debian trixie/main arm64 libkrb5-3 arm64 1.21.3-5+deb13u1 [308 kB]
+#29 3.419 Get:12 http://deb.debian.org/debian trixie/main arm64 libgssapi-krb5-2 arm64 1.21.3-5+deb13u1 [128 kB]
+#29 3.426 Get:13 http://deb.debian.org/debian trixie/main arm64 libunistring5 arm64 1.3-2 [453 kB]
+#29 3.455 Get:14 http://deb.debian.org/debian trixie/main arm64 libidn2-0 arm64 2.3.8-2 [107 kB]
+#29 3.461 Get:15 http://deb.debian.org/debian trixie/main arm64 libsasl2-modules-db arm64 2.1.28+dfsg1-9 [20.1 kB]
+#29 3.463 Get:16 http://deb.debian.org/debian trixie/main arm64 libsasl2-2 arm64 2.1.28+dfsg1-9 [55.6 kB]
+#29 3.466 Get:17 http://deb.debian.org/debian trixie/main arm64 libldap2 arm64 2.6.10+dfsg-1 [179 kB]
+#29 3.485 Get:18 http://deb.debian.org/debian trixie/main arm64 libnghttp2-14 arm64 1.64.0-1.1+deb13u1 [71.6 kB]
+#29 3.490 Get:19 http://deb.debian.org/debian trixie/main arm64 libnghttp3-9 arm64 1.8.0-1 [63.2 kB]
+#29 3.493 Get:20 http://deb.debian.org/debian trixie/main arm64 libpsl5t64 arm64 0.21.2-1.1+b1 [57.1 kB]
+#29 3.496 Get:21 http://deb.debian.org/debian trixie/main arm64 libp11-kit0 arm64 0.25.5-3 [409 kB]
+#29 3.526 Get:22 http://deb.debian.org/debian trixie/main arm64 libtasn1-6 arm64 4.20.0-2+deb13u1 [47.3 kB]
+#29 3.528 Get:23 http://deb.debian.org/debian trixie/main arm64 libgnutls30t64 arm64 3.8.9-3+deb13u4 [1379 kB]
+#29 3.650 Get:24 http://deb.debian.org/debian trixie/main arm64 librtmp1 arm64 2.4+20151223.gitfa8646d.1-2+b5 [56.8 kB]
+#29 3.652 Get:25 http://deb.debian.org/debian trixie/main arm64 libssh2-1t64 arm64 1.11.1-1+deb13u2 [236 kB]
+#29 3.694 Get:26 http://deb.debian.org/debian-security trixie-security/main arm64 libcurl4t64 arm64 8.14.1-2+deb13u7 [361 kB]
+#29 3.716 Get:27 http://deb.debian.org/debian-security trixie-security/main arm64 curl arm64 8.14.1-2+deb13u7 [263 kB]
+#29 3.733 Get:28 http://deb.debian.org/debian trixie/main arm64 libgpg-error0 arm64 1.51-4 [78.5 kB]
+#29 3.737 Get:29 http://deb.debian.org/debian trixie/main arm64 libassuan9 arm64 3.0.2-2 [59.1 kB]
+#29 3.746 Get:30 http://deb.debian.org/debian trixie/main arm64 libgcrypt20 arm64 1.11.0-7+deb13u1 [741 kB]
+#29 3.819 Get:31 http://deb.debian.org/debian trixie/main arm64 gpgconf arm64 2.4.7-21+deb13u1+b5 [122 kB]
+#29 3.834 Get:32 http://deb.debian.org/debian trixie/main arm64 libksba8 arm64 1.6.7-2+b1 [125 kB]
+#29 3.842 Get:33 http://deb.debian.org/debian trixie/main arm64 libnpth0t64 arm64 1.8-3 [22.9 kB]
+#29 3.850 Get:34 http://deb.debian.org/debian trixie/main arm64 dirmngr arm64 2.4.7-21+deb13u1+b5 [358 kB]
+#29 3.885 Get:35 http://deb.debian.org/debian trixie/main arm64 fonts-dejavu-mono all 2.37-8 [489 kB]
+#29 3.934 Get:36 http://deb.debian.org/debian trixie/main arm64 fonts-dejavu-core all 2.37-8 [840 kB]
+#29 4.012 Get:37 http://deb.debian.org/debian trixie/main arm64 fontconfig-config arm64 2.15.0-2.3 [318 kB]
+#29 4.035 Get:38 http://deb.debian.org/debian trixie/main arm64 libngtcp2-16 arm64 1.11.0-1+deb13u1 [121 kB]
+#29 4.044 Get:39 http://deb.debian.org/debian trixie/main arm64 libngtcp2-crypto-gnutls8 arm64 1.11.0-1+deb13u1 [28.4 kB]
+#29 4.045 Get:40 http://deb.debian.org/debian-security trixie-security/main arm64 libcurl3t64-gnutls arm64 8.14.1-2+deb13u7 [354 kB]
+#29 4.088 Get:41 http://deb.debian.org/debian trixie/main arm64 liberror-perl all 0.17030-1 [26.9 kB]
+#29 4.103 Get:42 http://deb.debian.org/debian trixie/main arm64 git-man all 1:2.47.3-0+deb13u1 [2205 kB]
+#29 4.265 Get:43 http://deb.debian.org/debian trixie/main arm64 git arm64 1:2.47.3-0+deb13u1 [8666 kB]
+#29 5.081 Get:44 http://deb.debian.org/debian trixie/main arm64 gnupg-l10n all 2.4.7-21+deb13u1 [749 kB]
+#29 5.183 Get:45 http://deb.debian.org/debian trixie/main arm64 gpg arm64 2.4.7-21+deb13u1+b5 [578 kB]
+#29 5.264 Get:46 http://deb.debian.org/debian trixie/main arm64 pinentry-curses arm64 1.3.1-2 [83.5 kB]
+#29 5.275 Get:47 http://deb.debian.org/debian trixie/main arm64 gpg-agent arm64 2.4.7-21+deb13u1+b5 [250 kB]
+#29 5.323 Get:48 http://deb.debian.org/debian trixie/main arm64 gpgsm arm64 2.4.7-21+deb13u1+b5 [252 kB]
+#29 5.364 Get:49 http://deb.debian.org/debian trixie/main arm64 gnupg all 2.4.7-21+deb13u1 [417 kB]
+#29 5.408 Get:50 http://deb.debian.org/debian-security trixie-security/main arm64 libpng16-16t64 arm64 1.6.48-1+deb13u6 [275 kB]
+#29 5.442 Get:51 http://deb.debian.org/debian trixie/main arm64 libfreetype6 arm64 2.13.3+dfsg-1+deb13u1 [422 kB]
+#29 5.471 Get:52 http://deb.debian.org/debian trixie/main arm64 libfontconfig1 arm64 2.15.0-2.3 [387 kB]
+#29 5.510 Get:53 http://deb.debian.org/debian trixie/main arm64 libpixman-1-0 arm64 0.44.0-3 [168 kB]
+#29 5.544 Get:54 http://deb.debian.org/debian trixie/main arm64 libxau6 arm64 1:1.0.11-1 [20.6 kB]
+#29 5.545 Get:55 http://deb.debian.org/debian trixie/main arm64 libxdmcp6 arm64 1:1.1.5-1 [27.8 kB]
+#29 5.548 Get:56 http://deb.debian.org/debian trixie/main arm64 libxcb1 arm64 1.17.0-2+b1 [143 kB]
+#29 5.568 Get:57 http://deb.debian.org/debian trixie/main arm64 libx11-data all 2:1.8.12-1 [343 kB]
+#29 5.612 Get:58 http://deb.debian.org/debian trixie/main arm64 libx11-6 arm64 2:1.8.12-1 [795 kB]
+#29 5.679 Get:59 http://deb.debian.org/debian trixie/main arm64 libxcb-render0 arm64 1.17.0-2+b1 [115 kB]
+#29 5.692 Get:60 http://deb.debian.org/debian trixie/main arm64 libxcb-shm0 arm64 1.17.0-2+b1 [105 kB]
+#29 5.702 Get:61 http://deb.debian.org/debian trixie/main arm64 libxext6 arm64 2:1.3.4-1+b3 [49.2 kB]
+#29 5.706 Get:62 http://deb.debian.org/debian trixie/main arm64 libxrender1 arm64 1:0.9.12-1 [27.0 kB]
+#29 5.706 Get:63 http://deb.debian.org/debian trixie/main arm64 libcairo2 arm64 1.18.4-1+b1 [483 kB]
+#29 5.738 Get:64 http://deb.debian.org/debian trixie/main arm64 libdeflate0 arm64 1.23-2 [42.4 kB]
+#29 5.752 Get:65 http://deb.debian.org/debian trixie/main arm64 libgpgme11t64 arm64 1.24.2-3 [329 kB]
+#29 5.776 Get:66 http://deb.debian.org/debian trixie/main arm64 libgpgmepp6t64 arm64 1.24.2-3 [328 kB]
+#29 5.801 Get:67 http://deb.debian.org/debian trixie/main arm64 libjbig0 arm64 2.1-6.1+b2 [30.4 kB]
+#29 5.802 Get:68 http://deb.debian.org/debian trixie/main arm64 libjpeg62-turbo arm64 1:2.1.5-4 [173 kB]
+#29 5.820 Get:69 http://deb.debian.org/debian trixie/main arm64 liblcms2-2 arm64 2.16-2+deb13u2 [152 kB]
+#29 5.828 Get:70 http://deb.debian.org/debian trixie/main arm64 liblerc4 arm64 4.0.0+ds-5 [146 kB]
+#29 5.838 Get:71 http://deb.debian.org/debian trixie/main arm64 libnspr4 arm64 2:4.36-1 [102 kB]
+#29 5.842 Get:72 http://deb.debian.org/debian trixie/main arm64 libnss3 arm64 2:3.110-1+deb13u4 [1293 kB]
+#29 5.965 Get:73 http://deb.debian.org/debian trixie/main arm64 libopenjp2-7 arm64 2.5.3-2.1~deb13u2 [189 kB]
+#29 5.976 Get:74 http://deb.debian.org/debian trixie/main arm64 libsharpyuv0 arm64 1.5.0-0.1 [114 kB]
+#29 6.000 Get:75 http://deb.debian.org/debian trixie/main arm64 libwebp7 arm64 1.5.0-0.1 [271 kB]
+#29 6.023 Get:76 http://deb.debian.org/debian trixie/main arm64 libtiff6 arm64 4.7.0-3+deb13u3 [325 kB]
+#29 6.063 Get:77 http://deb.debian.org/debian trixie/main arm64 libpoppler147 arm64 25.03.0-5+deb13u4 [1914 kB]
+#29 6.284 Get:78 http://deb.debian.org/debian trixie/main arm64 poppler-utils arm64 25.03.0-5+deb13u4 [193 kB]
+#29 6.456 debconf: unable to initialize frontend: Dialog
+#29 6.456 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#29 6.456 debconf: falling back to frontend: Readline
+#29 6.456 debconf: unable to initialize frontend: Readline
+#29 6.456 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 78.)
+#29 6.456 debconf: falling back to frontend: Teletype
+#29 6.459 debconf: unable to initialize frontend: Teletype
+#29 6.459 debconf: (This frontend requires a controlling tty.)
+#29 6.459 debconf: falling back to frontend: Noninteractive
+#29 ...
+
+#30 [frontend stage-1 3/3] COPY --from=build /app/dist /usr/share/nginx/html
+#30 DONE 0.0s
+
+#31 [frontend] exporting to image
+#31 exporting layers
+#31 exporting layers 0.2s done
+#31 exporting manifest sha256:0d0f127d5490f91266f471ee66d5e709af356ea04844e6383a9e2efd9218fae6 done
+#31 exporting config sha256:47afb56d7057bba6beb058718f3e98f304394adbd7354f66a44609b29831f127 0.0s done
+#31 exporting attestation manifest sha256:c402855b2b810ef0a05fb0fbe602192ab3642c4e14bbd96e7271589bd7c40d92 0.0s done
+#31 exporting manifest list sha256:ce40f7653d9f4edb5f74b1203a34570a5dbc1d64009a91361963635ab5e0cc89 done
+#31 naming to docker.io/sentraai-law-qa/frontend:local done
+#31 unpacking to docker.io/sentraai-law-qa/frontend:local 0.0s done
+#31 DONE 0.3s
+
+#28 [target-agent 5/6] RUN pip install --no-cache-dir -r requirements.txt
+#28 6.725 Installing collected packages: zstandard, xxhash, websockets, uuid-utils, urllib3, typing-extensions, truststore, tenacity, sniffio, regex, pyyaml, packaging, orjson, jsonpointer, jiter, idna, h11, distro, click, charset_normalizer, certifi, annotated-types, annotated-doc, uvicorn, typing-inspection, requests, pydantic-core, opentelemetry-api, langchain-protocol, jsonpatch, httpcore2, httpcore, anyio, tiktoken, starlette, requests-toolbelt, pydantic, httpx2, httpx, openai, langsmith, fastapi, langchain-core, langchain-openai
+#28 ...
+
+#32 [frontend] resolving provenance for metadata file
+#32 DONE 0.0s
+
+#29 [api stage-0  2/12] RUN apt-get update && apt-get install -y --no-install-recommends git curl poppler-utils     && rm -rf /var/lib/apt/lists/*     && git config --global user.email "auditor-bot@demo.io"     && git config --global user.name "AI Security Auditor"     && git config --global --add safe.directory '*'
+#29 7.436 Preconfiguring packages ...
+#29 7.469 Fetched 38.1 MB in 4s (10.0 MB/s)
+#29 7.481 Selecting previously unselected package libexpat1:arm64.
+#29 7.481 (Reading database ...
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 5655 files and directories currently installed.)
+#29 7.495 Preparing to unpack .../00-libexpat1_2.9.0-1~deb13u1_arm64.deb ...
+#29 7.496 Unpacking libexpat1:arm64 (2.9.0-1~deb13u1) ...
+#29 7.513 Selecting previously unselected package perl-modules-5.40.
+#29 7.513 Preparing to unpack .../01-perl-modules-5.40_5.40.1-6+deb13u1_all.deb ...
+#29 7.515 Unpacking perl-modules-5.40 (5.40.1-6+deb13u1) ...
+#29 7.684 Selecting previously unselected package libgdbm-compat4t64:arm64.
+#29 7.685 Preparing to unpack .../02-libgdbm-compat4t64_1.24-2_arm64.deb ...
+#29 7.687 Unpacking libgdbm-compat4t64:arm64 (1.24-2) ...
+#29 7.702 Selecting previously unselected package libperl5.40:arm64.
+#29 7.703 Preparing to unpack .../03-libperl5.40_5.40.1-6+deb13u1_arm64.deb ...
+#29 7.704 Unpacking libperl5.40:arm64 (5.40.1-6+deb13u1) ...
+#29 7.905 Selecting previously unselected package perl.
+#29 7.906 Preparing to unpack .../04-perl_5.40.1-6+deb13u1_arm64.deb ...
+#29 7.907 Unpacking perl (5.40.1-6+deb13u1) ...
+#29 7.928 Selecting previously unselected package libbrotli1:arm64.
+#29 7.929 Preparing to unpack .../05-libbrotli1_1.1.0-2+b7_arm64.deb ...
+#29 7.930 Unpacking libbrotli1:arm64 (1.1.0-2+b7) ...
+#29 7.956 Selecting previously unselected package libkrb5support0:arm64.
+#29 7.957 Preparing to unpack .../06-libkrb5support0_1.21.3-5+deb13u1_arm64.deb ...
+#29 7.959 Unpacking libkrb5support0:arm64 (1.21.3-5+deb13u1) ...
+#29 7.974 Selecting previously unselected package libcom-err2:arm64.
+#29 7.975 Preparing to unpack .../07-libcom-err2_1.47.2-3+b12_arm64.deb ...
+#29 7.977 Unpacking libcom-err2:arm64 (1.47.2-3+b12) ...
+#29 8.001 Selecting previously unselected package libk5crypto3:arm64.
+#29 8.002 Preparing to unpack .../08-libk5crypto3_1.21.3-5+deb13u1_arm64.deb ...
+#29 8.003 Unpacking libk5crypto3:arm64 (1.21.3-5+deb13u1) ...
+#29 8.018 Selecting previously unselected package libkeyutils1:arm64.
+#29 8.019 Preparing to unpack .../09-libkeyutils1_1.6.3-6_arm64.deb ...
+#29 8.020 Unpacking libkeyutils1:arm64 (1.6.3-6) ...
+#29 8.033 Selecting previously unselected package libkrb5-3:arm64.
+#29 8.034 Preparing to unpack .../10-libkrb5-3_1.21.3-5+deb13u1_arm64.deb ...
+#29 8.037 Unpacking libkrb5-3:arm64 (1.21.3-5+deb13u1) ...
+#29 8.061 Selecting previously unselected package libgssapi-krb5-2:arm64.
+#29 8.061 Preparing to unpack .../11-libgssapi-krb5-2_1.21.3-5+deb13u1_arm64.deb ...
+#29 8.062 Unpacking libgssapi-krb5-2:arm64 (1.21.3-5+deb13u1) ...
+#29 8.081 Selecting previously unselected package libunistring5:arm64.
+#29 8.082 Preparing to unpack .../12-libunistring5_1.3-2_arm64.deb ...
+#29 8.084 Unpacking libunistring5:arm64 (1.3-2) ...
+#29 8.116 Selecting previously unselected package libidn2-0:arm64.
+#29 8.117 Preparing to unpack .../13-libidn2-0_2.3.8-2_arm64.deb ...
+#29 8.118 Unpacking libidn2-0:arm64 (2.3.8-2) ...
+#29 8.131 Selecting previously unselected package libsasl2-modules-db:arm64.
+#29 8.132 Preparing to unpack .../14-libsasl2-modules-db_2.1.28+dfsg1-9_arm64.deb ...
+#29 8.133 Unpacking libsasl2-modules-db:arm64 (2.1.28+dfsg1-9) ...
+#29 8.144 Selecting previously unselected package libsasl2-2:arm64.
+#29 8.146 Preparing to unpack .../15-libsasl2-2_2.1.28+dfsg1-9_arm64.deb ...
+#29 8.147 Unpacking libsasl2-2:arm64 (2.1.28+dfsg1-9) ...
+#29 8.162 Selecting previously unselected package libldap2:arm64.
+#29 8.163 Preparing to unpack .../16-libldap2_2.6.10+dfsg-1_arm64.deb ...
+#29 8.165 Unpacking libldap2:arm64 (2.6.10+dfsg-1) ...
+#29 8.182 Selecting previously unselected package libnghttp2-14:arm64.
+#29 8.182 Preparing to unpack .../17-libnghttp2-14_1.64.0-1.1+deb13u1_arm64.deb ...
+#29 8.184 Unpacking libnghttp2-14:arm64 (1.64.0-1.1+deb13u1) ...
+#29 8.196 Selecting previously unselected package libnghttp3-9:arm64.
+#29 8.196 Preparing to unpack .../18-libnghttp3-9_1.8.0-1_arm64.deb ...
+#29 8.198 Unpacking libnghttp3-9:arm64 (1.8.0-1) ...
+#29 8.209 Selecting previously unselected package libpsl5t64:arm64.
+#29 8.210 Preparing to unpack .../19-libpsl5t64_0.21.2-1.1+b1_arm64.deb ...
+#29 8.211 Unpacking libpsl5t64:arm64 (0.21.2-1.1+b1) ...
+#29 8.222 Selecting previously unselected package libp11-kit0:arm64.
+#29 8.223 Preparing to unpack .../20-libp11-kit0_0.25.5-3_arm64.deb ...
+#29 8.224 Unpacking libp11-kit0:arm64 (0.25.5-3) ...
+#29 8.249 Selecting previously unselected package libtasn1-6:arm64.
+#29 8.249 Preparing to unpack .../21-libtasn1-6_4.20.0-2+deb13u1_arm64.deb ...
+#29 8.250 Unpacking libtasn1-6:arm64 (4.20.0-2+deb13u1) ...
+#29 8.262 Selecting previously unselected package libgnutls30t64:arm64.
+#29 8.262 Preparing to unpack .../22-libgnutls30t64_3.8.9-3+deb13u4_arm64.deb ...
+#29 8.264 Unpacking libgnutls30t64:arm64 (3.8.9-3+deb13u4) ...
+#29 8.310 Selecting previously unselected package librtmp1:arm64.
+#29 8.310 Preparing to unpack .../23-librtmp1_2.4+20151223.gitfa8646d.1-2+b5_arm64.deb ...
+#29 8.312 Unpacking librtmp1:arm64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+#29 8.324 Selecting previously unselected package libssh2-1t64:arm64.
+#29 8.325 Preparing to unpack .../24-libssh2-1t64_1.11.1-1+deb13u2_arm64.deb ...
+#29 8.326 Unpacking libssh2-1t64:arm64 (1.11.1-1+deb13u2) ...
+#29 8.346 Selecting previously unselected package libcurl4t64:arm64.
+#29 8.347 Preparing to unpack .../25-libcurl4t64_8.14.1-2+deb13u7_arm64.deb ...
+#29 8.349 Unpacking libcurl4t64:arm64 (8.14.1-2+deb13u7) ...
+#29 8.374 Selecting previously unselected package curl.
+#29 8.375 Preparing to unpack .../26-curl_8.14.1-2+deb13u7_arm64.deb ...
+#29 8.377 Unpacking curl (8.14.1-2+deb13u7) ...
+#29 8.403 Selecting previously unselected package libgpg-error0:arm64.
+#29 8.404 Preparing to unpack .../27-libgpg-error0_1.51-4_arm64.deb ...
+#29 8.406 Unpacking libgpg-error0:arm64 (1.51-4) ...
+#29 8.426 Selecting previously unselected package libassuan9:arm64.
+#29 8.428 Preparing to unpack .../28-libassuan9_3.0.2-2_arm64.deb ...
+#29 8.431 Unpacking libassuan9:arm64 (3.0.2-2) ...
+#29 8.451 Selecting previously unselected package libgcrypt20:arm64.
+#29 8.452 Preparing to unpack .../29-libgcrypt20_1.11.0-7+deb13u1_arm64.deb ...
+#29 8.455 Unpacking libgcrypt20:arm64 (1.11.0-7+deb13u1) ...
+#29 8.488 Selecting previously unselected package gpgconf.
+#29 8.488 Preparing to unpack .../30-gpgconf_2.4.7-21+deb13u1+b5_arm64.deb ...
+#29 8.490 Unpacking gpgconf (2.4.7-21+deb13u1+b5) ...
+#29 8.511 Selecting previously unselected package libksba8:arm64.
+#29 8.511 Preparing to unpack .../31-libksba8_1.6.7-2+b1_arm64.deb ...
+#29 8.513 Unpacking libksba8:arm64 (1.6.7-2+b1) ...
+#29 8.532 Selecting previously unselected package libnpth0t64:arm64.
+#29 8.533 Preparing to unpack .../32-libnpth0t64_1.8-3_arm64.deb ...
+#29 8.535 Unpacking libnpth0t64:arm64 (1.8-3) ...
+#29 8.552 Selecting previously unselected package dirmngr.
+#29 8.553 Preparing to unpack .../33-dirmngr_2.4.7-21+deb13u1+b5_arm64.deb ...
+#29 8.561 Unpacking dirmngr (2.4.7-21+deb13u1+b5) ...
+#29 8.588 Selecting previously unselected package fonts-dejavu-mono.
+#29 8.589 Preparing to unpack .../34-fonts-dejavu-mono_2.37-8_all.deb ...
+#29 8.590 Unpacking fonts-dejavu-mono (2.37-8) ...
+#29 8.622 Selecting previously unselected package fonts-dejavu-core.
+#29 8.623 Preparing to unpack .../35-fonts-dejavu-core_2.37-8_all.deb ...
+#29 8.631 Unpacking fonts-dejavu-core (2.37-8) ...
+#29 8.678 Selecting previously unselected package fontconfig-config.
+#29 8.679 Preparing to unpack .../36-fontconfig-config_2.15.0-2.3_arm64.deb ...
+#29 8.681 Unpacking fontconfig-config (2.15.0-2.3) ...
+#29 8.700 Selecting previously unselected package libngtcp2-16:arm64.
+#29 8.701 Preparing to unpack .../37-libngtcp2-16_1.11.0-1+deb13u1_arm64.deb ...
+#29 8.703 Unpacking libngtcp2-16:arm64 (1.11.0-1+deb13u1) ...
+#29 8.718 Selecting previously unselected package libngtcp2-crypto-gnutls8:arm64.
+#29 8.719 Preparing to unpack .../38-libngtcp2-crypto-gnutls8_1.11.0-1+deb13u1_arm64.deb ...
+#29 8.721 Unpacking libngtcp2-crypto-gnutls8:arm64 (1.11.0-1+deb13u1) ...
+#29 8.734 Selecting previously unselected package libcurl3t64-gnutls:arm64.
+#29 8.734 Preparing to unpack .../39-libcurl3t64-gnutls_8.14.1-2+deb13u7_arm64.deb ...
+#29 8.736 Unpacking libcurl3t64-gnutls:arm64 (8.14.1-2+deb13u7) ...
+#29 8.759 Selecting previously unselected package liberror-perl.
+#29 8.760 Preparing to unpack .../40-liberror-perl_0.17030-1_all.deb ...
+#29 8.762 Unpacking liberror-perl (0.17030-1) ...
+#29 8.774 Selecting previously unselected package git-man.
+#29 8.774 Preparing to unpack .../41-git-man_1%3a2.47.3-0+deb13u1_all.deb ...
+#29 8.775 Unpacking git-man (1:2.47.3-0+deb13u1) ...
+#29 8.833 Selecting previously unselected package git.
+#29 8.834 Preparing to unpack .../42-git_1%3a2.47.3-0+deb13u1_arm64.deb ...
+#29 8.837 Unpacking git (1:2.47.3-0+deb13u1) ...
+#29 9.065 Selecting previously unselected package gnupg-l10n.
+#29 9.066 Preparing to unpack .../43-gnupg-l10n_2.4.7-21+deb13u1_all.deb ...
+#29 9.068 Unpacking gnupg-l10n (2.4.7-21+deb13u1) ...
+#29 9.113 Selecting previously unselected package gpg.
+#29 9.114 Preparing to unpack .../44-gpg_2.4.7-21+deb13u1+b5_arm64.deb ...
+#29 9.115 Unpacking gpg (2.4.7-21+deb13u1+b5) ...
+#29 9.146 Selecting previously unselected package pinentry-curses.
+#29 9.147 Preparing to unpack .../45-pinentry-curses_1.3.1-2_arm64.deb ...
+#29 9.149 Unpacking pinentry-curses (1.3.1-2) ...
+#29 9.163 Selecting previously unselected package gpg-agent.
+#29 9.164 Preparing to unpack .../46-gpg-agent_2.4.7-21+deb13u1+b5_arm64.deb ...
+#29 9.165 Unpacking gpg-agent (2.4.7-21+deb13u1+b5) ...
+#29 9.183 Selecting previously unselected package gpgsm.
+#29 9.184 Preparing to unpack .../47-gpgsm_2.4.7-21+deb13u1+b5_arm64.deb ...
+#29 9.185 Unpacking gpgsm (2.4.7-21+deb13u1+b5) ...
+#29 9.202 Selecting previously unselected package gnupg.
+#29 9.202 Preparing to unpack .../48-gnupg_2.4.7-21+deb13u1_all.deb ...
+#29 9.204 Unpacking gnupg (2.4.7-21+deb13u1) ...
+#29 9.226 Selecting previously unselected package libpng16-16t64:arm64.
+#29 9.227 Preparing to unpack .../49-libpng16-16t64_1.6.48-1+deb13u6_arm64.deb ...
+#29 9.230 Unpacking libpng16-16t64:arm64 (1.6.48-1+deb13u6) ...
+#29 9.249 Selecting previously unselected package libfreetype6:arm64.
+#29 9.250 Preparing to unpack .../50-libfreetype6_2.13.3+dfsg-1+deb13u1_arm64.deb ...
+#29 9.251 Unpacking libfreetype6:arm64 (2.13.3+dfsg-1+deb13u1) ...
+#29 9.277 Selecting previously unselected package libfontconfig1:arm64.
+#29 9.278 Preparing to unpack .../51-libfontconfig1_2.15.0-2.3_arm64.deb ...
+#29 9.279 Unpacking libfontconfig1:arm64 (2.15.0-2.3) ...
+#29 9.297 Selecting previously unselected package libpixman-1-0:arm64.
+#29 9.298 Preparing to unpack .../52-libpixman-1-0_0.44.0-3_arm64.deb ...
+#29 9.299 Unpacking libpixman-1-0:arm64 (0.44.0-3) ...
+#29 9.317 Selecting previously unselected package libxau6:arm64.
+#29 9.318 Preparing to unpack .../53-libxau6_1%3a1.0.11-1_arm64.deb ...
+#29 9.319 Unpacking libxau6:arm64 (1:1.0.11-1) ...
+#29 9.330 Selecting previously unselected package libxdmcp6:arm64.
+#29 9.330 Preparing to unpack .../54-libxdmcp6_1%3a1.1.5-1_arm64.deb ...
+#29 9.331 Unpacking libxdmcp6:arm64 (1:1.1.5-1) ...
+#29 9.355 Selecting previously unselected package libxcb1:arm64.
+#29 9.356 Preparing to unpack .../55-libxcb1_1.17.0-2+b1_arm64.deb ...
+#29 9.358 Unpacking libxcb1:arm64 (1.17.0-2+b1) ...
+#29 9.370 Selecting previously unselected package libx11-data.
+#29 9.371 Preparing to unpack .../56-libx11-data_2%3a1.8.12-1_all.deb ...
+#29 9.372 Unpacking libx11-data (2:1.8.12-1) ...
+#29 9.395 Selecting previously unselected package libx11-6:arm64.
+#29 9.396 Preparing to unpack .../57-libx11-6_2%3a1.8.12-1_arm64.deb ...
+#29 9.397 Unpacking libx11-6:arm64 (2:1.8.12-1) ...
+#29 9.430 Selecting previously unselected package libxcb-render0:arm64.
+#29 9.431 Preparing to unpack .../58-libxcb-render0_1.17.0-2+b1_arm64.deb ...
+#29 9.432 Unpacking libxcb-render0:arm64 (1.17.0-2+b1) ...
+#29 9.450 Selecting previously unselected package libxcb-shm0:arm64.
+#29 9.451 Preparing to unpack .../59-libxcb-shm0_1.17.0-2+b1_arm64.deb ...
+#29 9.453 Unpacking libxcb-shm0:arm64 (1.17.0-2+b1) ...
+#29 ...
+
+#28 [target-agent 5/6] RUN pip install --no-cache-dir -r requirements.txt
+#28 9.270 Successfully installed annotated-doc-0.0.5 annotated-types-0.8.0 anyio-4.15.1 certifi-2026.10.19 charset_normalizer-3.5.2 click-8.5.0 distro-1.9.0 fastapi-0.146.0 h11-0.16.0 httpcore-1.0.9 httpcore2-2.16.0 httpx-0.28.1 httpx2-2.16.0 idna-3.20 jiter-0.17.0 jsonpatch-1.36 jsonpointer-3.4 langchain-core-1.6.12 langchain-openai-1.7.2 langchain-protocol-0.0.20 langsmith-0.14.12 openai-3.37.0 opentelemetry-api-1.45.1 orjson-3.13.0 packaging-26.3 pydantic-2.14.1 pydantic-core-2.50.1 pyyaml-6.0.3 regex-2026.9.29 requests-2.34.2 requests-toolbelt-1.0.0 sniffio-1.3.1 starlette-1.9.0 tenacity-9.2.1 tiktoken-0.14.0 truststore-0.10.5 typing-extensions-4.16.0 typing-inspection-0.4.4 urllib3-2.8.0 uuid-utils-0.18.0 uvicorn-0.54.0 websockets-17.3 xxhash-4.0.2 zstandard-0.25.0
+#28 9.270 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#28 9.337
+#28 9.337 [notice] A new release of pip is available: 25.0.1 -> 26.2.2
+#28 9.337 [notice] To update, run: pip install --upgrade pip
+#28 DONE 9.6s
+
+#33 [target-agent 6/6] COPY targets/target-agent/ ./
+#33 DONE 0.0s
+
+#29 [api stage-0  2/12] RUN apt-get update && apt-get install -y --no-install-recommends git curl poppler-utils     && rm -rf /var/lib/apt/lists/*     && git config --global user.email "auditor-bot@demo.io"     && git config --global user.name "AI Security Auditor"     && git config --global --add safe.directory '*'
+#29 9.634 Selecting previously unselected package libxext6:arm64.
+#29 9.636 Preparing to unpack .../60-libxext6_2%3a1.3.4-1+b3_arm64.deb ...
+#29 9.637 Unpacking libxext6:arm64 (2:1.3.4-1+b3) ...
+#29 9.652 Selecting previously unselected package libxrender1:arm64.
+#29 9.653 Preparing to unpack .../61-libxrender1_1%3a0.9.12-1_arm64.deb ...
+#29 9.654 Unpacking libxrender1:arm64 (1:0.9.12-1) ...
+#29 9.672 Selecting previously unselected package libcairo2:arm64.
+#29 9.672 Preparing to unpack .../62-libcairo2_1.18.4-1+b1_arm64.deb ...
+#29 9.674 Unpacking libcairo2:arm64 (1.18.4-1+b1) ...
+#29 9.716 Selecting previously unselected package libdeflate0:arm64.
+#29 9.717 Preparing to unpack .../63-libdeflate0_1.23-2_arm64.deb ...
+#29 9.719 Unpacking libdeflate0:arm64 (1.23-2) ...
+#29 9.735 Selecting previously unselected package libgpgme11t64:arm64.
+#29 9.736 Preparing to unpack .../64-libgpgme11t64_1.24.2-3_arm64.deb ...
+#29 9.738 Unpacking libgpgme11t64:arm64 (1.24.2-3) ...
+#29 9.756 Selecting previously unselected package libgpgmepp6t64:arm64.
+#29 9.757 Preparing to unpack .../65-libgpgmepp6t64_1.24.2-3_arm64.deb ...
+#29 9.758 Unpacking libgpgmepp6t64:arm64 (1.24.2-3) ...
+#29 9.774 Selecting previously unselected package libjbig0:arm64.
+#29 9.774 Preparing to unpack .../66-libjbig0_2.1-6.1+b2_arm64.deb ...
+#29 9.776 Unpacking libjbig0:arm64 (2.1-6.1+b2) ...
+#29 9.788 Selecting previously unselected package libjpeg62-turbo:arm64.
+#29 9.789 Preparing to unpack .../67-libjpeg62-turbo_1%3a2.1.5-4_arm64.deb ...
+#29 9.790 Unpacking libjpeg62-turbo:arm64 (1:2.1.5-4) ...
+#29 9.809 Selecting previously unselected package liblcms2-2:arm64.
+#29 9.810 Preparing to unpack .../68-liblcms2-2_2.16-2+deb13u2_arm64.deb ...
+#29 9.811 Unpacking liblcms2-2:arm64 (2.16-2+deb13u2) ...
+#29 9.828 Selecting previously unselected package liblerc4:arm64.
+#29 9.828 Preparing to unpack .../69-liblerc4_4.0.0+ds-5_arm64.deb ...
+#29 9.829 Unpacking liblerc4:arm64 (4.0.0+ds-5) ...
+#29 9.844 Selecting previously unselected package libnspr4:arm64.
+#29 9.845 Preparing to unpack .../70-libnspr4_2%3a4.36-1_arm64.deb ...
+#29 9.846 Unpacking libnspr4:arm64 (2:4.36-1) ...
+#29 9.859 Selecting previously unselected package libnss3:arm64.
+#29 9.860 Preparing to unpack .../71-libnss3_2%3a3.110-1+deb13u4_arm64.deb ...
+#29 9.861 Unpacking libnss3:arm64 (2:3.110-1+deb13u4) ...
+#29 9.919 Selecting previously unselected package libopenjp2-7:arm64.
+#29 9.920 Preparing to unpack .../72-libopenjp2-7_2.5.3-2.1~deb13u2_arm64.deb ...
+#29 9.921 Unpacking libopenjp2-7:arm64 (2.5.3-2.1~deb13u2) ...
+#29 9.938 Selecting previously unselected package libsharpyuv0:arm64.
+#29 9.939 Preparing to unpack .../73-libsharpyuv0_1.5.0-0.1_arm64.deb ...
+#29 9.940 Unpacking libsharpyuv0:arm64 (1.5.0-0.1) ...
+#29 9.954 Selecting previously unselected package libwebp7:arm64.
+#29 9.955 Preparing to unpack .../74-libwebp7_1.5.0-0.1_arm64.deb ...
+#29 9.958 Unpacking libwebp7:arm64 (1.5.0-0.1) ...
+#29 9.977 Selecting previously unselected package libtiff6:arm64.
+#29 9.978 Preparing to unpack .../75-libtiff6_4.7.0-3+deb13u3_arm64.deb ...
+#29 9.978 Unpacking libtiff6:arm64 (4.7.0-3+deb13u3) ...
+#29 9.995 Selecting previously unselected package libpoppler147:arm64.
+#29 9.996 Preparing to unpack .../76-libpoppler147_25.03.0-5+deb13u4_arm64.deb ...
+#29 9.997 Unpacking libpoppler147:arm64 (25.03.0-5+deb13u4) ...
+#29 10.05 Selecting previously unselected package poppler-utils.
+#29 10.05 Preparing to unpack .../77-poppler-utils_25.03.0-5+deb13u4_arm64.deb ...
+#29 10.05 Unpacking poppler-utils (25.03.0-5+deb13u4) ...
+#29 10.07 Setting up libexpat1:arm64 (2.9.0-1~deb13u1) ...
+#29 10.07 Setting up liblcms2-2:arm64 (2.16-2+deb13u2) ...
+#29 10.07 Setting up libpixman-1-0:arm64 (0.44.0-3) ...
+#29 10.08 Setting up libsharpyuv0:arm64 (1.5.0-0.1) ...
+#29 10.08 Setting up libxau6:arm64 (1:1.0.11-1) ...
+#29 10.08 Setting up libxdmcp6:arm64 (1:1.1.5-1) ...
+#29 10.09 Setting up libnpth0t64:arm64 (1.8-3) ...
+#29 10.09 Setting up libkeyutils1:arm64 (1.6.3-6) ...
+#29 10.09 Setting up libxcb1:arm64 (1.17.0-2+b1) ...
+#29 10.10 Setting up liblerc4:arm64 (4.0.0+ds-5) ...
+#29 10.10 Setting up libgpg-error0:arm64 (1.51-4) ...
+#29 10.10 Setting up libgdbm-compat4t64:arm64 (1.24-2) ...
+#29 10.11 Setting up libxcb-render0:arm64 (1.17.0-2+b1) ...
+#29 10.11 Setting up libbrotli1:arm64 (1.1.0-2+b7) ...
+#29 10.12 Setting up libnghttp2-14:arm64 (1.64.0-1.1+deb13u1) ...
+#29 10.12 Setting up libdeflate0:arm64 (1.23-2) ...
+#29 10.12 Setting up libgcrypt20:arm64 (1.11.0-7+deb13u1) ...
+#29 10.13 Setting up libxcb-shm0:arm64 (1.17.0-2+b1) ...
+#29 10.13 Setting up libcom-err2:arm64 (1.47.2-3+b12) ...
+#29 10.14 Setting up libjbig0:arm64 (2.1-6.1+b2) ...
+#29 10.14 Setting up libkrb5support0:arm64 (1.21.3-5+deb13u1) ...
+#29 10.14 Setting up libsasl2-modules-db:arm64 (2.1.28+dfsg1-9) ...
+#29 10.15 Setting up libjpeg62-turbo:arm64 (1:2.1.5-4) ...
+#29 10.15 Setting up libx11-data (2:1.8.12-1) ...
+#29 10.15 Setting up libnspr4:arm64 (2:4.36-1) ...
+#29 10.16 Setting up gnupg-l10n (2.4.7-21+deb13u1) ...
+#29 10.16 Setting up libp11-kit0:arm64 (0.25.5-3) ...
+#29 10.16 Setting up libunistring5:arm64 (1.3-2) ...
+#29 10.16 Setting up fonts-dejavu-mono (2.37-8) ...
+#29 10.17 Setting up libpng16-16t64:arm64 (1.6.48-1+deb13u6) ...
+#29 10.17 Setting up fonts-dejavu-core (2.37-8) ...
+#29 10.19 Setting up libk5crypto3:arm64 (1.21.3-5+deb13u1) ...
+#29 10.19 Setting up libsasl2-2:arm64 (2.1.28+dfsg1-9) ...
+#29 10.19 Setting up libnghttp3-9:arm64 (1.8.0-1) ...
+#29 10.20 Setting up libwebp7:arm64 (1.5.0-0.1) ...
+#29 10.20 Setting up perl-modules-5.40 (5.40.1-6+deb13u1) ...
+#29 10.20 Setting up libtiff6:arm64 (4.7.0-3+deb13u3) ...
+#29 10.21 Setting up libassuan9:arm64 (3.0.2-2) ...
+#29 10.21 Setting up gpgconf (2.4.7-21+deb13u1+b5) ...
+#29 10.21 Setting up libtasn1-6:arm64 (4.20.0-2+deb13u1) ...
+#29 10.21 Setting up libopenjp2-7:arm64 (2.5.3-2.1~deb13u2) ...
+#29 10.22 Setting up git-man (1:2.47.3-0+deb13u1) ...
+#29 10.22 Setting up libx11-6:arm64 (2:1.8.12-1) ...
+#29 10.22 Setting up libngtcp2-16:arm64 (1.11.0-1+deb13u1) ...
+#29 10.23 Setting up libkrb5-3:arm64 (1.21.3-5+deb13u1) ...
+#29 10.23 Setting up libssh2-1t64:arm64 (1.11.1-1+deb13u2) ...
+#29 10.23 Setting up libldap2:arm64 (2.6.10+dfsg-1) ...
+#29 10.24 Setting up libksba8:arm64 (1.6.7-2+b1) ...
+#29 10.24 Setting up pinentry-curses (1.3.1-2) ...
+#29 10.24 Setting up gpg-agent (2.4.7-21+deb13u1+b5) ...
+#29 10.40 Setting up libxrender1:arm64 (1:0.9.12-1) ...
+#29 10.41 Setting up fontconfig-config (2.15.0-2.3) ...
+#29 10.43 debconf: unable to initialize frontend: Dialog
+#29 10.43 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#29 10.43 debconf: falling back to frontend: Readline
+#29 10.43 debconf: unable to initialize frontend: Readline
+#29 10.43 debconf: (This frontend requires a controlling tty.)
+#29 10.43 debconf: falling back to frontend: Teletype
+#29 10.43 debconf: unable to initialize frontend: Teletype
+#29 10.43 debconf: (This frontend requires a controlling tty.)
+#29 10.43 debconf: falling back to frontend: Noninteractive
+#29 10.45 Setting up gpgsm (2.4.7-21+deb13u1+b5) ...
+#29 10.45 Setting up libxext6:arm64 (2:1.3.4-1+b3) ...
+#29 10.46 Setting up libidn2-0:arm64 (2.3.8-2) ...
+#29 10.46 Setting up libnss3:arm64 (2:3.110-1+deb13u4) ...
+#29 10.46 Setting up libperl5.40:arm64 (5.40.1-6+deb13u1) ...
+#29 10.46 Setting up perl (5.40.1-6+deb13u1) ...
+#29 10.47 Setting up libfreetype6:arm64 (2.13.3+dfsg-1+deb13u1) ...
+#29 10.47 Setting up libgssapi-krb5-2:arm64 (1.21.3-5+deb13u1) ...
+#29 10.48 Setting up libfontconfig1:arm64 (2.15.0-2.3) ...
+#29 10.48 Setting up gpg (2.4.7-21+deb13u1+b5) ...
+#29 10.52 Setting up libgnutls30t64:arm64 (3.8.9-3+deb13u4) ...
+#29 10.52 Setting up libpsl5t64:arm64 (0.21.2-1.1+b1) ...
+#29 10.52 Setting up libcairo2:arm64 (1.18.4-1+b1) ...
+#29 10.53 Setting up liberror-perl (0.17030-1) ...
+#29 10.53 Setting up dirmngr (2.4.7-21+deb13u1+b5) ...
+#29 10.58 Setting up librtmp1:arm64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+#29 10.58 Setting up gnupg (2.4.7-21+deb13u1) ...
+#29 10.58 Setting up libgpgme11t64:arm64 (1.24.2-3) ...
+#29 10.58 Setting up libngtcp2-crypto-gnutls8:arm64 (1.11.0-1+deb13u1) ...
+#29 10.59 Setting up libgpgmepp6t64:arm64 (1.24.2-3) ...
+#29 10.59 Setting up libcurl4t64:arm64 (8.14.1-2+deb13u7) ...
+#29 10.59 Setting up libcurl3t64-gnutls:arm64 (8.14.1-2+deb13u7) ...
+#29 10.60 Setting up git (1:2.47.3-0+deb13u1) ...
+#29 10.60 Setting up curl (8.14.1-2+deb13u7) ...
+#29 10.60 Setting up libpoppler147:arm64 (25.03.0-5+deb13u4) ...
+#29 10.61 Setting up poppler-utils (25.03.0-5+deb13u4) ...
+#29 10.61 Processing triggers for libc-bin (2.41-12+deb13u4) ...
+#29 DONE 10.7s
+
+#34 [target-agent] exporting to image
+#34 ...
+
+#35 [api stage-0  3/12] COPY --from=ghcr.io/astral-sh/uv:0.12.21 /uv /usr/local/bin/uv
+#35 DONE 0.1s
+
+#36 [api stage-0  4/12] WORKDIR /app/backend
+#36 DONE 0.0s
+
+#37 [api stage-0  5/12] COPY backend/pyproject.toml backend/uv.lock ./
+#37 DONE 0.0s
+
+#38 [api stage-0  6/12] RUN uv sync --frozen --no-dev
+#38 0.190 Using CPython 3.12.15 interpreter at: /usr/local/bin/python3
+#38 0.190 Creating virtual environment at: /opt/venv
+#38 0.444 Downloading cryptography (4.5MiB)
+#38 0.445 Downloading openai (2.2MiB)
+#38 0.446 Downloading asyncpg (3.5MiB)
+#38 0.448 Downloading uvloop (4.2MiB)
+#38 0.448 Downloading zstandard (4.8MiB)
+#38 0.450 Downloading tiktoken (1.1MiB)
+#38 0.451 Downloading pydantic-core (2.0MiB)
+#38 0.451 Downloading sqlalchemy (4.5MiB)
+#38 0.452 Downloading aiokafka (1.1MiB)
+#38 0.453 Downloading numpy (15.0MiB)
+#38 ...
+
+#34 [target-agent] exporting to image
+#34 exporting layers 1.6s done
+#34 exporting manifest sha256:f74f62349c892f07dd2741c2167a45a6346d0b736b65d18f04cd3f1c0184845e done
+#34 exporting config sha256:9402a051f1afc145b2a2e628334dde2163c37458e6b66b6a1e409ed4785fb897 done
+#34 exporting attestation manifest sha256:9429896329b8f5d921cc86c05159364c232ac8c2df341ccc391d56ed07c0a2a3 done
+#34 exporting manifest list sha256:2480d2f3611c872404d720b47dcbdd8e7ad007ada7c1922aa702340f5b0c371a done
+#34 naming to docker.io/sentraai-law-qa/target-agent:local done
+#34 unpacking to docker.io/sentraai-law-qa/target-agent:local 0.7s done
+#34 DONE 2.3s
+
+#39 [target-agent] resolving provenance for metadata file
+#39 DONE 0.0s
+
+#38 [api stage-0  6/12] RUN uv sync --frozen --no-dev
+#38 2.091  Downloaded aiokafka
+#38 2.162  Downloaded tiktoken
+#38 2.654  Downloaded pydantic-core
+#38 2.771  Downloaded openai
+#38 3.359  Downloaded asyncpg
+#38 3.528  Downloaded uvloop
+#38 3.668  Downloaded cryptography
+#38 3.693  Downloaded sqlalchemy
+#38 3.694  Downloaded zstandard
+#38 4.411  Downloaded numpy
+#38 4.411 Prepared 88 packages in 4.21s
+#38 4.681 Installed 88 packages in 269ms
+#38 5.667 Bytecode compiled 5250 files in 986ms
+#38 5.667  + aiokafka==0.14.0
+#38 5.667  + alembic==1.20.0
+#38 5.667  + annotated-doc==0.0.5
+#38 5.667  + annotated-types==0.8.0
+#38 5.667  + anyio==4.15.1
+#38 5.667  + async-timeout==5.0.1
+#38 5.667  + asyncpg==0.32.0
+#38 5.667  + attrs==26.1.0
+#38 5.667  + bcrypt==5.0.0
+#38 5.667  + certifi==2026.10.19
+#38 5.667  + cffi==2.1.1
+#38 5.667  + charset-normalizer==3.5.2
+#38 5.667  + click==8.5.0
+#38 5.667  + cryptography==50.0.2
+#38 5.667  + distro==1.9.0
+#38 5.667  + dnspython==2.9.0
+#38 5.667  + docker==7.2.0
+#38 5.667  + email-validator==2.3.0
+#38 5.667  + fastapi==0.146.0
+#38 5.667  + greenlet==3.5.6
+#38 5.667  + h11==0.16.0
+#38 5.667  + httpcore==1.0.9
+#38 5.667  + httpcore2==2.14.0
+#38 5.667  + httptools==0.9.0
+#38 5.667  + httpx==0.28.1
+#38 5.667  + httpx-sse==0.4.3
+#38 5.667  + httpx2==2.14.0
+#38 5.667  + idna==3.20
+#38 5.667  + jiter==0.17.0
+#38 5.667  + jsonpatch==1.35
+#38 5.667  + jsonpath-ng==1.11.0
+#38 5.667  + jsonpointer==3.3
+#38 5.667  + jsonschema==4.26.0
+#38 5.667  + jsonschema-specifications==2025.9.1
+#38 5.667  + langchain-core==1.6.12
+#38 5.667  + langchain-mcp-adapters==0.3.2
+#38 5.667  + langchain-openai==1.7.2
+#38 5.667  + langchain-protocol==0.0.19
+#38 5.667  + langgraph==1.2.16
+#38 5.667  + langgraph-checkpoint==4.3.0
+#38 5.667  + langgraph-checkpoint-redis==0.5.2
+#38 5.667  + langgraph-prebuilt==1.1.1
+#38 5.667  + langgraph-sdk==0.4.8
+#38 5.668  + langsmith==0.14.11
+#38 5.668  + mako==1.4.3
+#38 5.668  + markupsafe==3.0.4
+#38 5.668  + mcp==1.30.0
+#38 5.668  + ml-dtypes==0.6.0
+#38 5.668  + numpy==2.5.4
+#38 5.668  + openai==3.35.1
+#38 5.668  + opentelemetry-api==1.45.1
+#38 5.668  + orjson==3.13.0
+#38 5.668  + ormsgpack==1.13.0
+#38 5.668  + packaging==26.3
+#38 5.668  + pgvector==0.5.1
+#38 5.668  + pycparser==3.11
+#38 5.668  + pydantic==2.14.1
+#38 5.668  + pydantic-core==2.50.1
+#38 5.668  + pydantic-settings==2.16.0
+#38 5.668  + pyjwt==2.15.1
+#38 5.668  + python-dotenv==1.2.4
+#38 5.668  + python-multipart==0.0.32
+#38 5.668  + python-ulid==4.0.1
+#38 5.668  + pyyaml==6.0.3
+#38 5.668  + redis==8.1.0
+#38 5.668  + redisvl==0.28.0
+#38 5.668  + referencing==0.37.0
+#38 5.668  + regex==2026.9.29
+#38 5.668  + requests==2.34.2
+#38 5.668  + requests-toolbelt==1.0.0
+#38 5.668  + rpds-py==2026.9.1
+#38 5.668  + sniffio==1.3.1
+#38 5.668  + sqlalchemy==2.1.5
+#38 5.668  + sse-starlette==3.5.0
+#38 5.668  + starlette==1.9.0
+#38 5.668  + tenacity==9.2.1
+#38 5.668  + tiktoken==0.14.0
+#38 5.668  + truststore==0.10.5
+#38 5.668  + typing-extensions==4.16.0
+#38 5.668  + typing-inspection==0.4.4
+#38 5.668  + urllib3==2.8.0
+#38 5.668  + uuid-utils==0.17.1
+#38 5.668  + uvicorn==0.54.0
+#38 5.668  + uvloop==0.23.0
+#38 5.668  + watchfiles==1.3.0
+#38 5.668  + websockets==16.1.1
+#38 5.668  + xxhash==4.0.2
+#38 5.668  + zstandard==0.25.0
+#38 DONE 6.0s
+
+#40 [api stage-0  7/12] COPY backend/ ./
+#40 DONE 0.1s
+
+#41 [api stage-0  8/12] COPY config/ /app/config/
+#41 DONE 0.0s
+
+#42 [api stage-0  9/12] COPY rules/ /app/rules/
+#42 DONE 0.0s
+
+#43 [api stage-0 10/12] COPY datasets/ /app/datasets/
+#43 DONE 0.0s
+
+#44 [api stage-0 11/12] COPY knowledge/ /app/knowledge/
+#44 DONE 0.0s
+
+#45 [api stage-0 12/12] COPY targets/ /app/targets/
+#45 DONE 0.0s
+
+#46 [api] exporting to image
+#46 exporting layers
+#46 exporting layers 8.0s done
+#46 exporting manifest sha256:732bf9f61afb12ba35557c716d0111c531e5c0af8b85f2e5616a1b11c29f9605 done
+#46 exporting config sha256:d2da06a84cd68fc5af7830e5b3700ec8f20c5cbf79b1fca4fbae62323fd035cf done
+#46 exporting attestation manifest sha256:a02c0abd5a73463a38dd8dca670fcc5a3872a2b8ce3d6e500e36d3cd2ec245f2 done
+#46 exporting manifest list sha256:2d7fa62d575fafc0e197d34e2618b26e75597d4b1d4279310ec46f4887e6bcd8 done
+#46 naming to docker.io/sentraai-law-qa/backend:local done
+#46 unpacking to docker.io/sentraai-law-qa/backend:local
+#46 unpacking to docker.io/sentraai-law-qa/backend:local 2.9s done
+#46 DONE 10.9s
+
+#47 [api] resolving provenance for metadata file
+#47 DONE 0.0s
+ Image sentraai-law-qa/frontend:local Built
+ Image sentraai-law-qa/backend:local Built
+ Image sentraai-law-qa/target-agent:local Built

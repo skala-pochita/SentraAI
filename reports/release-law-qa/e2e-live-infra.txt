@@ -1,0 +1,13 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.1.1, pluggy-1.7.0 -- /Users/moon/Documents/Codex/2026-10-23/new-chat-6/work/SentraAI/backend/.venv/bin/python
+rootdir: /Users/moon/Documents/product/workspace/SentraAI-main-compliance/backend
+configfile: pyproject.toml
+plugins: langsmith-0.14.11, asyncio-1.4.0, anyio-4.15.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 3 items
+
+tests/e2e/test_demo_flow.py::test_full_flow_read_only_report PASSED      [ 33%]
+tests/e2e/test_demo_flow.py::test_sse_receives_events PASSED             [ 66%]
+tests/e2e/test_probe_smoke.py::test_smoke PASSED                         [100%]
+
+============================== 3 passed in 32.88s ==============================
