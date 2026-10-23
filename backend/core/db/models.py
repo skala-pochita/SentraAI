@@ -95,6 +95,7 @@ class Audit(Base):
     __tablename__ = "audits"
     __table_args__ = (_in("mode", ("full", "code", "agent")), _in("status", AUDIT_STATUSES))
     id: Mapped[uuid.UUID] = _pk()
+    name: Mapped[str | None] = mapped_column(Text)
     requested_by: Mapped[uuid.UUID] = _fk("users.id")
     mode: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False)

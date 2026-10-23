@@ -189,3 +189,32 @@ async def test_upload_full_agent_audit_uses_project_probes_and_cleans_sandbox(
     assert "/start" in lifecycle and f"/stop/{aid}" in lifecycle
     assert {f["source"] for f in values["correlated"]} >= {"agent"}
     assert values["agent_coverage"][0]["runtime"]["mode"] == "mock"
+
+
+@pytest.mark.parametrize("name", [None, "", "   ", "  상담 AI 2차 점검  "])
+async def test_audit_name_persists_in_history(
+    client: httpx.AsyncClient, users: dict[str, Any], monkeypatch: pytest.MonkeyPatch, name: str | None
+) -> None:
+    import api.routers.audits as audit_api
+
+    async def no_publish(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr(audit_api, "publish", no_publish)
+    headers = h(users["DEVELOPER"])
+    upload = await client.post(
+        f"{P}/targets/upload", headers=headers, files={"file": ("source.zip", project_zip(), "application/zip")}
+    )
+    assert upload.status_code == 201, upload.text
+    target = upload.json()
+    body = {"target_ids": [target["id"]], "mode": "code", **({"name": name} if name is not None else {})}
+    created = await client.post(f"{P}/audits", headers=headers, json=body)
+    assert created.status_code == 202, created.text
+    audit_id = created.json()["audit_id"]
+    expected = (name or "").strip() or target["name"]
+    detail = await client.get(f"{P}/audits/{audit_id}", headers=headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["name"] == expected
+    history = await client.get(f"{P}/audits", headers=headers)
+    assert history.status_code == 200, history.text
+    assert next(a for a in history.json()["items"] if a["id"] == audit_id)["name"] == expected

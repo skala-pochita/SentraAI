@@ -40,6 +40,7 @@ def _iso(d: datetime | None) -> str | None:
 def audit_out(a: Audit, target_ids: list[str], live: dict[str, str] | None = None) -> dict[str, Any]:
     return {
         "id": str(a.id),
+        "name": a.name,
         "status": a.status,
         "mode": a.mode,
         "eval_config": a.eval_config,
@@ -80,6 +81,7 @@ async def require_completed(db: AsyncSession, user: CurrentUser, audit_id: uuid.
 
 
 class AuditCreate(BaseModel):
+    name: str | None = Field(default=None, max_length=120)
     target_ids: list[uuid.UUID] = Field(min_length=1)
     mode: Literal["full", "code", "agent"] = "full"
     baseline_audit_id: uuid.UUID | None = None  # 수정본 비교의 기준 감사 (같은 프로젝트의 완료된 감사)
@@ -157,6 +159,7 @@ async def create_audit(
     audit_id = uuid.uuid4()
     a = Audit(
         id=audit_id,
+        name=(body.name or "").strip() or next((t.name for t in targets if t.type == "repo"), targets[0].name),
         requested_by=user.id,
         mode=body.mode,
         status="QUEUED",
