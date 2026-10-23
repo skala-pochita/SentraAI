@@ -52,6 +52,7 @@ def audit_out(a: Audit, target_ids: list[str], live: dict[str, str] | None = Non
         "created_at": _iso(a.created_at),
         "summary": a.summary if a.status == "COMPLETED" else {},
         "target_ids": target_ids,
+        "baseline_audit_id": str(a.baseline_audit_id) if a.baseline_audit_id else None,
     }
 
 
@@ -81,6 +82,20 @@ async def require_completed(db: AsyncSession, user: CurrentUser, audit_id: uuid.
 class AuditCreate(BaseModel):
     target_ids: list[uuid.UUID] = Field(min_length=1)
     mode: Literal["full", "code", "agent"] = "full"
+    baseline_audit_id: uuid.UUID | None = None  # 수정본 비교의 기준 감사 (같은 프로젝트의 완료된 감사)
+
+
+async def check_baseline(
+    db: AsyncSession, user: CurrentUser, baseline_id: uuid.UUID, target_ids: set[uuid.UUID]
+) -> None:
+    """기준 감사는 완료된 일반 감사이고, 요청자가 볼 수 있고, 같은 프로젝트여야 한다."""
+    from core.project_versions import project_ids
+
+    baseline, base_tids = await load_audit(db, user, baseline_id)
+    if baseline.status != "COMPLETED" or baseline.eval_config:
+        raise AppError(ErrorCode.VALIDATION, "기준 감사는 완료된 감사여야 합니다.")
+    if not await project_ids(db, {uuid.UUID(t) for t in base_tids}) & await project_ids(db, target_ids):
+        raise AppError(ErrorCode.VALIDATION, "기준 감사는 같은 프로젝트(이전 버전)의 감사여야 합니다.")
 
 
 async def _with_linked_targets(db: AsyncSession, user: CurrentUser, targets: list[Target]) -> list[Target]:
@@ -137,8 +152,17 @@ async def create_audit(
     await db.execute(select(Target.id).where(Target.id.in_(lock_ids)).order_by(Target.id).with_for_update())
     if body.mode in {"full", "agent"}:
         await _check_agent_mode(db, body.mode, targets)
+    if body.baseline_audit_id:
+        await check_baseline(db, user, body.baseline_audit_id, {t.id for t in targets})
     audit_id = uuid.uuid4()
-    a = Audit(id=audit_id, requested_by=user.id, mode=body.mode, status="QUEUED", thread_id=f"audit:{audit_id}")
+    a = Audit(
+        id=audit_id,
+        requested_by=user.id,
+        mode=body.mode,
+        status="QUEUED",
+        thread_id=f"audit:{audit_id}",
+        baseline_audit_id=body.baseline_audit_id,
+    )
     db.add(a)
     await db.flush()
     db.add_all(AuditTarget(audit_id=audit_id, target_id=t.id) for t in targets)
