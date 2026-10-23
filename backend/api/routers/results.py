@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from copy import deepcopy
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends
@@ -22,6 +23,27 @@ from core.path_schema import AttackPath
 from core.path_validation import validate_path
 
 router = APIRouter(tags=["audits"])
+
+
+def _verify_stored_report(report: dict[str, Any]) -> None:
+    section = report.get("compliance")
+    if section and (
+        not isinstance(section, dict)
+        or ((section.get("schema") == 2 or "integrity" in section) and not verify_report(report))
+    ):
+        raise AppError(ErrorCode.VALIDATION, "stored report integrity mismatch")
+
+
+def _report_for_role(report: dict[str, Any], user: CurrentUser) -> dict[str, Any]:
+    if user.role in {"ADMIN", "AUDITOR"}:
+        return report
+    visible = deepcopy(report)
+    for key in ("compliance", "compliance_profile"):
+        visible.pop(key, None)
+    for finding in visible.get("findings", []):
+        finding.pop("compliance_refs", None)
+        finding.pop("compliance_mapping", None)
+    return visible
 
 
 # ---------------- Findings ----------------
@@ -101,7 +123,7 @@ async def get_finding(
         if stored
         else {}
     )
-    out["compliance_refs"] = saved.get("compliance_refs", [])
+    out["compliance_refs"] = saved.get("compliance_refs", []) if user.role in {"ADMIN", "AUDITOR"} else []
     return out
 
 
@@ -242,7 +264,8 @@ async def report_json(
     r = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
     if r is None:
         raise AppError(ErrorCode.NOT_FOUND, "report not ready")
-    return {"report_id": str(r.id), "created_at": _iso(r.created_at), **r.report_json}
+    _verify_stored_report(r.report_json)
+    return {"report_id": str(r.id), "created_at": _iso(r.created_at), **_report_for_role(r.report_json, user)}
 
 
 @router.get("/audits/{audit_id}/report.md", response_class=PlainTextResponse)
@@ -253,8 +276,14 @@ async def report_md(
     r = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
     if r is None:
         raise AppError(ErrorCode.NOT_FOUND, "report not ready")
+    _verify_stored_report(r.report_json)
+    markdown = r.report_md
+    if user.role not in {"ADMIN", "AUDITOR"} and r.report_json.get("compliance"):
+        from core.graph.nodes.report import render_md
+
+        markdown = render_md(_report_for_role(r.report_json, user))
     return PlainTextResponse(
-        r.report_md,
+        markdown,
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="audit-{str(audit_id)[:8]}.md"'},
     )
@@ -297,9 +326,7 @@ async def _compliance_snapshot(audit_id: uuid.UUID, user: CurrentUser, db: Async
     stored = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
     if stored is None:
         raise AppError(ErrorCode.NOT_FOUND, "report not ready")
-    section = stored.report_json.get("compliance") or {}
-    if section.get("integrity") and not verify_report(stored.report_json):
-        raise AppError(ErrorCode.VALIDATION, "stored report integrity mismatch")
+    _verify_stored_report(stored.report_json)
     return dict(stored.report_json)
 
 

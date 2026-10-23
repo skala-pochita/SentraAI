@@ -67,9 +67,15 @@ async def test_export_permissions_and_saved_snapshot(monkeypatch, role, expected
         app.dependency_overrides.clear()
 
 
-async def test_tampered_saved_report_is_blocked(monkeypatch):
+@pytest.mark.parametrize("tamper", ["alter", "remove_integrity", "malformed_integrity"])
+async def test_tampered_saved_report_is_blocked(monkeypatch, tamper):
     report = seal_report({"compliance": {"schema": 2, "recommendations": []}})
-    report["altered"] = True
+    if tamper == "alter":
+        report["altered"] = True
+    elif tamper == "remove_integrity":
+        report["compliance"].pop("integrity")
+    else:
+        report["compliance"]["integrity"] = "not a seal"
     db = SimpleNamespace(
         execute=AsyncMock(return_value=SimpleNamespace(scalar_one_or_none=lambda: SimpleNamespace(report_json=report)))
     )
@@ -79,6 +85,10 @@ async def test_tampered_saved_report_is_blocked(monkeypatch):
 
     with pytest.raises(AppError, match="integrity mismatch"):
         await results._compliance_snapshot(uuid.uuid4(), user, db)
+    with pytest.raises(AppError, match="integrity mismatch"):
+        await results.report_json(uuid.uuid4(), user, db)
+    with pytest.raises(AppError, match="integrity mismatch"):
+        await results.report_md(uuid.uuid4(), user, db)
 
 
 async def test_old_report_without_section_is_rendered_without_remapping(monkeypatch):

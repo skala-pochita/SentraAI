@@ -54,6 +54,9 @@ services:
     environment:
       MCP_SERVICE_TOKEN: ${MCP_SERVICE_TOKEN:-change-me}
       WORKSPACE_DIR: /workspace
+      SANDBOX_NAMESPACE: ${COMPOSE_PROJECT_NAME:-ai-security-auditor}
+      SANDBOX_CONTROL_NETWORK: ${COMPOSE_PROJECT_NAME:-ai-security-auditor}_default
+      SANDBOX_RELAY_IMAGE: ai-security-auditor/backend:dev
     volumes: ["sandbox-projects:/workspace", "/var/run/docker.sock:/var/run/docker.sock"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8300/health"]
@@ -68,7 +71,7 @@ services:
       POSTGRES_USER: auditor
       POSTGRES_PASSWORD: auditor
       POSTGRES_DB: auditor
-    ports: ["5432:5432"]
+    ports: ["127.0.0.1:5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U auditor -d auditor"]
@@ -79,7 +82,7 @@ services:
   redis:
     image: redis/redis-stack-server:7.4.0-v3
     restart: unless-stopped
-    ports: ["6379:6379"]
+    ports: ["127.0.0.1:6379:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -89,7 +92,7 @@ services:
   kafka:
     image: apache/kafka:3.9.1
     restart: unless-stopped
-    ports: ["9092:9092", "29092:29092"]
+    ports: ["127.0.0.1:9092:9092", "127.0.0.1:29092:29092"]
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -127,7 +130,7 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     profiles: [ui]
-    ports: ["8080:8080"]
+    ports: ["127.0.0.1:8080:8080"]
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
@@ -141,7 +144,7 @@ services:
     env_file: [.env]
     environment:
       AGENT_CONFIG_DIR: /workspace/agent-config
-    ports: ["8201:8201"]
+    ports: ["127.0.0.1:8201:8201"]
     volumes: ["workspace:/workspace:ro"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8201/health"]
@@ -153,7 +156,7 @@ services:
   business-mcp:
     <<: *backend
     command: ["python", "-m", "mcp_servers.business.server"]
-    ports: ["8101:8101"]
+    ports: ["127.0.0.1:8101:8101"]
     volumes: ["workspace:/workspace", "vault-data:/var/lib/audit-vault/data:ro", "vault-keys:/var/lib/audit-vault/keys:ro"]
     depends_on:
       sandbox-runner: {condition: service_healthy}
@@ -170,7 +173,7 @@ services:
     <<: *backend
     volumes: ["${COMPLIANCE_CONFIG_DIR:-./config/compliance}:/app/config/compliance:ro", "${COMPLIANCE_SOURCES_DIR:-./knowledge/sources}:/app/knowledge/sources:ro"]
     command: ["python", "-m", "mcp_servers.rag.server"]
-    ports: ["8102:8102"]
+    ports: ["127.0.0.1:8102:8102"]
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -184,7 +187,7 @@ services:
     <<: *backend
     volumes: ["${COMPLIANCE_CONFIG_DIR:-./config/compliance}:/app/config/compliance:ro", "${COMPLIANCE_SOURCES_DIR:-./knowledge/sources}:/app/knowledge/sources:ro", "reports:/app/reports", "workspace:/workspace", "vault-data:/var/lib/audit-vault/data", "vault-keys:/var/lib/audit-vault/keys"]
     command: ["sh", "-c", "alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port 8000 --no-server-header"]
-    ports: ["8000:8000"]
+    ports: ["127.0.0.1:8000:8000"]
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -245,7 +248,7 @@ services:
     build:
       context: frontend
     restart: unless-stopped
-    ports: ["5173:80"]
+    ports: ["127.0.0.1:5173:80"]
     depends_on:
       api: {condition: service_healthy}
     healthcheck:

@@ -1,0 +1,4 @@
+Starting isolated build: 97361eb8-fe09-4f95-9644-27e70b31976a
+{"status": "READY", "mode": "mock"}
+{"direct_attack": "SUCCESS", "indirect_attack": "SUCCESS", "mode": "mock", "containers": 3, "isolation_assertions": "PASS"}
+Sandbox cleaned: 97361eb8-fe09-4f95-9644-27e70b31976a

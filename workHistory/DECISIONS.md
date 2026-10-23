@@ -150,3 +150,12 @@ AI RMF 보도자료는 본문으로 취급하지 않고 규제 검색 대상에�
 - 기존 main의 `0005→0006→0007`을 보존하고 규제 지식 유형 마이그레이션을 `0008`로 재번호화한다. 예전 기능 브랜치의 별도 `0005_regulation_sources`를 적용한 DB는 이 선형 업그레이드 대상이 아니다.
 - CLI 기본 manifest·검토 후보·분류 정책을 저장소와 맞춘다. 원문과 사람 검토 이력은 계속 로컬 데이터로 보존한다.
 - 검증: [main 통합 QA](COMPLIANCE_MAIN_INTEGRATION_QA.md). 실원문은 사용했지만 LLM·Kafka 발행·실제 에이전트 컨테이너 실행은 이번 실원문 시나리오에서 테스트 대역이다.
+
+## 2026-10-23 — 실환경 QA·권한 보강·배포 전 CI
+
+- 사용자 요청으로 `feat/add_law_evidence`에서 보고서 탭을 같은 행에 정렬하고 그룹 간 20px 간격을 둔다.
+- 규제 전용 API뿐 아니라 일반 JSON/MD 보고서와 Finding 참조도 ADMIN/AUDITOR 정책을 따른다. DEVELOPER에는 기존 보안 결과를 유지한다. schema 2 무결성 키 누락·변조·잘못된 자료형은 거부한다.
+- sandbox의 생성·만료·정리 범위를 namespace로 제한한다. agent뿐 아니라 backend 서비스 포트까지 준비되어야 probe를 시작한다. CLI의 network와 relay 이미지도 배포 프로젝트를 따른다.
+- API 교체 후 nginx의 Docker DNS 재조회로 복구한다. 개발 포트는 loopback에 바인딩한다.
+- 기본 265개, 분리 E2E 3개, CLI 9개와 실제 Docker MOCK/live 업로드 전체 흐름을 검증했다. 이전 실원문 QA의 테스트 대역 한계를 이번 실행으로 보완한다.
+- PR/main CI를 추가하되 유료 LLM QA와 태그 기반 Release는 별개로 유지한다. main merge를 임의 운영 서버 배포로 간주하지 않는다. 상세 결과: [최종 QA](LAW_EVIDENCE_RELEASE_QA.md).

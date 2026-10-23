@@ -1,0 +1,26 @@
+{
+  "mode": "mock",
+  "audit_id": "d34b5d40-91ac-4acb-bdcd-b58569fdaff8",
+  "target_id": "275e9979-eed5-4624-9a5d-52d247c411ed",
+  "status": "COMPLETED",
+  "model_verification": "MOCK",
+  "findings": 5,
+  "recommendations": 16,
+  "probe_ids": [
+    "UP-BENIGN-01",
+    "UP-RAG-01",
+    "UP-PATH-01"
+  ],
+  "model_usage": {
+    "model": null,
+    "requests": 0,
+    "charged_tokens": 0,
+    "successful_requests": 0
+  },
+  "phases": [
+    [
+      "COMPLETED",
+      "report"
+    ]
+  ]
+}

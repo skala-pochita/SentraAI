@@ -461,8 +461,10 @@ def verify_report(report: dict[str, Any]) -> bool:
 
     clone = copy.deepcopy(report)
     section = clone.get("compliance") or {}
+    if not isinstance(section, dict):
+        return False
     seal = section.pop("integrity", None)
-    return bool(seal and seal.get("digest") == canonical_hash(clone))
+    return isinstance(seal, dict) and seal.get("digest") == canonical_hash(clone)
 
 
 def _md(value: Any) -> str:

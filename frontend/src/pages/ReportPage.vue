@@ -42,10 +42,12 @@ function download() {
 }
 </script>
 <template>
-  <AuditTabs :id="id" />
-  <div class="tabs mb" aria-label="보고서 종류">
-    <button :class="{ on: view === 'report' }" @click="load('report')">감사 보고서</button>
-    <button v-if="canReadCompliance" :class="{ on: view === 'compliance' }" @click="load('compliance')">규제 검토 권고</button>
+  <div class="report-navigation">
+    <AuditTabs :id="id" />
+    <div class="tabs report-kind" aria-label="보고서 종류">
+      <button :class="{ on: view === 'report' }" :aria-pressed="view === 'report'" @click="load('report')">감사 보고서</button>
+      <button v-if="canReadCompliance" :class="{ on: view === 'compliance' }" :aria-pressed="view === 'compliance'" @click="load('compliance')">규제 검토 권고</button>
+    </div>
   </div>
   <div class="card" style="padding:28px 32px">
     <div class="row mb" style="justify-content:flex-end">
@@ -63,3 +65,9 @@ function download() {
     <article v-else class="md" v-html="html" />
   </div>
 </template>
+
+<style scoped>
+.report-navigation { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 20px; }
+.report-navigation :deep(.tabs) { margin-bottom: 0; }
+.report-kind { flex-shrink: 0; }
+</style>

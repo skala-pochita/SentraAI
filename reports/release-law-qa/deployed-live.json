@@ -1,0 +1,26 @@
+{
+  "mode": "live",
+  "audit_id": "ed0ff07e-16fb-40e8-af86-d77ea76c45ef",
+  "target_id": "2f6d95b4-8713-45c6-b626-45aaeea07c6a",
+  "status": "COMPLETED",
+  "model_verification": "LIVE_VERIFIED",
+  "findings": 4,
+  "recommendations": 16,
+  "probe_ids": [
+    "UP-BENIGN-01",
+    "UP-PATH-01",
+    "UP-RAG-01"
+  ],
+  "model_usage": {
+    "model": "gpt-5.4-nano",
+    "requests": 4,
+    "charged_tokens": 1518,
+    "successful_requests": 4
+  },
+  "phases": [
+    [
+      "COMPLETED",
+      "report"
+    ]
+  ]
+}

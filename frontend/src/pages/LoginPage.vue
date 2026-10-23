@@ -35,14 +35,14 @@ async function submit() {
       </div>
       <div>
         <h1>코드와 AI 에이전트를<br /><em>한 번에 감사</em>합니다</h1>
-        <p>정적 규칙과 LLM 조사, 레드팀 probe 를 결합해 취약점을 찾고, 근거와 함께 수정 PR 까지 제안합니다.</p>
+        <p>정적 규칙과 LLM 조사, 레드팀 probe를 결합해 취약점을 찾고, 코드 근거와 규제 검토 권고를 보고서로 제공합니다.</p>
         <div class="feat">
           <div><Icon name="code" /><span><b>코드 감사</b>정적 규칙 + ReAct 조사, 근거 라인 검증</span></div>
           <div><Icon name="crosshair" /><span><b>에이전트 레드팀</b>프롬프트 인젝션·권한 상승 probe 와 ASR 측정</span></div>
-          <div><Icon name="lock" /><span><b>사람 승인 게이트</b>CRITICAL 수정은 승인 후에만 PR 로 반영</span></div>
+          <div><Icon name="lock" /><span><b>원문 기반 검토 권고</b>원문 인용·관련성·미확인 조건을 구분해 표시</span></div>
         </div>
       </div>
-      <div class="term">$ audit run --target all <b>✓ trace_id 하나로 모든 단계 추적</b></div>
+      <div class="term">$ sentraai <b>✓ 원본 코드 변경 없이 근거와 권장 조치 제공</b></div>
     </section>
     <section class="login-form">
       <div style="position:absolute; top:20px; right:20px"><ThemeToggle /></div>

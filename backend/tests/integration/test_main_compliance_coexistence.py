@@ -68,7 +68,16 @@ async def test_attack_paths_and_compliance_share_saved_report(
     finding = await client.get(f"/api/v1/findings/{mapped['finding_id']}", headers=headers)
     assert finding.status_code == 200 and finding.json()["compliance_refs"] == mapped["compliance_refs"]
     dev_token, _, _ = create_token(developer_id, "DEVELOPER", "access")
-    assert (await client.get(prefix + "/compliance", headers={"Authorization": f"Bearer {dev_token}"})).status_code == 403
+    developer_headers = {"Authorization": f"Bearer {dev_token}"}
+    assert (await client.get(prefix + "/compliance", headers=developer_headers)).status_code == 403
+    developer_report = await client.get(prefix + "/report", headers=developer_headers)
+    assert developer_report.status_code == 200
+    assert "compliance" not in developer_report.json() and "compliance_profile" not in developer_report.json()
+    assert all("compliance_refs" not in f for f in developer_report.json()["findings"])
+    developer_markdown = await client.get(prefix + "/report.md", headers=developer_headers)
+    assert developer_markdown.status_code == 200
+    assert "규제·가이드라인 검토 권고" not in developer_markdown.text
+    assert "## 결합 위험" in developer_markdown.text and "## Finding 목록" in developer_markdown.text
 
 
 async def test_baseline_and_compliance_profile_survive_audit_creation(

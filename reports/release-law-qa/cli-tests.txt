@@ -1,0 +1,21 @@
+
+> sentraai@0.1.0-rc.3 test
+> node --test "test/*.test.js"
+
+✔ buildZip 결과를 Python zipfile 이 그대로 연다 (압축·무압축·한글 파일명) (77.777666ms)
+✔ isEnvFile: 실제 .env 는 제외, 예시 파일은 포함 (0.187542ms)
+✔ collect: 산출물·.env·심볼릭 링크를 빼고 상대 경로로 모은다 (21.079708ms)
+✔ collect: target·build 같은 이름은 빌드 파일 옆일 때만 산출물로 뺀다 (Java 패키지 lab/target 은 남김) (29.581542ms)
+✔ CLI compose 는 저장소 compose 와 같은 서비스를 갖고, 대시보드만 127.0.0.1 에 연다 (0.829459ms)
+✔ writeConfig: 본인만 읽는 권한, 비밀값은 처음 한 번 만들고 유지 (7.799792ms)
+✔ collect: 큰 바이너리·아주 큰 파일은 빼고, 작은 바이너리(빌드 파일)는 남긴다 (8.357667ms)
+✔ ignoreMatcher: 디렉터리·확장자·경로 패턴 (0.299166ms)
+✔ collect: .sentraaiignore 와 exclude 옵션 (5.270292ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 202.256375

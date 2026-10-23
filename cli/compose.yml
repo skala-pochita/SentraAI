@@ -68,6 +68,9 @@ services:
     environment:
       MCP_SERVICE_TOKEN: ${MCP_SERVICE_TOKEN:?MCP_SERVICE_TOKEN}
       WORKSPACE_DIR: /workspace
+      SANDBOX_NAMESPACE: ${COMPOSE_PROJECT_NAME:-sentraai}
+      SANDBOX_CONTROL_NETWORK: ${COMPOSE_PROJECT_NAME:-sentraai}_default
+      SANDBOX_RELAY_IMAGE: ${SENTRA_REGISTRY:-ghcr.io/skala-pochita}/sentraai-backend:${SENTRA_VERSION:?SENTRA_VERSION}
     volumes: ["sandbox-projects:/workspace", "/var/run/docker.sock:/var/run/docker.sock"]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8300/health"]
