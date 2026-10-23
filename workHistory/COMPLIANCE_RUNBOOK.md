@@ -18,6 +18,20 @@ macOS에서 pdftotext는 Poppler에 포함되며, 제공하는 백엔드 이미�
 
 ## 1. 원문 반입과 조항 정규화
 
+등록한 공개본을 직접 다운로드해 반입하려면 다음을 실행한다.
+첨부 URL/GET·POST 방식/공개본 버전은 `config/compliance/downloads.yaml`에서 관리한다.
+
+```bash
+cd backend
+uv run python -m core.compliance_cli download
+# 필요한 자료만: ... download FSC-AI-GL FSC-AI-SEC
+cd ..
+```
+
+다운로드는 HTTPS PDF만 허용하며 파일당 30 MiB로 제한한다.
+원본 PDF, 추출 텍스트, 페이지별 Markdown, 검색 단위와 각 SHA-256을 로컬에 보존한다.
+원문 문서 전체와 MD를 단순 중복 색인하지 않으며, 검증된 조항/페이지 검색 단위만 색인한다.
+
 실제 파일 경로로 바꾸어 실행한다. 출처 URL과 버전은 원문에서 확인한 값만 넣는다.
 
 ```bash
@@ -34,7 +48,9 @@ cd ..
 ```
 
 반입 결과는 knowledge/sources 아래 로컬 파일로 남는다. 내용/해시/경계 검증 실패는 종료 코드 2이다.
-부록·목차·표 때문에 조항 ID가 중복되면 추출 텍스트를 확인하고 경계를 정리한 입력을 별도 반입한다. 틀린 원문을 자동 보정하지 않는다.
+점검표는 '점검 항목'이라고 명시된 영역을 분리한다. 안내서 일반 본문은 PDF 페이지와
+검색 단위 번호로 위치를 표시하며 실제 조항 번호처럼 제시하지 않는다.
+부록·목차·표도 원문 Markdown에 보존하며, 원본에 없는 내용을 자동 보정하지 않는다.
 AI RMF 본문이 없으면 그 상태로 진행한다. 보도자료를 본문으로 대체하지 않는다.
 
 ## 2. DB 갱신과 색인
@@ -53,6 +69,18 @@ make up의 API 시작 명령이 migration 0005까지 적용한다.
 원문이 전혀 없으면 색인을 거부하며 기존 DB를 지우지 않는다.
 
 ## 3. 초기 연결과 모델 관련성 추정
+
+DB 없이 독립적으로 검색하려면 `REGULATION_INDEX_PATH=/absolute/path/regulations.sqlite3`를 설정하고
+같은 `index`, `search`, 정확 조회 기능을 사용한다. 미설정 시 PostgreSQL 동작을 유지한다.
+이 로컬 인덱스도 임베딩 제공자·모델과 원문 스냅샷을 고정하며 변경 후 재색인을 요구한다.
+
+```bash
+cd backend
+export REGULATION_INDEX_PATH="$PWD/../knowledge/sources/index/regulations.sqlite3"
+OPENAI_API_KEY='' uv run python -m core.compliance_cli index
+OPENAI_API_KEY='' uv run python -m core.compliance_cli search '프롬프트 인젝션' --source FSC-AI-SEC
+cd ..
+```
 
 ```bash
 make compliance-bootstrap

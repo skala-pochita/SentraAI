@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 import shutil
 import subprocess
 from datetime import UTC, datetime
@@ -44,7 +45,12 @@ def atomic_yaml(path: Path, value: Any) -> None:
 
 
 def import_source(
-    root: Path, source_id: str, file: Path, source_url: str | None = None, version: str | None = None
+    root: Path,
+    source_id: str,
+    file: Path,
+    source_url: str | None = None,
+    version: str | None = None,
+    acquisition: dict[str, Any] | None = None,
 ) -> int:
     manifest = read_manifest(root)
     source = next((s.copy() for s in manifest["sources"] if s["id"] == source_id), None)
@@ -70,6 +76,10 @@ def import_source(
         source["source_url"] = source_url
     if version:
         source["version"] = version
+    # Preserve the precise acquisition URL and request method separately from the
+    # human-facing publisher page. HTTPS retrieval does not prove authenticity.
+    if acquisition:
+        source["acquisition"] = acquisition
     # A supplied source is locally pinned, not labelled an authenticated official copy.
     source.update(
         status="AVAILABLE",
@@ -84,10 +94,44 @@ def import_source(
     source.update(
         raw_file=f"raw/{stem}{file.suffix.lower()}", text_file=f"text/{stem}.txt", clauses_file=f"clauses/{stem}.yaml"
     )
-    for folder in ("raw", "text", "clauses"):
+    pages = text.split("\f")
+    if not pages[-1].strip():
+        pages.pop()
+    source["page_count"] = len(pages)
+    source["markdown_file"] = f"markdown/{stem}.md"
+    metadata = {
+        key: source[key]
+        for key in (
+            "id",
+            "title",
+            "issuer",
+            "format",
+            "source_url",
+            "version",
+            "file_sha256",
+            "text_sha256",
+            "page_count",
+        )
+        if key in source
+    }
+    metadata["regulatory_evidence"] = source.get("regulatory_evidence", True)
+    metadata["transcription"] = "pdftotext -layout" if file.suffix.lower() == ".pdf" else "UTF-8 text"
+    metadata["acquisition"] = source.get("acquisition", {"method": "local_import"})
+    md = "---\n" + yaml.safe_dump(metadata, allow_unicode=True, sort_keys=False) + "---\n\n"
+    md += f"# {source['title']}\n\n"
+    if not metadata["regulatory_evidence"]:
+        md += "> 참고 보도자료입니다. 규제 의무나 AI RMF 본문으로 사용하지 않습니다.\n\n"
+    md += "> 원문 배치를 보존한 자동 추출본입니다. 표·도식·추출 누락 여부는 원본 PDF를 대조합니다.\n\n"
+    for number, page in enumerate(pages, 1):
+        # Literal blocks retain table columns and avoid executing embedded Markdown/HTML.
+        fence = "`" * max(3, max((len(m[0]) + 1 for m in re.finditer(r"`+", page)), default=3))
+        md += f"## PDF 페이지 {number}\n\n{fence}text\n{page.rstrip()}\n{fence}\n\n"
+    source["markdown_sha256"] = sha256(md)
+    for folder in ("raw", "text", "clauses", "markdown"):
         (root / folder).mkdir(parents=True, exist_ok=True)
     (root / source["raw_file"]).write_bytes(data)
     (root / source["text_file"]).write_text(text, encoding="utf-8")
+    (root / source["markdown_file"]).write_text(md, encoding="utf-8")
     atomic_yaml(
         root / source["clauses_file"],
         {"source": source_id, "source_sha256": source["text_sha256"], "clauses": [c.model_dump() for c in clauses]},
@@ -279,6 +323,14 @@ def main() -> None:
     imp.add_argument("--version")
     for name in ("validate", "index", "link", "bootstrap"):
         commands.add_parser(name)
+    download = commands.add_parser(
+        "download", help="download registered public originals, transcribe Markdown, normalize"
+    )
+    download.add_argument("source_ids", nargs="*")
+    search = commands.add_parser("search", help="retrieve indexed regulatory text")
+    search.add_argument("query")
+    search.add_argument("--source")
+    search.add_argument("-k", type=int, default=5)
     review = commands.add_parser("review")
     review.add_argument("link_id")
     review.add_argument("decision", choices=["human_confirmed", "rejected"])
@@ -305,6 +357,14 @@ def main() -> None:
             result = asyncio.run(generate_links())
         elif args.command == "bootstrap":
             result = bootstrap_links()
+        elif args.command == "download":
+            from core.regulation_download import download_sources
+
+            result = download_sources(args.source_ids)
+        elif args.command == "search":
+            from mcp_servers.rag.regulations import search_clauses
+
+            result = asyncio.run(search_clauses(args.query, args.source, args.k))
         else:
             review_link(args.link_id, args.decision, args.reviewer)
             result = {"reviewed": args.link_id}

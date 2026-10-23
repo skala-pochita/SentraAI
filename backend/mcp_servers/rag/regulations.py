@@ -20,7 +20,11 @@ from mcp_servers.rag.search import hybrid_search
 REGULATION_SOURCES = ("kr_law", "kr_guideline")
 
 
-async def ingest_regulations() -> dict[str, int]:
+async def ingest_regulations() -> dict[str, Any]:
+    if path := get_settings().regulation_index_path:
+        from mcp_servers.rag.local_regulations import ingest
+
+        return await ingest(path)
     clauses, _ = load_clauses()
     if not clauses:
         raise AppError(ErrorCode.VALIDATION, "no original clauses available; existing index unchanged")
@@ -80,11 +84,19 @@ async def search_clauses(query: str, source: str | None, k: int) -> list[dict[st
     clauses, _ = load_clauses()
     if source and source not in {c.source for c in clauses.values()}:
         raise AppError(ErrorCode.VALIDATION, "source has no verified clauses")
+    if path := get_settings().regulation_index_path:
+        from mcp_servers.rag.local_regulations import search
+
+        return await search(path, query, source, k)
     hits = await hybrid_search(query, REGULATION_SOURCES, k, ref_prefix=(source + ":") if source else None)
     return [{**hit, "clause_id": hit["ref_code"], "candidate_only": True} for hit in hits if hit["ref_code"] in clauses]
 
 
 async def exact_clause(clause_id: str) -> dict[str, Any]:
+    if path := get_settings().regulation_index_path:
+        from mcp_servers.rag.local_regulations import exact
+
+        return exact(path, clause_id)
     clauses, _ = load_clauses()
     clause = clauses.get(clause_id)
     if clause is None:

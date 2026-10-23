@@ -6,11 +6,11 @@
 
 | 검사 | 결과 |
 |---|---|
-| 전체 백엔드 pytest (기본 설정 not llm) | 159 passed, 37 skipped, 3 deselected |
-| 신규 원문/매핑/보고서/HTTP/파이프라인 단위 테스트 | 36 passed |
+| 전체 백엔드 pytest (기본 설정 not llm) | 164 passed, 37 skipped, 3 deselected |
+| 신규 원문/매핑/보고서/HTTP/파이프라인/코퍼스 단위 테스트 | 41 passed |
 | 신규 실제 Postgres/pgvector 통합 테스트 | 2 skipped: Postgres 연결 불가 |
 | ruff check backend | 통과 |
-| mypy core harness mcp_servers | 96 source files, 오류 없음 |
+| mypy core harness mcp_servers | 98 source files, 오류 없음 |
 | CLI node --test | 9 passed |
 | 변경 Vue SFC 3개 script/template 컴파일 | ReportPage / FindingPage / AuditNewPage 통과 |
 | 전체 vue-tsc | 미통과: 기존 3D 화면의 three / OrbitControls / 타입 패키지 없음 |
@@ -44,10 +44,25 @@
 기존 로컬 의존성을 읽어 테스트했고, 누락된 Docker SDK는 공식 docker/docker-py 7.1.0 태그의 파일을 blob SHA 대조 후 격리된 로컬 테스트 환경에만 두었다. 배포 코드에는 vendoring하지 않았다.
 Docker 소켓 접근이 거부되어 컨테이너 기동/DB migration 적용/실제 서비스 전체 감사는 실행하지 못했다.
 
-전달된 첨부 2건은 설계 문서이며 실제 규제 PDF가 아니다.
-기본 카탈로그는 0개 조항·0개 연결·원문 미확보 상태다. 이전 Claude 세션에서 확보했다는 PDF나 해시는 이 작업 환경으로 복구되지 않았다.
-실제 원문 반입·인덱싱·실제 OpenAI 관련성 평가가 완료됐다고 주장하지 않는다.
-초기 후보는 실제 원문 인용 검증을 통과해야 생성되며 현재 상태에서는 검증된 근거를 만들지 않는다.
+이전 Claude 세션의 파일을 복구한 것은 아니다. 공식 게시물/지원데스크 및 KDI 정책자료
+아카이브에서 PDF 4건을 새로 다운로드하고 `%PDF-` 바이트와 Poppler 추출을 확인했다.
+금융위 가이드라인(91p), 금융보안원 보안 안내서(72p), 고영향 사업자 책무 가이드라인(111p),
+금감원 AI RMF 도입 보도자료(7p)를 페이지별 Markdown으로 변환했다.
+금융위 점검표 PDF 89페이지를 렌더링해 번호·본문·물리 페이지와 인쇄 페이지의 차이를 대조했다.
+
+로컬 코퍼스는 검색 단위 301개(99/71/131), 초기 연결 25개다.
+보도자료는 보관하되 규제 조항 RAG에서 제외했다. 법률·시행령 원문과 AI RMF 본문은 미확보다.
+기본 Git 카탈로그는 원문 미확보 상태를 유지하며, 실제 자료는 제외된 로컬 매니페스트로 반영된다.
+실제 원문·추출물·Markdown·페이지 위치의 무결성 검증을 통과했다.
+SQLite의 hash-v1 인덱스에 301개를 저장하고, 동일 입력 재색인 changed=0을 확인했다.
+프롬프트 인젝션/입출력 필터링/위험관리방안 3개 질의를 검색한 후 정확 조회와 원문 일치를 대조했다.
+검색 결과와 해시는 로컬 index/search_verification.json 및 corpus_inventory.json에 보존했다.
+독립 실행 검색기는 Python 표준 라이브러리로 전체 코퍼스 해시를 확인한 뒤 키워드를 검색한다.
+
+신규 검사는 본문 예시와 실제 점검표의 번호 혼동 방지, Markdown·페이지 위치 변조,
+로컬 인덱스 멱등성·정확 조회·변조·오래된 스냅샷 거부, PDF가 아닌 다운로드 거부를 확인한다.
+초기 연결은 이전 설계 추정의 인용 대조 결과이며 실제 OpenAI 관련성 재평가는 실행하지 않았다.
+현재 환경의 직접 API 연결은 실패했다. 검증용 인덱스는 명시적으로 API 키를 비워 해시 임베딩으로 만들었다.
 
 전체 프런트 빌드는 three 의존성을 설치할 수 있는 환경에서 다시 실행해야 한다. 변경된 컴포넌트의 SFC 컴파일은 별도로 통과했다.
 실행 절차는 COMPLIANCE_RUNBOOK.md에 있다.

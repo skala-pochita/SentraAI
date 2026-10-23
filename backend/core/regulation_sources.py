@@ -57,9 +57,12 @@ class Clause(BaseModel):
     issuer: str
     source_url: str | None = None
     version: str | None = None
+    page_start: int | None = Field(default=None, ge=1)
+    page_end: int | None = Field(default=None, ge=1)
 
 
 def clean_text(text: str, title: str) -> str:
+    text = re.sub(r"[\x00-\x08\x0b\x0e-\x1f]", "", text)
     lines = text.replace("\r\n", "\n").replace("\f", "\n").splitlines()
     return "\n".join(line for line in lines if line.strip() != title and not re.fullmatch(r"\s*-\s*\d+\s*-\s*", line))
 
@@ -96,19 +99,50 @@ def normalize_clauses(source: dict[str, Any], text: str) -> list[Clause]:
     elif source["format"] == "checklist":
         principles = _blocks(cleaned, r"^\s*\[?([1-7])\.\s*([^\n\]]*원칙)[^\n]*")
         for principle, block in principles:
+            # Narrative examples also use circled numbers. Only the actual checklists
+            # supply CHK identifiers; the next principle heading closes each checklist.
+            if not re.search(r"점검\s*항목", principle[0]):
+                continue
             checks = _blocks(block, rf"^\s*([{CIRCLED}])\s*")
             for check, words in checks:
                 number = CIRCLED.index(check[1]) + 1
                 entries.append((f"{principle[1]}-CHK-{number:02}", principle[0].strip(), words))
     else:
-        sections = _blocks(cleaned, r"^\s*(?:제\d+장[^\n]*|\d+(?:\.\d+)*\s+[^\n]+)")
-        for i, (section, words) in enumerate(sections, 1):
-            entries.append((f"SEC-{i:03}", section[0].strip(), words))
+        # A PDF page is a physical locator, never an invented legal clause number.
+        # Keep the complete transcription (including tables) in Markdown; bounded
+        # page segments are retrieval candidates with explicit physical page IDs.
+        for page, original in enumerate(text.split("\f"), 1):
+            body = clean_text(original, source["title"]).strip()
+            if not body or not re.search(r"[가-힣A-Za-z]", body):
+                continue
+            parts: list[str] = []
+            current = ""
+            for line in body.splitlines(keepends=True):
+                if current and len(current) + len(line) > 2200:
+                    parts.append(current.strip())
+                    current = ""
+                current += line
+            if current.strip():
+                parts.append(current.strip())
+            for segment, words in enumerate(parts, 1):
+                heading = next((line.strip() for line in words.splitlines() if line.strip()), source["title"])
+                entries.append((f"PAGE-{page:03}-{segment:02}", f"PDF p.{page} · {heading[:100]}", words))
     if not entries:
         raise AppError(ErrorCode.VALIDATION, "no clause boundaries found; inspect extracted text and format")
     out: dict[str, Clause] = {}
+    page_texts = [compact(clean_text(page, source["title"])) for page in text.split("\f")]
+    page_ends: list[int] = []
+    for page_text in page_texts:
+        page_ends.append((page_ends[-1] if page_ends else 0) + len(page_text))
+    full = "".join(page_texts)
     for key, heading, body in entries:
         cid = f"{source['id']}:{key}"
+        start = full.find(compact(body))
+        first = next((i + 1 for i, end in enumerate(page_ends) if end > start), None) if start >= 0 else None
+        last_pos = start + len(compact(body)) - 1
+        last = next((i + 1 for i, end in enumerate(page_ends) if end > last_pos), None) if start >= 0 else None
+        if key.startswith("PAGE-"):
+            first = last = int(key.split("-")[1])
         record = Clause(
             id=cid,
             source=source["id"],
@@ -122,6 +156,8 @@ def normalize_clauses(source: dict[str, Any], text: str) -> list[Clause]:
             source_type=source["source_type"],
             source_url=source.get("source_url"),
             version=source.get("version"),
+            page_start=first,
+            page_end=last,
         )
         if cid in out and out[cid].text != body:
             raise AppError(ErrorCode.VALIDATION, f"ambiguous clause ID {cid}; remove table-of-contents duplicates")
@@ -161,6 +197,11 @@ def load_clauses(root: Path | None = None) -> tuple[dict[str, Clause], list[dict
         raw = local_path(root, source["text_file"]).read_bytes()
         if sha256(original) != source["file_sha256"] or sha256(raw) != source["text_sha256"]:
             raise AppError(ErrorCode.VALIDATION, f"source hash mismatch: {source['id']}")
+        if (
+            source.get("markdown_file")
+            and sha256(local_path(root, source["markdown_file"]).read_bytes()) != source["markdown_sha256"]
+        ):
+            raise AppError(ErrorCode.VALIDATION, f"Markdown hash mismatch: {source['id']}")
         if source.get("format") == "notice" or not source.get("regulatory_evidence", True):
             continue
         content = compact(clean_text(raw.decode("utf-8"), source["title"]))
@@ -169,6 +210,14 @@ def load_clauses(root: Path | None = None) -> tuple[dict[str, Clause], list[dict
             raise AppError(ErrorCode.VALIDATION, f"clause source hash mismatch: {source['id']}")
         for record in records["clauses"]:
             c = Clause.model_validate(record)
+            pages = raw.decode("utf-8").split("\f")
+            if c.page_start is not None and (
+                c.page_end is None
+                or not c.page_start <= c.page_end <= len(pages)
+                or compact(c.text)
+                not in compact(clean_text("\f".join(pages[c.page_start - 1 : c.page_end]), source["title"]))
+            ):
+                raise AppError(ErrorCode.VALIDATION, f"clause page locator mismatch: {c.id}")
             if (
                 c.id in out
                 or c.source != source["id"]

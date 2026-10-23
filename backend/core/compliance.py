@@ -208,6 +208,8 @@ def build_compliance(report: dict[str, Any], catalog: Catalog, profile: dict[str
                 "issuer": clause.issuer,
                 "source_url": clause.source_url,
                 "version": clause.version,
+                "page_start": clause.page_start,
+                "page_end": clause.page_end,
                 "source_sha256": clause.source_sha256,
                 "file_sha256": clause.file_sha256,
                 "provenance": "등록된 로컬 원문과 대조; 공식본 동일성은 별도 확인",
@@ -333,6 +335,8 @@ def render_compliance(report: dict[str, Any]) -> str:
         ]
         if item.get("source_url"):
             lines.append(f"- 게시처: {_md(item['source_url'])}")
+        if item.get("page_start"):
+            lines.append(f"- PDF 페이지: {item['page_start']}–{item.get('page_end') or item['page_start']}")
         for ev in item["evidence"]:
             lines += [
                 f"> {_md(ev['quote'])}",

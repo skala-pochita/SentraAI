@@ -68,6 +68,8 @@ class Settings(BaseSettings):
 
     # Paths
     compliance_config_dir: Path | None = None
+    # Explicit standalone regulation index; unset keeps PostgreSQL/pgvector.
+    regulation_index_path: Path | None = None
     config_dir: Path = Field(default_factory=lambda: _default_path("CONFIG_DIR", "config"))
     rules_dir: Path = Field(default_factory=lambda: _default_path("RULES_DIR", "rules"))
     datasets_dir: Path = Field(default_factory=lambda: _default_path("DATASETS_DIR", "datasets"))

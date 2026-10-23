@@ -43,7 +43,11 @@ cli/*.tgz
 knowledge/sources/raw/
 knowledge/sources/text/
 knowledge/sources/clauses/
+knowledge/sources/markdown/
+knowledge/sources/downloads/
+knowledge/sources/index/
 knowledge/sources/MANIFEST.local.yaml
 config/compliance/links.local/
+config/compliance/links/generated.yaml
 
 /frontend/node_modules
