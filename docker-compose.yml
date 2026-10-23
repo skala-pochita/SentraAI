@@ -7,6 +7,7 @@ x-backend: &backend
   image: ai-security-auditor/backend:dev
   env_file: [.env]
   environment:
+    COMPLIANCE_CONFIG_DIR: /app/config/compliance
     DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
     REDIS_URL: redis://redis:6379/0
     KAFKA_BOOTSTRAP: kafka:9092
@@ -167,6 +168,7 @@ services:
 
   rag-mcp:
     <<: *backend
+    volumes: ["${COMPLIANCE_CONFIG_DIR:-./config/compliance}:/app/config/compliance:ro", "${COMPLIANCE_SOURCES_DIR:-./knowledge/sources}:/app/knowledge/sources:ro"]
     command: ["python", "-m", "mcp_servers.rag.server"]
     ports: ["8102:8102"]
     depends_on:
@@ -180,7 +182,7 @@ services:
 
   api:
     <<: *backend
-    volumes: ["reports:/app/reports", "workspace:/workspace", "vault-data:/var/lib/audit-vault/data", "vault-keys:/var/lib/audit-vault/keys"]
+    volumes: ["${COMPLIANCE_CONFIG_DIR:-./config/compliance}:/app/config/compliance:ro", "${COMPLIANCE_SOURCES_DIR:-./knowledge/sources}:/app/knowledge/sources:ro", "reports:/app/reports", "workspace:/workspace", "vault-data:/var/lib/audit-vault/data", "vault-keys:/var/lib/audit-vault/keys"]
     command: ["sh", "-c", "alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port 8000 --no-server-header"]
     ports: ["8000:8000"]
     depends_on:
@@ -195,8 +197,10 @@ services:
 
   audit-worker:
     <<: *backend
+    volumes: ["${COMPLIANCE_CONFIG_DIR:-./config/compliance}:/app/config/compliance:ro", "${COMPLIANCE_SOURCES_DIR:-./knowledge/sources}:/app/knowledge/sources:ro"]
     command: ["python", "-m", "workers.main", "--role", "audit"]
     environment:
+      COMPLIANCE_CONFIG_DIR: /app/config/compliance
       WORKER_ROLE: audit
       DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
       REDIS_URL: redis://redis:6379/0
@@ -212,9 +216,10 @@ services:
 
   eval-worker:
     <<: *backend
-    volumes: ["reports:/app/reports", "workspace:/workspace", "vault-data:/var/lib/audit-vault/data", "vault-keys:/var/lib/audit-vault/keys"]
+    volumes: ["${COMPLIANCE_CONFIG_DIR:-./config/compliance}:/app/config/compliance:ro", "${COMPLIANCE_SOURCES_DIR:-./knowledge/sources}:/app/knowledge/sources:ro", "reports:/app/reports", "workspace:/workspace", "vault-data:/var/lib/audit-vault/data", "vault-keys:/var/lib/audit-vault/keys"]
     command: ["python", "-m", "workers.main", "--role", "eval"]
     environment:
+      COMPLIANCE_CONFIG_DIR: /app/config/compliance
       WORKER_ROLE: eval
       DATABASE_URL: postgresql+asyncpg://auditor:auditor@postgres:5432/auditor
       REDIS_URL: redis://redis:6379/0

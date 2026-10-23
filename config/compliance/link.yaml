@@ -1,0 +1,20 @@
+candidates: 5
+confidence_threshold: 0.8
+max_tokens: 50000
+max_cost_usd: 1.0
+max_pairs: 200
+extra_queries:
+  - category: INDIRECT_INJECTION
+    name: 외부 문서의 간접 프롬프트 인젝션 탐지 및 차단
+  - category: JAILBREAK
+    name: 시스템 제약 우회와 탈옥 공격 방어
+  - category: DATA_EXFILTRATION
+    name: 개인정보와 기밀정보 유출 방지 및 마스킹
+  - category: SYSTEM_PROMPT_LEAK
+    name: 시스템 프롬프트와 내부 모델 정보 노출 방지
+  - category: TOOL_MISUSE
+    name: 외부 도구 API MCP 연계에 대한 승인과 권한 통제
+  - category: PRIVILEGE_ESCALATION
+    name: 업무 목적에 필요한 최소 권한과 권한 상승 방지
+  - category: COMBINED_RISK
+    name: 금융분야 AI 거버넌스 위험관리 점검 결과 기록과 담당자 책임

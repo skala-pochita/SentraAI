@@ -22,6 +22,8 @@ READ_TOOLS = {
         "get_audit_history",
     },
     "rag": {
+        "search_regulation",
+        "get_clause",
         "search_security_standard",
         "search_framework_guide",
         "search_company_policy",
@@ -39,6 +41,7 @@ MUTATING_TOOLS = {
 
 # 명세 8.3 노드 명세의 '사용 MCP 도구'
 NODE_ALLOWLIST: dict[str, set[str]] = {
+    "compliance_link": {"search_regulation", "get_clause"},
     "intake": {"list_audit_targets", "list_repo_files", "get_agent_manifest", "list_false_positive_rules"},
     "code_static_scan": {"run_static_scan", "list_false_positive_rules"},
     "code_investigate": {

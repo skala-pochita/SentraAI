@@ -34,6 +34,12 @@ async function falsePositive() {
               <div class="meter"><div class="progress"><span :style="{ width: `${Math.round(f.confidence * 100)}%` }" /></div><span class="v">{{ f.confidence }}</span></div></div>
           </div>
         </div>
+        <div v-if="f.compliance_refs?.length" class="card">
+          <p class="section-title">국내 기준 검토 후보</p>
+          <p class="muted small">원문 참조와 Finding의 관련성은 보고서에서 별도로 확인합니다.</p>
+          <div class="chips"><span v-for="r in f.compliance_refs" :key="r" class="badge">{{ r }}</span></div>
+          <RouterLink v-if="auth.user?.role !== 'DEVELOPER'" :to="`/audits/${f.audit_id}/report?view=compliance`">원문 인용과 검토 권고 보기</RouterLink>
+        </div>
         <div v-if="f.fix_hint" class="callout ok"><Icon name="wrench" :size="18" /><div><b>수정 방향</b><p style="margin:4px 0 0; color:var(--text-2)">{{ f.fix_hint }}</p></div></div>
         <div v-if="f.standard_refs?.length || f.tools_used?.length" class="card">
           <template v-if="f.standard_refs?.length"><p class="section-title">표준 참조</p><div class="chips"><span v-for="r in f.standard_refs" :key="r" class="badge tone info">{{ r }}</span></div></template>

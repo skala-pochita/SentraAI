@@ -10,6 +10,8 @@ const router = useRouter()
 const targets = ref<Target[]>([])
 const selected = ref<string[]>([])
 const mode = ref('code')
+const sector = ref<string | null>(null)
+const highImpact = ref('UNDETERMINED')
 const uploading = ref(false)
 const ready = ref(false)
 const project = computed(() => {
@@ -46,7 +48,7 @@ onMounted(async () => {
 async function start() {
   busy.value = true; error.value = ''
   try {
-    const r = await post<{ audit_id: string }>('/audits', { target_ids: selected.value, mode: mode.value })
+    const r = await post<{ audit_id: string }>('/audits', { target_ids: selected.value, mode: mode.value, compliance_profile: { sector: sector.value, high_impact_ai: highImpact.value } })
     router.push(`/audits/${r.audit_id}`)
   } catch (e) { error.value = e instanceof ApiError ? e.body.message : String(e) } finally { busy.value = false }
 }
@@ -100,6 +102,14 @@ async function start() {
       </label>
     </div>
 
+    <details class="mt mb">
+      <summary>규제 검토 조건 (선택)</summary>
+      <p class="muted small">입력값은 검토 조건을 표시하는 데 사용합니다. 적용 여부는 사용자가 판단합니다.</p>
+      <div class="row">
+        <label>업종 <select v-model="sector"><option :value="null">미입력</option><option value="finance">금융</option><option value="general">일반</option></select></label>
+        <label>고영향 AI 해당 여부 <select v-model="highImpact"><option value="UNDETERMINED">미판정</option><option value="YES">해당 (사용자 판단)</option><option value="NO">비해당 (사용자 판단)</option></select></label>
+      </div>
+    </details>
     <ExecutionSettingsPanel v-if="project" :key="project.id" :target-id="project.id" @ready="ready = $event" />
     <p v-if="project && mode !== 'code' && !ready" class="muted mt">실행 설정을 저장하고 전체 검사 준비 조건을 충족해 주세요. 코드 검사는 별도로 실행할 수 있습니다.</p>
     <p v-if="error" class="error mt"><Icon name="alert" :size="16" />{{ error }}</p>

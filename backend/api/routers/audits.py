@@ -17,6 +17,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from api.deps import Admin, CurrentUser, LoggedIn, accessible_target_ids, ensure_target_access, require_roles
 from api.errors import Page, page_params, paged
+from core.compliance import Profile
 from core.db.models import (
     Audit,
     AuditEvent,
@@ -81,6 +82,7 @@ async def require_completed(db: AsyncSession, user: CurrentUser, audit_id: uuid.
 class AuditCreate(BaseModel):
     target_ids: list[uuid.UUID] = Field(min_length=1)
     mode: Literal["full", "code", "agent"] = "full"
+    compliance_profile: Profile = Field(default_factory=Profile)
 
 
 async def _with_linked_targets(db: AsyncSession, user: CurrentUser, targets: list[Target]) -> list[Target]:
@@ -138,7 +140,14 @@ async def create_audit(
     if body.mode in {"full", "agent"}:
         await _check_agent_mode(db, body.mode, targets)
     audit_id = uuid.uuid4()
-    a = Audit(id=audit_id, requested_by=user.id, mode=body.mode, status="QUEUED", thread_id=f"audit:{audit_id}")
+    a = Audit(
+        id=audit_id,
+        requested_by=user.id,
+        mode=body.mode,
+        status="QUEUED",
+        thread_id=f"audit:{audit_id}",
+        summary={"compliance_profile": body.compliance_profile.model_dump()},
+    )
     db.add(a)
     await db.flush()
     db.add_all(AuditTarget(audit_id=audit_id, target_id=t.id) for t in targets)

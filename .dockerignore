@@ -17,3 +17,8 @@ private/vault
 **/.env.*
 !**/.env.example
 !targets/**/.env
+knowledge/sources/raw
+knowledge/sources/text
+knowledge/sources/clauses
+knowledge/sources/MANIFEST.local.yaml
+config/compliance/links.local

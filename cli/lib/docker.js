@@ -1,7 +1,7 @@
 // Docker Desktop 확인과 SentraAI 로컬 스택(docker compose) 준비.
 // 저장소 없이 동작한다: 패키지에 든 compose.yml 을 ~/.sentraai 로 복사하고, 배포 이미지를 이름으로 받아 띄운다.
 import { execFile, spawn } from 'node:child_process'
-import { copyFileSync, mkdirSync, readFileSync } from 'node:fs'
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
@@ -104,6 +104,12 @@ async function missingImages() {
 function syncCompose() {
   mkdirSync(configDir(), { recursive: true, mode: 0o700 })
   copyFileSync(join(PKG_DIR, 'compose.yml'), join(configDir(), 'compose.yml'))
+  const sourceDir = process.env.COMPLIANCE_SOURCES_DIR ?? join(configDir(), 'compliance', 'sources')
+  mkdirSync(sourceDir, { recursive: true, mode: 0o700 })
+  if (!existsSync(join(sourceDir, 'MANIFEST.yaml'))) copyFileSync(join(PKG_DIR, 'resources', 'MANIFEST.yaml'), join(sourceDir, 'MANIFEST.yaml'))
+  const complianceDir = process.env.COMPLIANCE_CONFIG_DIR ?? join(configDir(), 'compliance', 'config')
+  mkdirSync(complianceDir, { recursive: true, mode: 0o700 })
+  cpSync(join(PKG_DIR, 'resources', 'compliance'), complianceDir, { recursive: true, force: false, errorOnExist: false })
 }
 
 async function containerIds() {

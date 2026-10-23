@@ -12,9 +12,20 @@ export interface Finding {
   id: string; audit_id: string; target_id: string; source: string; category: string; rule_id: string | null
   title: string; severity: Severity; confidence: number; status: string; evidence: Evidence[]
   reasoning_summary: string; tools_used: string[]; standard_refs: string[]; fix_hint: string | null
+  compliance_refs?: string[];
   fix_proposals?: FixProposal[]; risk_paths?: RiskPath[]
 }
 export interface RiskPath { id: string; rule_id: string; severity: Severity; title: string; finding_ids: string[]; explanation: string }
 export interface FixProposal { id: string; diff: string; merge_status: string | null; branch: string | null; patch_check_passed: boolean; finding_ids: string[]; kind: string }
 export interface Approval { id: string; audit_id: string; status: string; summary: string; findings: { id: string; title: string; severity: Severity; category: string }[] }
 
+
+export interface ComplianceEvidence {
+  quote: string; quote_verified: boolean; relevance: 'ai_estimated' | 'human_confirmed' | 'rejected';
+  link_id: string; via: string; reason: string;
+}
+export interface ComplianceSection {
+  schema: number; status: string; catalog_version?: string; catalog_digest?: string;
+  recommendations?: { control_id: string; heading: string; status: string; condition: string; evidence: ComplianceEvidence[] }[];
+  missing_sources?: { source: string; title: string; reason: string }[];
+}

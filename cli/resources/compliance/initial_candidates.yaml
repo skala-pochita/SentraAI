@@ -1,0 +1,125 @@
+- key:
+    category: INDIRECT_INJECTION
+  source: FSC-AI-GL
+  quote: 외부 사용자 입력이나 외부 데이터를 수집하는 인공지능서비스의 경우
+  clause: FSC-AI-GL:7-CHK-05
+- key:
+    category: INDIRECT_INJECTION_SURFACE
+  source: FSC-AI-GL
+  quote: 외부 사용자 입력이나 외부 데이터를 수집하는 인공지능서비스의 경우
+  clause: FSC-AI-GL:7-CHK-05
+- key:
+    category: JAILBREAK
+  source: FSC-AI-GL
+  quote: 시스템 제약을 우회하여 부적절한 결과를 얻으려는 시도를 탐지 및 차단
+  clause: FSC-AI-GL:7-CHK-06
+- key:
+    category: DATA_EXFILTRATION
+  source: FSC-AI-GL
+  quote: 입출력 데이터에서 목적 외 고유식별정보 및 개인(신용)정보 포함 여부를 탐지
+  clause: FSC-AI-GL:7-CHK-07
+- key:
+    category: SYSTEM_PROMPT_LEAK
+  source: FSC-AI-GL
+  quote: 출력 데이터와 에러 메시지에서 인공지능 모델 정보
+  clause: FSC-AI-GL:7-CHK-08
+- key:
+    category: INFO_EXPOSURE
+  source: FSC-AI-GL
+  quote: 출력 데이터와 에러 메시지에서 인공지능 모델 정보
+  clause: FSC-AI-GL:7-CHK-08
+- key:
+    category: INDIRECT_INJECTION
+  source: FSC-AI-GL
+  quote: 프롬프트 인젝션 및 탈옥 공격에 대한 방어 체계를 구축했는가?
+  clause: FSC-AI-GL:7-CHK-09
+- key:
+    category: JAILBREAK
+  source: FSC-AI-GL
+  quote: 프롬프트 인젝션 및 탈옥 공격에 대한 방어 체계를 구축했는가?
+  clause: FSC-AI-GL:7-CHK-09
+- key:
+    category: PROMPT_NO_INSTRUCTION_HIERARCHY
+  source: FSC-AI-GL
+  quote: 프롬프트 인젝션 및 탈옥 공격에 대한 방어 체계를 구축했는가?
+  clause: FSC-AI-GL:7-CHK-09
+- key:
+    category: SYSTEM_PROMPT_LEAK
+  source: FSC-AI-GL
+  quote: 시스템 프롬프트 노출 등 내부 정보 유출 공격에 대한 모의훈련
+  clause: FSC-AI-GL:7-CHK-13
+- key:
+    category: TOOL_EXCESSIVE_SCOPE
+  source: FSC-AI-GL
+  quote: 업무 목적에 필요한 최소한의 권한만 부여하는가?
+  clause: FSC-AI-GL:7-CHK-24
+- key:
+    category: PRIVILEGE_ESCALATION
+  source: FSC-AI-GL
+  quote: 업무 목적에 필요한 최소한의 권한만 부여하는가?
+  clause: FSC-AI-GL:7-CHK-24
+- key:
+    category: TOOL_MISUSE
+  source: FSC-AI-GL
+  quote: 업무 목적에 필요한 최소한의 권한만 부여하는가?
+  clause: FSC-AI-GL:7-CHK-24
+- key:
+    category: TOOL_NO_APPROVAL
+  source: KR-AIBA
+  quote: 고영향 인공지능에 대한 사람의 관리ㆍ감독
+  clause: KR-AIBA:34-1-4
+- key:
+    category: SECRET_LEAK
+  source: FSC-AI-SEC
+  quote: 'API 키 안전 보관: 환경 변수, 시크릿 관리 도구 활용(코드 내 하드코딩 금지)'
+- key:
+    category: HARDCODED_SECRET
+  source: FSC-AI-SEC
+  quote: 'API 키 안전 보관: 환경 변수, 시크릿 관리 도구 활용(코드 내 하드코딩 금지)'
+- key:
+    category: HARDCODED_CREDENTIAL
+  source: FSC-AI-SEC
+  quote: 'API 키 안전 보관: 환경 변수, 시크릿 관리 도구 활용(코드 내 하드코딩 금지)'
+- key:
+    category: PROMPT_SECRET_EMBEDDED
+  source: FSC-AI-SEC
+  quote: 'API 키 안전 보관: 환경 변수, 시크릿 관리 도구 활용(코드 내 하드코딩 금지)'
+- key:
+    category: AGENT_SHARED_SECRET
+  source: FSC-AI-SEC
+  quote: '키별 권한 최소화: 서비스·환경별로 별도 API 키 사용'
+- key:
+    category: TOOL_EXCESSIVE_SCOPE
+  source: FSC-AI-SEC
+  quote: '최소 권한 원칙: 개발/운영/평가자 역할별로 필요한 최소한의 권한만 부여'
+- key:
+    category: TOOL_EXFIL_CHANNEL
+  source: FSC-AI-SEC
+  quote: '외부 도구 사전 승인 절차: AI 시스템이 외부 도구(API, MCP 등)와 연계될 때'
+- key:
+    category: TOOL_MISUSE
+  source: FSC-AI-SEC
+  quote: '외부 도구 사전 승인 절차: AI 시스템이 외부 도구(API, MCP 등)와 연계될 때'
+- key:
+    category: TOOL_NO_APPROVAL
+  source: FSC-AI-SEC
+  quote: 고객 영향도가 큰 의사결정은 사람이 최종 승인
+- key:
+    category: PROMPT_NO_INSTRUCTION_HIERARCHY
+  source: FSC-AI-SEC
+  quote: '시스템 프롬프트 관리: 시스템 프롬프트 버전별 내용, 변경 이력, 변경 사유 및 승인자 기록'
+- key:
+    audit: probe_execution
+  source: FSC-AI-GL
+  quote: 고영향·고위험 시스템의 경우 인공지능을 속여 잘못된 결과를 유도하는 공격에 대한 정기적 모의훈련
+  clause: FSC-AI-GL:7-CHK-10
+- key:
+    audit: audit_execution
+  source: FSC-AI-GL
+  quote: 인공지능시스템을 운영 시스템으로 이관하기 전, 운영 중에는 정기적으로 보안성 검증
+  clause: FSC-AI-GL:7-CHK-29
+- key:
+    audit: report_document
+  source: KR-AIBA
+  quote: 안전성ㆍ신뢰성 확보를 위한 조치의 내용을 확인할 수 있는 문서의 작성과 보관
+  clause: KR-AIBA:34-1-5
