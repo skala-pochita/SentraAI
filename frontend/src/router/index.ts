@@ -17,6 +17,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/audits/:id/findings', component: () => import('../pages/FindingsPage.vue'), meta: { title: 'Findings', roles: ALL, group: '감사', desc: '탐지 결과 — 심각도·신뢰도 순' } },
   { path: '/audits/:id/risks', component: () => import('../pages/RisksPage.vue'), meta: { title: '결합 위험', roles: ALL, group: '감사', desc: '여러 Finding 이 엮여 커지는 위험 경로' } },
   { path: '/audits/:id/redteam', component: () => import('../pages/RedTeamPage.vue'), meta: { title: '레드팀 결과', roles: ALL, group: '감사', desc: 'probe 별 공격 시도와 성공률' } },
+  { path: '/audits/:id/compare', component: () => import('../pages/ComparePage.vue'), meta: { title: '수정 전후 비교', roles: ALL, group: '감사', desc: '이전 버전 감사와 비교 · 동일 공격 재검증' } },
   { path: '/audits/:id/report', component: () => import('../pages/ReportPage.vue'), meta: { title: '보고서', roles: ALL, group: '감사', desc: '감사 보고서 (Markdown)' } },
   { path: '/findings/:id', component: () => import('../pages/FindingPage.vue'), meta: { title: 'Finding 상세', roles: ALL, group: '감사', desc: '근거·수정 방향·결합 위험' } },
   { path: '/eval', component: () => import('../pages/CodeEvalPage.vue'), meta: { title: '모델 비교', nav: true, roles: ALL, icon: 'flask', group: '분석', desc: 'A/B 비교 실험 — 작은 모델 + AI Agent 효과' } },
@@ -34,7 +35,7 @@ router.beforeEach(async (to) => {
   if (to.meta.public) return true
   if (!auth.user) return { path: '/login', query: { next: to.fullPath } }
   if (to.meta.roles && !to.meta.roles.includes(auth.user.role)) return { path: '/' }
-  const auditMatch = to.path.match(/^\/audits\/([^/]+)\/(findings|risks|redteam|report)$/)
+  const auditMatch = to.path.match(/^\/audits\/([^/]+)\/(findings|risks|redteam|report|compare)$/)
   if (auditMatch) {
     const audit = await get<{ status: string }>(`/audits/${auditMatch[1]}`)
     if (audit.status !== 'COMPLETED') return { path: `/audits/${auditMatch[1]}` }

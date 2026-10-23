@@ -5,12 +5,12 @@ from __future__ import annotations
 import uuid
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, Form, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.deps import Admin, CurrentUser, LoggedIn, accessible_target_ids, require_roles
+from api.deps import Admin, CurrentUser, LoggedIn, accessible_target_ids, ensure_target_access, require_roles
 from api.errors import Page, page_params, paged
 from core.db.models import Target
 from core.db.session import get_db
@@ -83,23 +83,38 @@ async def create_target(body: TargetCreate, _: CurrentUser = Admin, db: AsyncSes
 @router.post("/targets/upload", response_model=TargetOut, status_code=201)
 async def upload_project(
     file: UploadFile,
+    previous_target_id: uuid.UUID | None = Form(None),
     user: CurrentUser = Depends(require_roles("ADMIN", "DEVELOPER")),
     db: AsyncSession = Depends(get_db),
 ) -> TargetOut:
-    """Upload a ZIP snapshot; register a private, read-only code audit target."""
+    """Upload a ZIP snapshot; register a private, read-only code audit target.
+
+    previous_target_id: 수정본이면 이전 버전의 업로드 소스 대상. 같은 프로젝트의 다음 버전으로 등록하고
+    실행 설정을 복사한다 (비밀값은 새 대상 범위로 다시 암호화).
+    """
     import asyncio
     import shutil
 
     from core.project_upload import MAX_UPLOAD_BYTES, extract_project
+    from core.project_versions import copy_execution_settings, next_version_config
+    from core.secret_store import SecretStore
     from core.settings import get_settings
 
     if not file.filename or not file.filename.lower().endswith(".zip"):
         raise AppError(ErrorCode.VALIDATION, "프로젝트를 ZIP 파일로 업로드하세요.")
+    lineage: dict[str, Any] = {}
+    if previous_target_id is not None:
+        await ensure_target_access(user, db, {previous_target_id})
+        previous = await db.get(Target, previous_target_id)
+        if previous is None or previous.type != "repo" or previous.config.get("source") != "upload":
+            raise AppError(ErrorCode.VALIDATION, "이전 버전은 업로드한 소스 프로젝트여야 합니다.")
+        lineage = next_version_config(previous)
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     await file.close()
     target_id = uuid.uuid4()
     destination = get_settings().workspace_dir / "uploads" / str(target_id)
     root = await asyncio.to_thread(extract_project, data, destination)
+    copied: list[str] = []
     try:
         from core.agent_project import discover_agent
 
@@ -136,6 +151,9 @@ async def upload_project(
                 "agent_detected": bool(profile),
                 "runtime": runtime,
                 "agent_discovery": profile["discovery"] if profile else None,
+                "project_id": lineage.get("project_id", str(target_id)),
+                "version": lineage.get("version", 1),
+                "previous_target_id": lineage.get("previous_target_id"),
             },
         )
         db.add(t)
@@ -162,9 +180,13 @@ async def upload_project(
             await db.flush()
             t.linked_target_id = agent.id
             await db.flush()
+        if previous_target_id is not None:
+            copied = await copy_execution_settings(db, previous_target_id, target_id)
         await db.refresh(t)
         await db.commit()
         return TargetOut.of(t)
     except Exception:
         await asyncio.to_thread(shutil.rmtree, destination, True)
+        for ref in copied:
+            await asyncio.to_thread(SecretStore().delete, ref)
         raise
