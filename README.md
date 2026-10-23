@@ -3,14 +3,14 @@
 </p>
 
 <h1 align="center">SentraAI</h1>
-<p align="center"><strong>AI 에이전트 보안 감사 · 국내 법적 리스크 검토</strong></p>
+<p align="center"><strong>AI 에이전트 보안 감사 · 국내 AI 규제 기준 검토</strong></p>
 <p align="center">
   <a href="https://github.com/skala-pochita/SentraAI/actions/workflows/ci.yml"><img src="https://github.com/skala-pochita/SentraAI/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
 </p>
 
 AI 에이전트 프로젝트를 업로드하면 코드의 취약점과 에이전트의 도구 권한을 검사하고, 격리 환경에서 공격을 실행해 결과를 확인합니다. 발견한 보안 문제는 **국내 법령·가이드라인의 관련 원문과 연결해, 추가로 검토해야 할 항목과 근거를 보고서로 제공합니다.**
 
-예를 들어 에이전트가 공격 지시를 따라 내부 데이터에 접근했다면, 어떤 요청이 성공했고 어느 코드와 연결되는지 확인할 수 있습니다. 이어 국내 기준에서 검토할 통제 항목과 원문 출처를 함께 살펴봅니다.
+예를 들어 에이전트가 공격 지시를 따라 내부 데이터에 접근했다면, 어떤 요청이 성공했고 어느 코드와 연결되는지 확인할 수 있습니다. 이어 국내 AI 규제 기준에서 검토할 통제 항목과 원문 출처를 함께 살펴봅니다.
 
 ## 앱 사용 흐름
 
@@ -22,7 +22,7 @@ flowchart TB
   Code --> Evidence["3. 발견한 문제와 공격 경로 확인"]
   Agent --> Evidence
   Evidence --> Security["감사 보고서 · 코드와 실행 근거"]
-  Evidence --> Legal["국내 법적 리스크 검토 · 관련 원문과 검토 항목"]
+  Evidence --> Legal["국내 AI 규제 기준 검토 · 관련 원문과 검토 항목"]
   Security --> Compare["4. 수정본 재업로드·이전 결과와 비교"]
   Legal --> Compare
 ```
@@ -32,7 +32,7 @@ flowchart TB
 | 업로드·설정 | 소스 ZIP을 올리고 전체/코드/에이전트 검사, 모델 실행 방식, 업종·고영향 AI 조건 선택 | 검사 대상과 실행 준비 상태 |
 | 감사 진행 | 진행 화면에서 검사 단계 확인 | 완료한 단계와 실행 오류 |
 | 결과 확인 | Findings·결합 위험·레드팀 화면에서 문제 선택 | 파일·라인·코드, 공격 요청·응답, 문제들이 이어지는 경로 |
-| 보고서 확인 | 보고서에서 ‘감사 보고서’ 또는 ‘규제 검토 권고’ 선택 | 보안 결과와 국내 기준 검토 근거, JSON·Markdown 다운로드 |
+| 보고서 확인 | 보고서에서 ‘감사 보고서’ 또는 ‘규제 검토 권고’ 선택 | 보안 결과와 국내 AI 규제 기준 검토, JSON·Markdown 다운로드 |
 | 수정 후 확인 | 수정본을 이전 버전과 연결해 다시 업로드 | 신규 발견·여전히 존재·재검증에서 해소 또는 차단·확인 불가 |
 
 ### 실제 보고서 화면
@@ -41,36 +41,16 @@ flowchart TB
 
 ![규제 검토 권고 화면: 보고서 전환, 검토 항목, 원문 출처와 위치](reports/release-law-qa/report-alignment.jpg)
 
-<details>
-<summary>기존 서비스 화면 보기</summary>
-
-![SentraAI 서비스 화면](https://github.com/user-attachments/assets/7c2df03c-b809-4d0b-b9cd-5d8f973454dd)
-
-</details>
 
 ## 아키텍처
 
 화면에서 요청한 감사는 Kafka를 통해 워커에 전달됩니다. 감사 에이전트는 MCP 도구로 코드를 검사하고 격리 환경을 실행하며, RAG로 보안 기준을 조회합니다. 규제 보고서는 원문 인용과 관련성을 검토해 저장한 연결을 사용합니다.
 
-```mermaid
-flowchart TB
-  Web["Vue 대시보드 · nginx"] --> API["FastAPI · 업로드·감사·보고서"]
-  API --> Queue["Kafka · 감사 작업 전달"]
-  Queue --> Workers["감사 워커 · LangGraph·Harness"]
-  Workers --> Business["Business MCP · 코드 검사·실행 증거"]
-  Workers --> RAG["RAG MCP · 보안 기준·규제 원문 검색"]
-  Business --> Sandbox["Docker sandbox · 대상 앱·공격 실행"]
-  Sandbox --> Proxy["감사 전용 relay · LLM proxy"]
-  Proxy --> Model["OpenAI · 대상 모델 호출"]
-  API --> DB["PostgreSQL·pgvector · 결과·검색 데이터"]
-  Business --> DB
-  RAG --> DB
-  Workers --> Redis["Redis · 중간 상태·진행 이벤트·잠금"]
-```
+![SentraAI 아키텍처 — 감사 요청, 코드·에이전트 검사, 국내 AI 규제 기준 검토](docs/images/architecture.png)
 
-### 국내 법적 리스크 검토는 어떻게 동작하나요?
+### 국내 AI 규제 기준 검토는 어떻게 동작하나요?
 
-**기존 보안 검사 결과에 ‘국내 기준에서 무엇을 더 확인해야 하는가’를 붙이는 기능입니다.** 화면에서는 ‘규제 검토 권고’로 제공하며, Finding마다 관련 원문·적용 조건·추가 확인 사항을 모아 볼 수 있습니다.
+**기존 보안 검사 결과에 ‘국내 AI 규제 기준에서 무엇을 더 확인해야 하는가’를 붙이는 기능입니다.** 화면에서는 ‘규제 검토 권고’로 제공하며, Finding마다 관련 원문·적용 조건·추가 확인 사항을 모아 볼 수 있습니다.
 
 ```mermaid
 flowchart TB
@@ -103,7 +83,7 @@ flowchart TB
 | 코드 보안 검사 | 비밀정보 노출, SQL Injection, 경로 탐색, Spring Security 설정 문제 등의 코드 위치와 수정 권고 |
 | 에이전트 공격 검사 | 도구 권한·시스템 프롬프트를 점검하고, 인젝션 공격의 성공·차단·미확인 결과와 실행 기록 확인 |
 | 공격 경로 분석 | 코드 문제와 에이전트 동작이 어떻게 이어지는지 확인. 실제 실행 근거와 조건부 추정을 구분 |
-| 국내 법적 리스크 검토 | 발견한 보안 문제와 국내 법령·가이드라인을 연결한 검토 항목, 원문 인용, 출처와 적용 조건 |
+| 국내 AI 규제 기준 검토 | 발견한 보안 문제와 국내 법령·가이드라인을 연결한 검토 항목, 원문 인용, 출처와 적용 조건 |
 | 수정 전후 비교 | 같은 프로젝트의 이전 감사와 비교해 남은 문제와 재검증 결과 확인 |
 | 모델 비교 | 내장 정답셋으로 모델 단독과 감사 시스템의 탐지 품질·시간·토큰 사용량 비교 |
 
@@ -165,13 +145,6 @@ sentraai setup      # 키 다시 입력          sentraai stop   # 서버 멈춤
 
 위 링크는 이미 공개된 프리릴리즈이며, 이후 main에 추가된 규제 기능은 새 버전 Release 전까지 저장소에서 실행한다. 배포는 `cli/package.json` 버전을 올리고 같은 이름의 태그를 push 하면 GitHub Actions가 이미지(GHCR)와 CLI(Release)를 올린다. 첫 배포 뒤 GHCR 패키지를 Public으로 바꿔야 로그인 없이 받을 수 있다. 로컬에서 이미지만 만들어 시험하려면 `make cli-images && make cli-pack`.
 
-### 데모 계정 (운영 금지)
-
-| 이메일 | 역할 | 비밀번호 |
-|---|---|---|
-| admin@demo.io | ADMIN | `.env`의 `SEED_ADMIN_PASSWORD` |
-| dev@demo.io | DEVELOPER | `SEED_DEV_PASSWORD` |
-| auditor@demo.io | AUDITOR | `SEED_AUDITOR_PASSWORD` |
 
 <details>
 <summary>수정본 재업로드와 비교 API</summary>
@@ -232,43 +205,14 @@ B는 A보다 탐지 품질이 크게 높고, 대신 토큰은 약 4.3배, 시간
 
 </details>
 
-## 범위와 남은 과제
-
-- **국내 기준 검토:** 원문은 확보한 버전 기준입니다. 개정 추적, 업종·고영향 AI 적용 판단, 조항 관련성에 대한 전문가 확인이 필요합니다. 현재 후보를 사람 확인 완료로 간주하지 않습니다.
-- **검색 품질:** hash 임베딩은 오프라인 대체 수단입니다. 고정 질의 8개 통과가 전체 검색 품질이나 법률 정확도를 뜻하지 않습니다.
-- **공격 검사:** 지원하는 ZIP/Compose·프로토콜·공격 시나리오 범위에서 동작합니다. MOCK 결과와 실제 모델의 공격 결과를 구분해야 합니다.
-- **운영 환경:** Docker 격리는 VM 수준 경계가 아닙니다. 전용 실행 서버, TLS, 원문·DB·vault의 접근 제어와 백업이 필요합니다. 이번 전체 흐름 QA는 로컬 Docker 환경에서 진행했습니다.
-- **화면 성능:** 일부 ECharts·Three.js 청크가 500kB를 넘습니다. 실제 로딩 측정과 추가 분할이 남아 있습니다.
 
 샘플 대상 `targets/`의 키·비밀번호는 취약점 탐지용 가짜 값입니다.
 
-## 개발
-
-```bash
-make test    # 기본 단위·통합 테스트. DB가 없으면 DB 통합 항목은 skip하므로 QA에서는 PostgreSQL을 준비한다
-make lint    # ruff + mypy + vue-tsc
-cd frontend && pnpm dev   # http://localhost:5173 (api 프록시)
-```
-
-## 저장소 구조
-
-```
-backend/     api · core(graph, kafka, db) · harness · mcp_servers · workers · llm_proxy · sandbox
-frontend/    Vue 3 대시보드
-rules/       코드·Agent·결합 위험 규칙 (YAML)
-knowledge/   보안 RAG 지식 + sources/ 원문 manifest·검토 정책 (PDF·추출물·인덱스는 로컬 전용)
-datasets/    비교 실험 정답셋
-targets/     내장 샘플 감사 대상 (취약 Spring 앱, CS 에이전트 vuln/hardened)
-config/      모델·예산·임계값 설정
-workHistory/ 기획서·설계 결정·품질 보고서 등 작업 기록
-```
-
-기존 DB는 기준 감사 `0005` → 공격 경로 `0006` → 보정 `0007` → 규제 유형 `0008` 순서로 마이그레이션합니다. API·MCP·워커·프런트를 함께 갱신합니다.
 
 ## 문서
 
 - [기획서](workHistory/기획서.md) · [설계 변경 기록](workHistory/DECISIONS.md)
 - [업로드 프로젝트 감사](workHistory/UPLOADED_PROJECT_AUDIT.md) · [공격 경로 구현](workHistory/ATTACK_PATH_IMPLEMENTATION.md)
-- [국내 기준 검토 설계](workHistory/COMPLIANCE_MAPPING_DESIGN.md) · [원문 준비·운영](workHistory/COMPLIANCE_RUNBOOK.md)
+- [국내 AI 규제 기준 검토 설계](workHistory/COMPLIANCE_MAPPING_DESIGN.md) · [원문 준비·운영](workHistory/COMPLIANCE_RUNBOOK.md)
 - [통합·보안·배포 QA](workHistory/LAW_EVIDENCE_RELEASE_QA.md)
 - [ISO/IEC 25010 품질 평가](workHistory/isoReport.md) · [품질 구현·검증](workHistory/QUALITY_IMPLEMENTATION.md)
