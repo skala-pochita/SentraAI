@@ -104,6 +104,7 @@ class Audit(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     summary: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default=text("'{}'"))
+    baseline_audit_id: Mapped[uuid.UUID | None] = _fk("audits.id", nullable=True)  # 수정본 비교의 기준 감사
     created_at: Mapped[datetime] = _created()
 
 

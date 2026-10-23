@@ -18,7 +18,18 @@ from core.schemas import SEVERITY_ORDER
 SEV_KO = {"CRITICAL": "치명", "HIGH": "높음", "MEDIUM": "중간", "LOW": "낮음", "INFO": "참고"}
 
 
-PROBE_FIELDS = ("probe_id", "category", "attempts", "successes", "asr", "judged_by", "adaptive", "error")
+PROBE_FIELDS = (
+    "probe_id",
+    "base_probe_id",
+    "category",
+    "attempts",
+    "successes",
+    "uncertain",
+    "asr",
+    "judged_by",
+    "adaptive",
+    "error",
+)
 
 
 def _report_finding(f: dict[str, Any], status_of: dict[str, str]) -> dict[str, Any]:
