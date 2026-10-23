@@ -31,7 +31,7 @@ async function falsePositive() {
             <div class="kv"><span class="muted small">규칙</span><span class="mono">{{ f.rule_id ?? 'LLM' }}</span></div>
             <div class="kv"><span class="muted small">출처</span><span class="mono">{{ f.source }}</span></div>
             <div class="kv"><span class="muted small">신뢰도</span>
-              <div class="meter"><div class="progress"><span :style="{ width: `${Math.round(f.confidence * 100)}%` }" /></div><span class="v">{{ f.confidence }}</span></div></div>
+              <div class="meter"><div class="progress"><span :style="{ width: `${Math.round(f.confidence * 100)}%` }" /></div><span class="v">{{ f.confidence.toFixed(2) }}</span></div></div>
           </div>
         </div>
         <div v-if="f.fix_hint" class="callout ok"><Icon name="wrench" :size="18" /><div><b>수정 방향</b><p style="margin:4px 0 0; color:var(--text-2)">{{ f.fix_hint }}</p></div></div>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from datetime import UTC, datetime
 from typing import Any
@@ -10,6 +11,7 @@ from langchain_core.runnables import RunnableConfig
 
 from core.graph.deps import get_deps
 from core.graph.nodes._base import node
+from core.path_schema import LEVEL_LABELS
 from core.redis.locks import release_target_lock
 from core.schemas import SEVERITY_ORDER
 
@@ -84,6 +86,7 @@ def build_report(state: dict[str, Any], db_findings: list[dict[str, Any]]) -> di
         "summary": _summary(findings, probes),
         "agent_coverage": _coverage(state, probes),
         "risk_paths": state.get("risk_paths", []),
+        "correlation_gaps": state.get("correlation_gaps", []),
         "findings": findings,
         "probes": probes,
         "tokens": {
@@ -118,11 +121,49 @@ def render_md(r: dict[str, Any]) -> str:
             )
         lines.append("모의(mock) 에이전트의 도구 실행 결과는 실제 LLM의 인젝션 방어 성능을 뜻하지 않습니다.")
         lines.append("")
+    if r.get("correlation_gaps"):
+        lines += ["## 결합 분석의 미확인 구간", ""]
+        for gap in r["correlation_gaps"]:
+            lines.append(f"- {gap['rule_id']} · {gap['target_id']}: {gap['reason']}")
+        lines.append("")
     if r["risk_paths"]:
         lines += ["## 결합 위험", ""]
         lines += [
             f"- **[{p['severity']}] {p['title']}** ({p['rule_id']}) — {p['explanation']}" for p in r["risk_paths"]
         ]
+        for p in r["risk_paths"]:
+            payload = p.get("payload") or {}
+            if not payload:
+                lines.append("  - 기존 형식: 단계 근거 미수집")
+                continue
+            lines.append(f"  - 실행 환경: {payload['runtime_mode']} · 관측 출처: {payload['observation_source']}")
+            if payload.get("severity_reason"):
+                lines.append(f"  - 심각도 산정 근거: {payload['severity_reason']}")
+            for reason in payload.get("code_reasons", []):
+                ref = reason["ref"]
+                fence = "`" * max(
+                    3, 1 + max((len(m.group()) for m in re.finditer(r"`+", reason["snippet_masked"])), default=0)
+                )
+                lines += [
+                    f"  - 코드/설정 근거 [{reason['kind']}]: {ref['file_path']}:{ref.get('line_start')} — {reason['explanation']}",
+                    "",
+                    fence,
+                    reason["snippet_masked"],
+                    fence,
+                    "",
+                ]
+            for step in payload["steps"]:
+                lines.append(f"  - [{LEVEL_LABELS[step['evidence_level']]}] {step['title']}: {step['claim']}")
+                for ref in step["evidence_refs"]:
+                    lines.append(
+                        f"    - 근거: finding={ref.get('finding_id')}, run={ref.get('probe_run_id')}, call={ref.get('tool_call_index')}, file={ref.get('file_path')}:{ref.get('line_start')}"
+                    )
+            for edge in payload["edges"]:
+                lines.append(
+                    f"  - 연결 [{LEVEL_LABELS[edge['evidence_level']]}] {edge['from_step_id']} → {edge['to_step_id']}: {edge['relation']}"
+                )
+            for condition in payload["missing_evidence"]:
+                lines.append(f"  - 미확인: {condition}")
         lines.append("")
     lines += ["## Finding 목록", "", "| 심각도 | 제목 | 위치 | 상태 | 근거 표준 |", "|---|---|---|---|---|"]
     for f in r["findings"]:

@@ -133,6 +133,7 @@ class Finding(Base):
     severity: Mapped[str] = mapped_column(Text, nullable=False)
     confidence: Mapped[float] = mapped_column(Float(precision=24), nullable=False)
     status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'OPEN'"))
+    subject: Mapped[str | None] = mapped_column(Text)
     fingerprint: Mapped[str] = mapped_column(Text, nullable=False)
     evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
     reasoning_summary: Mapped[str] = mapped_column(Text, nullable=False)
@@ -144,6 +145,7 @@ class Finding(Base):
 
 class RiskPath(Base):
     __tablename__ = "risk_paths"
+    __table_args__ = (UniqueConstraint("correlation_finding_id", name="uq_risk_path_correlation"),)
     id: Mapped[uuid.UUID] = _pk()
     audit_id: Mapped[uuid.UUID] = _fk("audits.id")
     rule_id: Mapped[str] = mapped_column(Text, nullable=False)
@@ -151,6 +153,8 @@ class RiskPath(Base):
     title: Mapped[str] = mapped_column(Text, nullable=False)
     finding_ids: Mapped[list[uuid.UUID]] = mapped_column(ARRAY(UUID(as_uuid=True)), nullable=False)
     explanation: Mapped[str] = mapped_column(Text, nullable=False)
+    payload: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    correlation_finding_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("findings.id"))
 
 
 class ProbeRun(Base):
@@ -165,6 +169,7 @@ class ProbeRun(Base):
     request: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     reply_masked: Mapped[str] = mapped_column(Text, nullable=False)
     tool_calls: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
+    verdict: Mapped[str | None] = mapped_column(Text)
     success: Mapped[bool] = mapped_column(Boolean, nullable=False)
     judged_by: Mapped[str] = mapped_column(Text, nullable=False)
     latency_ms: Mapped[int | None] = mapped_column(Integer)

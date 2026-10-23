@@ -12,7 +12,7 @@ interface Settings {
   readiness: { ready: boolean; criteria: Criterion[]; services: string[]; verification: string }
 }
 const props = defineProps<{ targetId: string }>()
-const emit = defineEmits<{ ready: [boolean]; dirty: [] }>()
+const emit = defineEmits<{ ready: [boolean]; dirty: []; blockers: [string[]]; checked: [] }>()
 const settings = ref<Settings | null>(null)
 const envText = ref('{}')
 const providerKey = ref('')
@@ -26,6 +26,7 @@ let generation = 0
 async function load() {
   const current = ++generation
   error.value = ''; settings.value = null; emit('ready', false)
+  emit('blockers', ['프로젝트 실행 설정과 준비 조건을 확인하고 있습니다.'])
   try {
     const loaded = await get<Settings>(`/targets/${props.targetId}/execution`)
     if (current !== generation) return
@@ -33,11 +34,21 @@ async function load() {
     envText.value = JSON.stringify(settings.value.environment, null, 2)
     providerKey.value = ''; secretRows.value = []; removeSecrets.value = []; removeProvider.value = false
     dirty.value = false; emit('ready', settings.value.readiness.ready)
-  } catch (e) { error.value = (e as Error).message }
+    emit('blockers', settings.value.readiness.criteria
+      .filter((criterion) => criterion.met === false)
+      .map((criterion) => `${criterion.name}: ${criterion.detail}`))
+  } catch (e) {
+    if (current !== generation) return
+    error.value = (e as Error).message
+    emit('blockers', [`실행 설정을 불러오지 못했습니다: ${error.value} 다시 불러오기를 눌러 주세요.`])
+  }
 }
 onMounted(load)
 watch(() => props.targetId, load)
-function changed() { dirty.value = true; emit('dirty'); emit('ready', false) }
+function changed() {
+  dirty.value = true; emit('dirty'); emit('ready', false)
+  emit('blockers', ['변경한 실행 설정이 저장되지 않았습니다. ‘설정 저장·조건 확인’을 눌러 준비 조건을 다시 확인하세요.'])
+}
 function remove(name: string) { removeSecrets.value.push(name); changed() }
 async function save() {
   if (!settings.value) return
@@ -60,6 +71,7 @@ async function save() {
       ...(providerKey.value ? { provider_api_key: providerKey.value } : {}),
     })
     await load()
+    emit('checked')
   } catch (e) { error.value = (e as Error).message }
   finally { busy.value = false }
 }
@@ -69,6 +81,7 @@ async function save() {
     <h3>프로젝트 실행 설정</h3>
     <p class="muted small">일반 설정과 비밀값을 분리합니다. 제공자 키는 암호화 저장하고, 타깃에는 감사 전용 임시 토큰만 전달합니다.</p>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
+    <button v-if="error && !settings" type="button" class="btn sm" @click="load">다시 불러오기</button>
     <form v-if="settings" @submit.prevent="save" @input="changed" @change="changed">
       <div class="row">
         <label><input v-model="settings.mode" type="radio" value="mock" /> 모의 에이전트 검증</label>

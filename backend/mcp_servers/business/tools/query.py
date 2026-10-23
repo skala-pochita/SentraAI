@@ -153,6 +153,7 @@ async def load_agent_files(target_id: str) -> dict[str, Any]:
     t = await get_target(target_id, "agent")
     if t.config.get("source") == "upload":
         from core.agent_project import discover_agent
+
         profile = await asyncio.to_thread(discover_agent, t.root)
         if profile is None:
             raise AppError(ErrorCode.NOT_FOUND, "업로드 프로젝트에서 에이전트 정의를 찾을 수 없습니다.")
@@ -207,6 +208,7 @@ def finding_dict(f: Finding) -> dict[str, Any]:
         "confidence": f.confidence,
         "status": f.status,
         "fingerprint": f.fingerprint,
+        "subject": f.subject,
         "evidence": f.evidence,
         "reasoning_summary": f.reasoning_summary,
         "tools_used": f.tools_used,

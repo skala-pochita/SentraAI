@@ -143,7 +143,7 @@ ToolVerdict = tuple[str, str | None] | None  # (사유, 심각도 덮어쓰기) 
 
 def _no_approval(t: dict[str, Any]) -> ToolVerdict:
     effect = t.get("side_effect")
-    if effect in ("write", "delete", "external_send") and not t.get("requires_approval"):
+    if effect in ("write", "delete", "external_send") and t.get("requires_approval") is False:
         return f"side_effect={effect} 인데 requires_approval=false", "CRITICAL" if effect == "delete" else None
     return None
 

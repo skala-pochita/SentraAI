@@ -31,9 +31,17 @@ READ_TOOLS = {
         "list_false_positive_rules",
     },
 }
-EXEC_TOOLS = {"business": {"run_static_scan", "run_agent_rule_check", "run_injection_probe", "prepare_agent_sandbox", "stop_agent_sandbox"}}
+EXEC_TOOLS = {
+    "business": {
+        "run_static_scan",
+        "run_agent_rule_check",
+        "run_injection_probe",
+        "prepare_agent_sandbox",
+        "stop_agent_sandbox",
+    }
+}
 MUTATING_TOOLS = {
-    "business": {"create_finding", "update_finding_status", "save_report"},
+    "business": {"create_finding", "update_finding_status", "save_report", "finalize_probe_verdict"},
     "rag": {"ingest_document", "update_document", "delete_document", "register_false_positive"},
 }
 
@@ -56,7 +64,7 @@ NODE_ALLOWLIST: dict[str, set[str]] = {
     "prepare_sandbox": {"prepare_agent_sandbox"},
     "probe_generate": {"search_security_standard", "get_agent_manifest"},
     "probe_run": {"run_injection_probe"},
-    "probe_judge": set(),
+    "probe_judge": {"finalize_probe_verdict"},
     "correlate": {"create_finding", "get_findings"},
     "report": {"save_report", "get_findings", "stop_agent_sandbox"},
     "eval_single": {"list_repo_files", "read_repo_file", "get_agent_manifest"},
@@ -76,7 +84,13 @@ NODE_ALLOWLIST: dict[str, set[str]] = {
 DEFAULT_MAX_CALLS = 60
 # 읽기 전용 전환으로 삭제한 수정·승인·병합 도구. 이름으로 다시 들어와도 게이트에서 막는다 (DECISIONS 2026-10-21)
 RETIRED_TOOLS = {"request_approval", "create_fix_proposal", "apply_fix", "merge_fix", "register_risk_acceptance"}
-DEVELOPER_MUTATING = {"register_false_positive", "update_finding_status", "create_finding", "save_report"}
+DEVELOPER_MUTATING = {
+    "register_false_positive",
+    "update_finding_status",
+    "create_finding",
+    "save_report",
+    "finalize_probe_verdict",
+}
 
 
 SERVER_TOOLS: dict[str, set[str]] = {

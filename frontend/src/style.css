@@ -400,7 +400,7 @@ pre, .code {
   background-image: linear-gradient(90deg, var(--accent-strong), var(--accent-2), var(--accent), var(--accent-strong)); }
 .meter { display: flex; align-items: center; gap: 8px; min-width: 110px; }
 .meter .progress { flex: 1; height: 6px; }
-.meter .v { font: 500 12px var(--font-display); color: var(--text-2); width: 34px; text-align: right; }
+.meter .v { font: 500 12px var(--font-display); color: var(--text-2); width: 34px; flex-shrink: 0; white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
 
 /* ------------------------------------------------------------ stat */
 .stat { display: flex; flex-direction: column; gap: 6px; overflow: hidden; }

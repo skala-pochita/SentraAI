@@ -6,7 +6,7 @@ import Icon from '../components/Icon.vue'
 import AuditTabs from '../components/AuditTabs.vue'
 import type { Shot } from '../three/stage'
 const ProbeArena = defineAsyncComponent(() => import('../components/ProbeArena.vue'))
-interface Run { id: string; attempt: number; success: boolean; reply_masked: string; tool_calls: unknown[]; judged_by: string }
+interface Run { id: string; attempt: number; success: boolean; verdict?: string; reply_masked: string; tool_calls: unknown[]; judged_by: string }
 interface Row { probe_id: string; category: string; channel: string; runs: Run[] }
 const id = useRoute().params.id as string
 const data = ref<{ probes: Row[]; asr_by_category: Record<string, number>; coverage: { target_id: string; static: string; attacks: string; reason: string; model_verification?: string; runtime: { status: string; mode?: string; reason?: string } }[] } | null>(null)
@@ -20,6 +20,8 @@ function replay() {
   shots.value = all.sort((a, b) => a.attempt - b.attempt).map(({ lane, success }) => ({ lane, success }))
 }
 const tone = (v: number) => (v >= 0.5 ? 'var(--critical)' : v > 0 ? 'var(--warn)' : 'var(--ok)')
+const uncertain = (r: Run) => r.verdict === 'UNDETERMINED' || r.verdict === 'UNKNOWN'
+const stateClass = (r: Run) => uncertain(r) ? 'warn' : r.success ? 'bad' : 'ok'
 function pick(p: Row, r: Run) { open.value = r; openProbe.value = p.probe_id }
 </script>
 <template>
@@ -51,14 +53,14 @@ function pick(p: Row, r: Run) { open.value = r; openProbe.value = p.probe_id }
           <thead><tr><th>Probe</th><th>카테고리</th><th>채널</th><th>시도 (클릭 → 대화)</th></tr></thead>
           <tbody><tr v-for="p in data.probes" :key="p.probe_id">
             <td class="mono strong" style="color:var(--text)">{{ p.probe_id }}</td><td><span class="badge mono">{{ p.category }}</span></td><td class="muted">{{ p.channel }}</td>
-            <td><button v-for="r in p.runs" :key="r.id" class="attempt" :class="[r.success ? 'bad' : 'ok', { sel: open?.id === r.id }]" @click="pick(p, r)">
-              <Icon :name="r.success ? 'alert' : 'shield'" :size="13" />{{ r.success ? '성공' : '차단' }}</button></td>
+            <td><button v-for="r in p.runs" :key="r.id" class="attempt" :class="[stateClass(r), { sel: open?.id === r.id }]" @click="pick(p, r)">
+              <Icon :name="uncertain(r) || r.success ? 'alert' : 'shield'" :size="13" />{{ r.verdict === 'UNDETERMINED' || r.verdict === 'UNKNOWN' ? '미확인' : r.success ? '성공' : '차단' }}</button></td>
           </tr></tbody>
         </table></div>
       </div>
       <div v-if="open" class="card">
         <div class="card-head"><h3><Icon name="bot" :size="16" />{{ openProbe }} · 시도 {{ open.attempt }}</h3>
-          <span class="badge tone" :class="open.success ? 'bad' : 'ok'">{{ open.success ? '공격 성공' : '차단됨' }}</span>
+          <span class="badge tone" :class="stateClass(open)">{{ open.verdict === 'UNDETERMINED' || open.verdict === 'UNKNOWN' ? '미확인' : open.success ? '공격 성공' : '차단됨' }}</span>
           <span class="spacer" /><span class="muted small">{{ open.judged_by }} 판정</span>
           <button class="icon-btn" aria-label="닫기" @click="open = null"><Icon name="x" :size="16" /></button></div>
         <p class="section-title">응답</p><pre style="white-space:pre-wrap">{{ open.reply_masked }}</pre>
@@ -70,4 +72,5 @@ function pick(p: Row, r: Run) { open.value = r; openProbe.value = p.probe_id }
 <style scoped>
 .asr { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; }
 .spacer { flex: 1; }
+.attempt.warn { color: var(--warn); border-color: var(--warn); }
 </style>
