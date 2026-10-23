@@ -1,0 +1,132 @@
+- key:
+    category: JAILBREAK
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-09
+  quote: 프롬프트 인젝션 및 탈옥 공격에 대한 방어 체계를 구축했는가?
+  reason: 문제 유형과 원문 통제의 기술적 관련성을 확인. 적용 조건과 통제 효과는 별도 검토 필요.
+- key:
+    category: TOOL_NO_APPROVAL
+  source: KR-AIBA
+  clause: KR-AIBA:34:EVIDENCE-HUMAN-OVERSIGHT
+  quote: 고영향 인공지능에 대한 사람의 관리ㆍ감독
+  reason: 사람 승인 누락은 감독 체계 검토의 단서이며, 특정 승인 절차의 법정 의무나 감독 체계 전체의 이행 여부를 확정하지 않습니다. 코드
+    Findings 및 보고서 생성만으로 조직 의무 이행을 확인하지 않습니다.
+- key:
+    category: TOOL_EXCESSIVE_SCOPE
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-24
+  quote: 업무 목적에 필요한 최소한의 권한만 부여하는가?
+  reason: 문제 유형과 원문 통제의 기술적 관련성을 확인. 적용 조건과 통제 효과는 별도 검토 필요.
+- key:
+    category: INDIRECT_INJECTION
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-09
+  quote: 프롬프트 인젝션 및 탈옥 공격에 대한 방어 체계를 구축했는가?
+  reason: 문제 유형과 원문 통제의 기술적 관련성을 확인. 적용 조건과 통제 효과는 별도 검토 필요.
+- key:
+    category: PROMPT_NO_INSTRUCTION_HIERARCHY
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-09
+  quote: 프롬프트 인젝션 및 탈옥 공격에 대한 방어 체계를 구축했는가?
+  reason: 지시 계층 부재는 인젝션 방어 검토의 단서이며, 특정 프롬프트 문구 유무만으로 방어 전체의 이행을 판정하지 않습니다.
+- key:
+    category: TOOL_NO_APPROVAL
+  source: FSC-AI-SEC
+  clause: FSC-AI-SEC:PAGE-057-01:EVIDENCE-TECH-5
+  quote: 고객 영향도가 큰 의사결정은 사람이 최종 승인
+  reason: 고객 영향도가 큰 금융 의사결정에 한정된 통제임을 명시하며 모든 도구 호출에 승인을 요구하지 않음.
+- key:
+    category: SYSTEM_PROMPT_LEAK
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-13
+  quote: 시스템 프롬프트 노출 등 내부 정보 유출 공격에 대한 모의훈련
+  reason: 정기 모의훈련·운영 검증은 조직 운영 증적이 필요하며 이번 단발 감사로 이행 여부를 확인할 수 없음.
+- key:
+    category: TOOL_MISUSE
+  source: FSC-AI-SEC
+  clause: FSC-AI-SEC:PAGE-052-01:EVIDENCE-TOOL-MISUSE
+  quote: "오남용 가능성 평가: 외부 서비스 및 도구가 AI 시스템에 연결될 경우, 데이터 오남용 또는\n\n\n\n\n          \
+    \            의도하지 않은 행동의 가능성을 사전 평가하고 위험 완화 조치 시행"
+  reason: 사전 도입 승인 문구 대신 연결된 외부 도구의 오남용·의도하지 않은 행동에 대한 위험 완화 문구로 교체.
+- key:
+    category: TOOL_EXCESSIVE_SCOPE
+  source: FSC-AI-SEC
+  clause: FSC-AI-SEC:PAGE-052-01:EVIDENCE-TOOL-SCOPE
+  quote: "연결 사용 범위 및 권한 제한: AI 시스템이 외부 서비스와 연결할 때, 서비스별로 구체적인\n                  \
+    \    사용 범위(특정 데이터, 기능)를 설정하여 연결 권한을 엄격히 제한하고 관리, 주기적 점검 및\n                  \
+    \    재평가 수행"
+  reason: 개발자·운영자 역할 권한 문구 대신 외부 AI 서비스 연결 범위·권한 제한 문구로 교체.
+- key:
+    category: TOOL_NO_APPROVAL
+  source: KR-AIBA-HIGH-GL
+  clause: KR-AIBA-HIGH-GL:PAGE-055-01:EVIDENCE-HUMAN-INTERVENTION
+  quote: "인공지능이 특정 조건이나 임계값을 초과할 경우, 자동으로 경고를 발생시키고 사람의 검토 및 승인을\n               유도하는\
+    \ 제어 절차를 포함할 수 있음."
+  reason: 고영향 AI에서 사람의 개입을 지원하는 제어 절차의 구현 예에 해당합니다. 모든 도구 호출에 같은 승인 방식을 요구한다는 의미는
+    아닙니다. 고영향 AI 적용 여부와 개입이 필요한 상황인지 확인해야 합니다.
+- key:
+    category: DATA_EXFILTRATION
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-07
+  quote: "⑦ 입출력 데이터에서 목적 외 고유식별정보 및 개인(신용)정보 포함 여부를 탐지하고\n 마스킹 또는 차단하는 기능을 구현했는가?"
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+- key:
+    category: INDIRECT_INJECTION_SURFACE
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-05
+  quote: "⑤ 외부 사용자 입력이나 외부 데이터를 수집하는 인공지능서비스의 경우, 그 내용이\n  정상적인 범위를 벗어나는지 사전에 검토하는\
+    \ 기능을 구현했는가?"
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+- key:
+    category: INDIRECT_INJECTION
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-05
+  quote: "⑤ 외부 사용자 입력이나 외부 데이터를 수집하는 인공지능서비스의 경우, 그 내용이\n  정상적인 범위를 벗어나는지 사전에 검토하는\
+    \ 기능을 구현했는가?"
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+- key:
+    category: SYSTEM_PROMPT_LEAK
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-08
+  quote: "⑧ 출력 데이터와 에러 메시지에서 인공지능 모델 정보(구조, 프롬프트 등) 등\n  기밀정보가 노출되지 않도록 방지하는 기능을 구현했는가?"
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+- key:
+    audit: audit_execution
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-29
+  quote: 인공지능시스템을 운영 시스템으로 이관하기 전, 운영 중에는 정기적으로 보안성 검증
+  reason: 정기 모의훈련·운영 검증은 조직 운영 증적이 필요하며 이번 단발 감사로 이행 여부를 확인할 수 없음.
+- key:
+    category: PRIVILEGE_ESCALATION
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-24
+  quote: 업무 목적에 필요한 최소한의 권한만 부여하는가?
+  reason: AI 에이전트의 권한 상승 시나리오와 최소 권한 통제의 관련성을 검토하는 후보. 일반 웹 권한 문제로 확대 적용하지 않습니다.
+- key:
+    audit: report_document
+  source: KR-AIBA-DECREE
+  clause: KR-AIBA-DECREE:27:EVIDENCE-RETENTION
+  quote: "인공지능사업자는 법 제34조제1항 각 호의 조치를 이행하고 그 근거를 문서로 5년간 보관(전\n  자적 방법을 통한 보관을 포함한다)해야\
+    \ 한다."
+  reason: 보고서 작성은 근거 보관 체계 검토의 시작점이며, 5년 보관과 전체 조치 이행은 별도 조직 증적이 필요합니다. 코드 Findings
+    및 보고서 생성만으로 조직 의무 이행을 확인하지 않습니다.
+- key:
+    category: JAILBREAK
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-06
+  quote: "⑥ 대화형 인공지능서비스의 경우 시스템 제약을 우회하여 부적절한 결과를 얻으려는\n 시도를 탐지 및 차단할 수 있도록 입출력 필터링\
+    \ 체계를 마련했는가?"
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+- key:
+    audit: report_document
+  source: KR-AIBA
+  clause: KR-AIBA:34:EVIDENCE-DOCUMENTATION
+  quote: 안전성ㆍ신뢰성 확보를 위한 조치의 내용을 확인할 수 있는 문서의 작성과 보관
+  reason: 보고서는 증적 자료의 일부가 될 수 있으나 전체 조치 이행과 보관 의무를 입증하지 않습니다. 코드 Findings 및 보고서 생성만으로
+    조직 의무 이행을 확인하지 않습니다.
+- key:
+    audit: probe_execution
+  source: FSC-AI-GL
+  clause: FSC-AI-GL:7-CHK-10
+  quote: 고영향·고위험 시스템의 경우 인공지능을 속여 잘못된 결과를 유도하는 공격에 대한 정기적 모의훈련
+  reason: 정기 모의훈련·운영 검증은 조직 운영 증적이 필요하며 이번 단발 감사로 이행 여부를 확인할 수 없음.

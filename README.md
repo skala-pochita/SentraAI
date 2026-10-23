@@ -219,3 +219,13 @@ workHistory/ 기획서·설계 결정·품질 보고서 등 작업 기록
 적용 시 DB migration `0005`와 API·MCP·워커·프론트 갱신이 필요하다. 구현 범위·규칙 변경·검증은 [공격 경로 구현 및 검증](workHistory/ATTACK_PATH_IMPLEMENTATION.md)을 참고한다.
 
 결합 이유에는 실제 설정 줄과 구현 코드 후보의 파일·라인·코드 조각을 함께 표시한다. 심각도 산정 규칙은 유지하며, 이름이 일치하는 구현 후보와 확인된 코드 검사 결과를 구분한다.
+
+### 규제·가이드라인 검토 권고 (dev_js)
+
+등록한 로컬 원문을 조항 단위 RAG로 색인하고, Findings와 관련된 짧은 원문 인용·출처·검토 조건을 보고서에 표시한다.
+인용 일치 여부와 관련성(AI 추정/사람 확인)을 구분하며 적용 여부는 사용자가 판단한다.
+원문이 없거나 MOCK/미검증인 범위는 미점검으로 표시한다. AI RMF 보도자료를 본문으로 대체하지 않는다.
+
+실행: [반입·색인·연결·검토 절차](workHistory/COMPLIANCE_RUNBOOK.md).
+설계: [v2.1 구현 계약](workHistory/COMPLIANCE_MAPPING_DESIGN.md).
+원문 PDF/추출물은 Git과 이미지에 넣지 않는다. RAG 유형 추가에는 migration 0008가 필요하다.

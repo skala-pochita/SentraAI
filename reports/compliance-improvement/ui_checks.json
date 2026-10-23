@@ -1,0 +1,17 @@
+{
+  "environment": "Built Vue frontend in Chrome, deterministic localhost API fixtures; production DB not used",
+  "checks": {
+    "preview_source_quote_condition_and_deferral": true,
+    "raw_preview_toggle": true,
+    "json_download_snapshot_match": true,
+    "markdown_download_exact_match": true,
+    "empty_evidence_message": true,
+    "api_error_message_no_stale_preview": true,
+    "downloads_disabled_after_error": true,
+    "retry_button": true,
+    "developer_compliance_tab_hidden": true,
+    "developer_json_button_hidden": true
+  },
+  "download_observation": "Browser download event wait timed out; actual downloaded JSON/MD files were found and compared byte/content-wise.",
+  "role_note": "UI visibility uses role fixtures. Server authorization remains covered by existing API unit tests, not a production role session."
+}

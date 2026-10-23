@@ -1,0 +1,56 @@
+schema: 1
+sources:
+  - id: KR-AIBA
+    default_evidence_scope: organization
+    title: 인공지능 발전과 신뢰 기반 조성 등에 관한 기본법
+    issuer: 법제처 게재 법령
+    source_type: kr_law
+    format: law
+    condition: high_impact_ai
+    status: MISSING
+  - id: KR-AIBA-DECREE
+    default_evidence_scope: organization
+    title: 인공지능기본법 시행령
+    issuer: 법제처 게재 법령
+    source_type: kr_law
+    format: law
+    status: MISSING
+  - id: FSC-AI-GL
+    default_evidence_scope: organization
+    title: 금융분야 인공지능 가이드라인
+    issuer: 금융위원회
+    source_type: kr_guideline
+    format: checklist
+    condition: finance
+    status: MISSING
+  - id: FSC-AI-SEC
+    default_evidence_scope: organization
+    title: 금융분야 인공지능 보안 안내서
+    issuer: 금융보안원
+    source_type: kr_guideline
+    format: sections
+    condition: finance
+    status: MISSING
+  - id: KR-AIBA-HIGH-GL
+    default_evidence_scope: organization
+    title: 고영향 인공지능 사업자 책무 가이드라인
+    issuer: 과학기술정보통신부
+    source_type: kr_guideline
+    format: sections
+    condition: high_impact_ai
+    status: MISSING
+  - id: FSS-AI-RMF-NOTICE
+    scope_role: reference
+    title: 금융분야 AI 위험관리 프레임워크 도입 보도자료
+    issuer: 금융감독원
+    format: notice
+    status: MISSING
+    regulatory_evidence: false
+  - id: FSS-AI-RMF
+    scope_role: excluded
+    title: 금융분야 AI 위험관리 프레임워크 본문
+    issuer: 금융감독원
+    source_type: kr_guideline
+    format: sections
+    status: MISSING
+    regulatory_evidence: false

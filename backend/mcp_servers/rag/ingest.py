@@ -127,6 +127,8 @@ async def upsert_document(
     ref_code: str | None = None,
     doc_id: uuid.UUID | None = None,
 ) -> tuple[KbDocument, int]:
+    if source_type in {"kr_law", "kr_guideline"}:
+        raise AppError(ErrorCode.VALIDATION, "use verified clause import/index for regulatory originals")
     if source_type not in KB_SOURCE_TYPES:
         raise AppError(ErrorCode.VALIDATION, f"source_type must be one of {KB_SOURCE_TYPES}")
     if not content_md.strip():

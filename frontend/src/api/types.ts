@@ -16,6 +16,7 @@ export interface Finding {
   id: string; audit_id: string; target_id: string; source: string; category: string; rule_id: string | null
   title: string; severity: Severity; confidence: number; status: string; evidence: Evidence[]
   reasoning_summary: string; tools_used: string[]; standard_refs: string[]; fix_hint: string | null
+  compliance_refs?: string[];
   fix_proposals?: FixProposal[]; risk_paths?: RiskPath[]
 }
 export interface RiskPath { payload?: AttackPath | null; correlation_finding_id?: string | null; id: string; rule_id: string; severity: Severity; title: string; finding_ids: string[]; explanation: string }
@@ -40,4 +41,14 @@ export interface Comparison {
   findings: { status: CompareStatus; label: string; reason: string | null; severity: Severity; title: string; category: string; source: string; location: string | null; baseline_finding_id: string | null; current_finding_id: string | null }[]
   benign: { baseline: string; current: string }
   notes: string[]
+}
+
+export interface ComplianceEvidence {
+  quote: string; quote_verified: boolean; relevance: 'ai_estimated' | 'human_confirmed' | 'rejected';
+  link_id: string; via: string; reason: string;
+}
+export interface ComplianceSection {
+  schema: number; status: string; catalog_version?: string; catalog_digest?: string;
+  recommendations?: { control_id: string; heading: string; status: string; condition: string; evidence: ComplianceEvidence[] }[];
+  missing_sources?: { source: string; title: string; reason: string }[];
 }

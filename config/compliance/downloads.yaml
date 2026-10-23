@@ -1,0 +1,24 @@
+schema: 1
+# Publisher posts and the AI Act helpdesk. Versions are pinned publication copies,
+# not an assertion that these documents reflect every later legislative change.
+sources:
+  - id: FSC-AI-GL
+    source_url: https://www.fsc.go.kr/no010101/87142
+    attachment_url: https://www.fsc.go.kr/comm/getFile?fileNo=6&fileTy=ATTACH&srvcId=BBSTY1&upperNo=87142
+    version: 2026-06-18 공개본
+  - id: FSC-AI-SEC
+    source_url: https://www.fsec.or.kr/bbs/detail?bbsNo=11977&menuNo=222
+    attachment_url: https://www.fsec.or.kr/file/downloadFile
+    method: POST
+    form:
+      fileNo: '13671'
+      filePage: board
+    version: 2026-06
+  - id: KR-AIBA-HIGH-GL
+    source_url: https://www.sw.or.kr/site/sw/ex/board/View.do?bcIdx=64993&cbIdx=390&searchExt1=
+    attachment_url: https://www.sw.or.kr/common/board/Download.do?bcIdx=64993&cbIdx=390&streFileNm=44226837-73ef-4886-a0fb-81eb2386a08a.pdf
+    version: 2026-01-22 공개본
+  - id: FSS-AI-RMF-NOTICE
+    source_url: https://eiec.kdi.re.kr/policy/materialView.do?num=275955
+    attachment_url: https://eiec.kdi.re.kr/policy/callDownload.do?filenum=1&num=275955
+    version: 2026-01-16 보도자료 (KDI 정책자료 아카이브)

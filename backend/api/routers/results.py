@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import Admin, CurrentUser, LoggedIn, ensure_target_access, require_roles
 from api.routers.audits import _iso, require_completed
+from core.compliance import render_compliance, verify_report
 from core.db.models import Finding, ProbeRun, Report, RiskPath, TraceSpan
 from core.db.session import get_db
 from core.errors import AppError, ErrorCode
@@ -94,6 +95,13 @@ async def get_finding(
         out["probe_runs"] = [probe_out(r) for r in runs]
     paths = (await db.execute(select(RiskPath).where(RiskPath.audit_id == f.audit_id))).scalars()
     out["risk_paths"] = [risk_out(r) for r in paths if f.id in r.finding_ids]
+    stored = (await db.execute(select(Report).where(Report.audit_id == f.audit_id))).scalar_one_or_none()
+    saved = (
+        next((item for item in stored.report_json.get("findings", []) if item.get("finding_id") == str(f.id)), {})
+        if stored
+        else {}
+    )
+    out["compliance_refs"] = saved.get("compliance_refs", [])
     return out
 
 
@@ -282,3 +290,46 @@ async def traces(
         }
         for s in (await db.execute(q.limit(5000))).scalars()
     ]
+
+
+async def _compliance_snapshot(audit_id: uuid.UUID, user: CurrentUser, db: AsyncSession) -> dict[str, Any]:
+    await require_completed(db, user, audit_id)
+    stored = (await db.execute(select(Report).where(Report.audit_id == audit_id))).scalar_one_or_none()
+    if stored is None:
+        raise AppError(ErrorCode.NOT_FOUND, "report not ready")
+    section = stored.report_json.get("compliance") or {}
+    if section.get("integrity") and not verify_report(stored.report_json):
+        raise AppError(ErrorCode.VALIDATION, "stored report integrity mismatch")
+    return dict(stored.report_json)
+
+
+@router.get("/audits/{audit_id}/compliance")
+async def compliance_json(
+    audit_id: uuid.UUID,
+    user: CurrentUser = Depends(require_roles("ADMIN", "AUDITOR")),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    report = await _compliance_snapshot(audit_id, user, db)
+    return {
+        "audit_id": report.get("audit_id"),
+        "generated_at": report.get("generated_at"),
+        "targets": report.get("targets", []),
+        "agent_coverage": report.get("agent_coverage", []),
+        "eval_config": report.get("eval_config"),
+        "report_snapshot": report,
+        **report.get("compliance", {"schema": 0, "status": "NOT_ASSESSED"}),
+    }
+
+
+@router.get("/audits/{audit_id}/compliance.md", response_class=PlainTextResponse)
+async def compliance_md(
+    audit_id: uuid.UUID,
+    user: CurrentUser = Depends(require_roles("ADMIN", "AUDITOR")),
+    db: AsyncSession = Depends(get_db),
+) -> PlainTextResponse:
+    report = await _compliance_snapshot(audit_id, user, db)
+    return PlainTextResponse(
+        render_compliance(report),
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="compliance-{str(audit_id)[:8]}.md"'},
+    )

@@ -92,6 +92,7 @@ class AuditRunner:
             "actor_role": role,
             "mode": audit.mode,
             "eval_config": audit.eval_config,
+            "compliance_profile": (audit.summary or {}).get("compliance_profile", {}),
             "targets": [{"target_id": t} for t in target_ids],
             "errors": [],
             "token_usage": [],
@@ -137,6 +138,7 @@ class AuditRunner:
         for f in v.get("correlated", []):
             counts[f["severity"]] = counts.get(f["severity"], 0) + 1
         summary = {
+            "compliance_profile": v.get("compliance_profile", {}),
             "by_severity": counts,
             "total": len(v.get("correlated", [])),
             "report_id": v.get("report_id"),
@@ -159,8 +161,9 @@ class AuditRunner:
 
     async def _fail(self, audit_id: str, e: AppError) -> None:
         from core.sandbox_client import sandbox_call
+
         try:
-            await sandbox_call('/stop/' + audit_id, timeout=30)
+            await sandbox_call("/stop/" + audit_id, timeout=30)
         except AppError:
             log.warning("sandbox cleanup unavailable for failed audit %s; TTL reaper will retry", audit_id)
         await _set_audit(audit_id, status="FAILED", finished_at=datetime.now(UTC))

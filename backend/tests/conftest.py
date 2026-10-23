@@ -9,6 +9,8 @@ from collections.abc import AsyncIterator, Iterator
 
 import pytest
 
+from tests.compliance_fixtures import originals  # noqa: F401 - shared fixture
+
 os.environ.setdefault("BCRYPT_COST", "4")
 os.environ.setdefault("JWT_SECRET", "test-secret-test-secret-test-secret-0123")
 

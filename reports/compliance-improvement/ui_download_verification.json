@@ -1,0 +1,8 @@
+{
+  "json_snapshot_equal": true,
+  "mapping_decisions_equal": true,
+  "markdown_equal": true,
+  "json_filename": "compliance_qa-local.json",
+  "markdown_filename": "compliance_qa-local.md",
+  "markdown_sha256": "bbdedf358d87f5a2951d119792c862841d9d57ab0c6c53108bd0d927ea026abd"
+}

@@ -17,6 +17,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from api.deps import Admin, CurrentUser, LoggedIn, accessible_target_ids, ensure_target_access, require_roles
 from api.errors import Page, page_params, paged
+from core.compliance import Profile
 from core.db.models import (
     Audit,
     AuditEvent,
@@ -82,6 +83,7 @@ async def require_completed(db: AsyncSession, user: CurrentUser, audit_id: uuid.
 class AuditCreate(BaseModel):
     target_ids: list[uuid.UUID] = Field(min_length=1)
     mode: Literal["full", "code", "agent"] = "full"
+    compliance_profile: Profile = Field(default_factory=Profile)
     baseline_audit_id: uuid.UUID | None = None  # 수정본 비교의 기준 감사 (같은 프로젝트의 완료된 감사)
 
 
@@ -162,6 +164,7 @@ async def create_audit(
         status="QUEUED",
         thread_id=f"audit:{audit_id}",
         baseline_audit_id=body.baseline_audit_id,
+        summary={"compliance_profile": body.compliance_profile.model_dump()},
     )
     db.add(a)
     await db.flush()

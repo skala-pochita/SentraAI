@@ -211,7 +211,9 @@ async def save_report(audit_id: str, report_json: dict[str, Any], report_md: str
     권한: ADMIN. 오류: VALIDATION. 부작용: reports upsert.
     """
     aid = _uuid(audit_id, "audit_id")
-    body_json = mask_obj(report_json)
+    from core.compliance import seal_report
+
+    body_json = seal_report(report_json)
     body_md = mask_text(report_md)
     async with session_scope() as db:
         await _ensure_audit_writer(db, aid)

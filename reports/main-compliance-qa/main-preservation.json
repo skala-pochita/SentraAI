@@ -1,0 +1,83 @@
+{
+  "main_sha": "0240c71d24be857c757512b1d19bd231c7e1eb69",
+  "main_files_missing": [],
+  "main_only_critical_files": [
+    {
+      "file": "backend/core/attack_paths.py",
+      "byte_identical_to_main": true,
+      "sha256": "4d0ff81ebd72a86aa97af88c0723936cf58abdb1b326b032ee7bd8089744b199"
+    },
+    {
+      "file": "backend/core/audit_compare.py",
+      "byte_identical_to_main": true,
+      "sha256": "cbe0b2e43629e82ea000739700bcaedb5e9f180ea46c300c75cc23f337af0237"
+    },
+    {
+      "file": "backend/api/routers/compare.py",
+      "byte_identical_to_main": true,
+      "sha256": "e4a835a7024e88d572ed88fff655ec59eee600e0df8d4f2b68cb14feaace6403"
+    },
+    {
+      "file": "backend/core/path_validation.py",
+      "byte_identical_to_main": true,
+      "sha256": "c5753d1d8076a135839aacac4911ddeabcc6b3fd6e3bbc36b0e5ca85e47e756e"
+    },
+    {
+      "file": "backend/core/project_versions.py",
+      "byte_identical_to_main": true,
+      "sha256": "0455538a3925c28e4eae2f56b79bdaffce23ae46c8fa2d5bdb19d89f441a8b84"
+    },
+    {
+      "file": "frontend/src/components/AttackPathDetails.vue",
+      "byte_identical_to_main": true,
+      "sha256": "d68749e303b6d0ddf74e3511f95cf0c46675d573cb59757718c2f26d61f15e1d"
+    },
+    {
+      "file": "frontend/src/components/RiskGraph3D.vue",
+      "byte_identical_to_main": true,
+      "sha256": "36f6cc10fcef46d2ab3f4ca11fe5fa586b2ce080b4e41e210567da6d4f8147c0"
+    },
+    {
+      "file": "frontend/src/pages/ComparePage.vue",
+      "byte_identical_to_main": true,
+      "sha256": "df3c3ce62955e2e13046d1dfdc530fb675979b0c9f08f352d55e32557f120f2d"
+    },
+    {
+      "file": "frontend/src/router/index.ts",
+      "byte_identical_to_main": true,
+      "sha256": "14028beae8083bfc6f49b40cb29416a8a55b538273c57938f008b55dabf7756f"
+    },
+    {
+      "file": "backend/migrations/versions/0005_audit_baseline.py",
+      "byte_identical_to_main": true,
+      "sha256": "b33e4eaba71baecdc0e19455f7e4684fd1c44c05ac16d1aaed37b4e2a192f08f"
+    },
+    {
+      "file": "backend/migrations/versions/0006_attack_paths.py",
+      "byte_identical_to_main": true,
+      "sha256": "2a668d71d5222e77474b0d26eeb558e567dd86b9d31e693cc3bb8cb0d1aed47e"
+    },
+    {
+      "file": "backend/migrations/versions/0007_repair_audit_baseline.py",
+      "byte_identical_to_main": true,
+      "sha256": "da72802e21dcde81cef180ac8f1252a24be15aa524c85eeca8c4411137e62eed"
+    }
+  ],
+  "modified_python_files_checked": [
+    "backend/api/routers/audits.py",
+    "backend/api/routers/results.py",
+    "backend/core/db/models.py",
+    "backend/core/graph/nodes/report.py",
+    "backend/core/graph/state.py",
+    "backend/core/settings.py",
+    "backend/harness/tools.py",
+    "backend/mcp_servers/business/tools/mutate.py",
+    "backend/mcp_servers/rag/ingest.py",
+    "backend/mcp_servers/rag/search.py",
+    "backend/mcp_servers/rag/tools/__init__.py",
+    "backend/tests/conftest.py",
+    "backend/tests/unit/test_migration_history.py",
+    "backend/workers/audit.py"
+  ],
+  "main_symbols_removed": []
+}

@@ -29,12 +29,12 @@ _SQL = """
 WITH vec AS (
   SELECT c.id, 1 - (c.embedding <=> CAST(:emb AS vector)) AS vscore
   FROM kb_chunks c JOIN kb_documents d ON d.id = c.doc_id
-  WHERE d.source_type = ANY(:sources)
+  WHERE d.source_type = ANY(:sources) AND (:prefix = '' OR starts_with(d.ref_code, :prefix))
   ORDER BY c.embedding <=> CAST(:emb AS vector) LIMIT :n
 ), kw AS (
   SELECT c.id, ts_rank_cd(c.tsv, to_tsquery('simple', :tsq)) AS kscore
   FROM kb_chunks c JOIN kb_documents d ON d.id = c.doc_id
-  WHERE d.source_type = ANY(:sources) AND :tsq <> '' AND c.tsv @@ to_tsquery('simple', :tsq)
+  WHERE d.source_type = ANY(:sources) AND (:prefix = '' OR starts_with(d.ref_code, :prefix)) AND :tsq <> '' AND c.tsv @@ to_tsquery('simple', :tsq)
   ORDER BY kscore DESC LIMIT :n
 )
 SELECT c.id, c.section, c.text, d.id AS doc_id, d.title, d.ref_code, d.source_type,
@@ -45,14 +45,14 @@ WHERE vec.id IS NOT NULL OR kw.id IS NOT NULL
 """
 
 
-async def hybrid_search(query: str, sources: tuple[str, ...], k: int = 5) -> list[dict[str, Any]]:
+async def hybrid_search(query: str, sources: tuple[str, ...], k: int = 5, ref_prefix: str | None = None) -> list[dict[str, Any]]:
     cfg = load_config("rag")
     raw = await get_redis().get("rag:version")
     version = raw.decode() if isinstance(raw, bytes) else (raw or "0")
     key = (
         "cache:rag:"
         + hashlib.sha1(  # 캐시 키 (보안 용도 아님)
-            f"{version}|{query}|{','.join(sources)}|{k}".encode(), usedforsecurity=False
+            f"{version}|{query}|{','.join(sources)}|{k}|{ref_prefix or ''}".encode(), usedforsecurity=False
         ).hexdigest()
     )
     if (cached := await cache_get(key)) is not None:
@@ -68,6 +68,7 @@ async def hybrid_search(query: str, sources: tuple[str, ...], k: int = 5) -> lis
                         "sources": list(sources),
                         "tsq": tsquery(query),
                         "n": int(cfg["candidates"]),
+                        "prefix": ref_prefix or "",
                     },
                 )
             )

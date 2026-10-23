@@ -1,0 +1,130 @@
+schema: 1
+review: assistant_source_review; not human confirmation
+classifications:
+- clause: FSC-AI-GL:7-CHK-05
+  source_sha256: edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be
+  evidence_scope: finding
+- clause: FSC-AI-GL:7-CHK-06
+  source_sha256: edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be
+  evidence_scope: finding
+- clause: FSC-AI-GL:7-CHK-07
+  source_sha256: edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be
+  evidence_scope: finding
+- clause: FSC-AI-GL:7-CHK-08
+  source_sha256: edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be
+  evidence_scope: finding
+- clause: FSC-AI-GL:7-CHK-09
+  source_sha256: edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be
+  evidence_scope: finding
+- clause: FSC-AI-GL:7-CHK-13
+  source_sha256: edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be
+  evidence_scope: organization
+  condition: finance_high_risk
+- clause: FSC-AI-GL:7-CHK-24
+  source_sha256: edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be
+  evidence_scope: finding
+- clause: FSC-AI-GL:7-CHK-10
+  source_sha256: edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be
+  evidence_scope: organization
+  condition: finance_high_risk
+- clause: FSC-AI-GL:7-CHK-29
+  source_sha256: edc1be24c96b9ed0c8b64907004aaa9f1b433277bf36c63a22cfcbb7df07a1be
+  evidence_scope: organization
+excerpts:
+- parent_id: FSC-AI-SEC:PAGE-040-01
+  slug: TECH-1
+  source_sha256: b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c
+  text: 'API 키 안전 보관: 환경 변수, 시크릿 관리 도구 활용(코드 내 하드코딩 금지)'
+  heading: 'API 키 안전 보관: 환경 변수, 시크릿 관리 도구 활용(코드 내 하드코딩 금지)'
+  content_kind: recommendation
+  evidence_scope: finding
+  condition: finance
+- parent_id: FSC-AI-SEC:PAGE-040-01
+  slug: TECH-2
+  source_sha256: b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c
+  text: '키별 권한 최소화: 서비스·환경별로 별도 API 키 사용'
+  heading: '키별 권한 최소화: 서비스·환경별로 별도 API 키 사용'
+  content_kind: recommendation
+  evidence_scope: finding
+  condition: finance
+- parent_id: FSC-AI-SEC:PAGE-040-01
+  slug: TECH-3
+  source_sha256: b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c
+  text: '최소 권한 원칙: 개발/운영/평가자 역할별로 필요한 최소한의 권한만 부여'
+  heading: '최소 권한 원칙: 개발/운영/평가자 역할별로 필요한 최소한의 권한만 부여'
+  content_kind: recommendation
+  evidence_scope: finding
+  condition: finance
+- parent_id: FSC-AI-SEC:PAGE-052-01
+  slug: TECH-4
+  source_sha256: b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c
+  text: "외부 도구 사전 승인 절차: AI 시스템이 외부 도구(API, MCP 등)와 연계될 때, 보안성 검증 및\n            \
+    \          위험성 평가를 거쳐 사전에 승인된 도구만 사용하도록 관리"
+  heading: '외부 도구 사전 승인 절차: AI 시스템이 외부 도구(API, MCP 등)와 연계될 때, 보안성 검증 및 위험성 평가를 거쳐
+    사전에 승인된 도구'
+  content_kind: recommendation
+  evidence_scope: finding
+  condition: finance
+- parent_id: FSC-AI-SEC:PAGE-057-01
+  slug: TECH-5
+  source_sha256: b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c
+  text: 고객 영향도가 큰 의사결정은 사람이 최종 승인
+  heading: 고객 영향도가 큰 의사결정은 사람이 최종 승인
+  content_kind: recommendation
+  evidence_scope: finding
+  condition: finance_customer_impact
+- parent_id: KR-AIBA:34
+  slug: HUMAN-OVERSIGHT
+  source_sha256: f95d5f1f4c73e803211b601a5921338369d45fdb771767f8f97bfbe1ceba8314
+  text: 고영향 인공지능에 대한 사람의 관리ㆍ감독
+  heading: 고영향 인공지능에 대한 사람의 관리ㆍ감독
+  content_kind: requirement
+  evidence_scope: organization
+  condition: high_impact_ai
+- parent_id: KR-AIBA:34
+  slug: DOCUMENTATION
+  source_sha256: f95d5f1f4c73e803211b601a5921338369d45fdb771767f8f97bfbe1ceba8314
+  text: 안전성ㆍ신뢰성 확보를 위한 조치의 내용을 확인할 수 있는 문서의 작성과 보관
+  heading: 안전성ㆍ신뢰성 확보를 위한 조치의 내용을 확인할 수 있는 문서의 작성과 보관
+  content_kind: requirement
+  evidence_scope: organization
+  condition: high_impact_ai
+- parent_id: KR-AIBA-DECREE:27
+  slug: RETENTION
+  source_sha256: 0e3584bccab1ca2a6aa641dced393acb0e661cce714e467afafb27a19b1fedbd
+  text: "인공지능사업자는 법 제34조제1항 각 호의 조치를 이행하고 그 근거를 문서로 5년간 보관(전\n  자적 방법을 통한 보관을 포함한다)해야\
+    \ 한다."
+  heading: 인공지능사업자는 법 제34조제1항 각 호의 조치를 이행하고 그 근거를 문서로 5년간 보관(전   자적 방법을 통한 보관을 포함한다)해야
+    한다.
+  content_kind: requirement
+  evidence_scope: organization
+  condition: high_impact_ai
+- parent_id: KR-AIBA-HIGH-GL:PAGE-055-01
+  slug: HUMAN-INTERVENTION
+  source_sha256: 82c67bc56a0eed0d353226517f1d9aa1e75e04ef7dcb358e23903c9ca291bdd4
+  text: "인공지능이 특정 조건이나 임계값을 초과할 경우, 자동으로 경고를 발생시키고 사람의 검토 및 승인을\n               유도하는\
+    \ 제어 절차를 포함할 수 있음."
+  heading: 인공지능이 특정 조건이나 임계값을 초과할 경우, 자동으로 경고를 발생시키고 사람의 검토 및 승인을                유도하는
+    제어 절차
+  content_kind: recommendation
+  evidence_scope: finding
+  condition: high_impact_ai
+- parent_id: FSC-AI-SEC:PAGE-052-01
+  slug: TOOL-MISUSE
+  source_sha256: b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c
+  text: "오남용 가능성 평가: 외부 서비스 및 도구가 AI 시스템에 연결될 경우, 데이터 오남용 또는\n\n\n\n\n           \
+    \           의도하지 않은 행동의 가능성을 사전 평가하고 위험 완화 조치 시행"
+  heading: 오남용 가능성 평가
+  content_kind: recommendation
+  evidence_scope: finding
+  condition: finance
+- parent_id: FSC-AI-SEC:PAGE-052-01
+  slug: TOOL-SCOPE
+  source_sha256: b1072cacaca26ada2a585fe73f6623d41299baf041353955a3151e30d15c5f7c
+  text: "연결 사용 범위 및 권한 제한: AI 시스템이 외부 서비스와 연결할 때, 서비스별로 구체적인\n                   \
+    \   사용 범위(특정 데이터, 기능)를 설정하여 연결 권한을 엄격히 제한하고 관리, 주기적 점검 및\n                   \
+    \   재평가 수행"
+  heading: 연결 사용 범위 및 권한 제한
+  content_kind: recommendation
+  evidence_scope: finding
+  condition: finance
