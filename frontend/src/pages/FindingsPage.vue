@@ -38,7 +38,7 @@ const count = (s: string) => rows.value.filter((f) => f.severity === s).length
         <td><span class="badge mono">{{ f.category }}</span></td>
         <td><RouterLink :to="`/findings/${f.id}`">{{ f.title }}</RouterLink></td>
         <td class="muted">{{ f.source }}</td>
-        <td><div class="meter"><div class="progress"><span :style="{ width: `${Math.round(f.confidence * 100)}%` }" /></div><span class="v">{{ f.confidence }}</span></div></td>
+        <td><div class="meter"><div class="progress"><span :style="{ width: `${Math.round(f.confidence * 100)}%` }" /></div><span class="v">{{ f.confidence.toFixed(2) }}</span></div></td>
         <td><span class="status" :class="f.status === 'OPEN' ? 'WAITING_APPROVAL' : f.status === 'RESOLVED' ? 'COMPLETED' : ''">{{ f.status }}</span></td>
       </tr></tbody>
     </table></div>
