@@ -13,7 +13,7 @@ from core.db.session import session_scope
 from core.embeddings import embed, provider
 from core.errors import AppError, ErrorCode
 from core.regulation_retrieval import expand_query, retrieval_candidate
-from core.regulation_sources import Clause, load_clauses
+from core.regulation_sources import Clause, effective_regulation_index, load_clauses
 from core.settings import get_settings
 from mcp_servers.rag.ingest import bump_rag_version
 from mcp_servers.rag.search import hybrid_search
@@ -22,7 +22,7 @@ REGULATION_SOURCES = ("kr_law", "kr_guideline")
 
 
 async def ingest_regulations() -> dict[str, Any]:
-    if path := get_settings().regulation_index_path:
+    if path := effective_regulation_index():
         from mcp_servers.rag.local_regulations import ingest
 
         return await ingest(path)
@@ -85,7 +85,7 @@ async def search_clauses(query: str, source: str | None, k: int) -> list[dict[st
     clauses, _ = load_clauses()
     if source and source not in {c.source for c in clauses.values()}:
         raise AppError(ErrorCode.VALIDATION, "source has no verified clauses")
-    if path := get_settings().regulation_index_path:
+    if path := effective_regulation_index():
         from mcp_servers.rag.local_regulations import search
 
         return await search(path, query, source, k)
@@ -110,7 +110,7 @@ async def search_clauses(query: str, source: str | None, k: int) -> list[dict[st
 
 
 async def exact_clause(clause_id: str) -> dict[str, Any]:
-    if path := get_settings().regulation_index_path:
+    if path := effective_regulation_index():
         from mcp_servers.rag.local_regulations import exact
 
         return exact(path, clause_id)

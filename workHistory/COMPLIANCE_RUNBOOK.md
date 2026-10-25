@@ -2,8 +2,11 @@
 
 ## 준비
 
-기준 브랜치: dev_js, 기준 커밋 bf06310. Python 3.12, uv, Node 22.13+, pnpm, Docker Desktop.
-원문은 이 저장소의 Git이나 이미지에 포함하지 않는다.
+Python 3.12, uv, Node 22.13+, pnpm, Docker Desktop.
+
+새 설치는 `knowledge/regulation_bundle`의 공개 원문·관련성 연결·SQLite RAG 인덱스를 자동 사용한다. 이 디렉터리는 Git과 백엔드 이미지에 포함되며 규제 검색을 위해 별도 다운로드나 API 키가 필요하지 않다. 기본 검색은 hash-v1·키워드 기반이며 OpenAI 의미 임베딩이 아니다. 포함 버전·취득 경로·법령 본칙 범위는 [배포 자료 설명](../knowledge/regulation_bundle/README.md)을 참조한다.
+
+아래 절차는 자체 원문을 반입하거나 배포 자료를 갱신하는 관리자를 위한 것이다. 개인 원문 등록(`MANIFEST.local.yaml`)이 있으면 개인 자료와 연결 설정이 우선하며 자동 덮어쓰지 않는다. 사용자 자료를 등록한 뒤에는 색인과 연결 생성까지 완료해야 한다. 기존 보고서는 자동 갱신되지 않으므로 새 감사를 실행한다.
 
 ```bash
 cd backend

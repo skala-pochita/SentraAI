@@ -10,7 +10,17 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from core.errors import AppError, ErrorCode
-from core.regulation_sources import HASH, Clause, canonical_hash, compact, evidence_candidate, load_clauses, sha256
+from core.regulation_sources import (
+    HASH,
+    Clause,
+    bundled_root,
+    canonical_hash,
+    compact,
+    effective_sources_root,
+    evidence_candidate,
+    load_clauses,
+    sha256,
+)
 from core.settings import get_settings
 from harness.masking import mask_obj, mask_text
 
@@ -113,6 +123,8 @@ def validate_links(links: list[Link], clauses: dict[str, Clause]) -> None:
 
 
 def load_catalog(path: Path | None = None, source_root: Path | None = None) -> Catalog:
+    if path is None and source_root is None and effective_sources_root() == bundled_root() / "sources":
+        path = bundled_root() / "config"
     path = path or (get_settings().compliance_config_dir or get_settings().config_dir / "compliance")
     try:
         config = yaml.safe_load((path / "catalog.yaml").read_text(encoding="utf-8"))

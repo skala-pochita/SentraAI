@@ -131,8 +131,9 @@ def import_source(
     for folder in ("raw", "text", "clauses", "markdown"):
         (root / folder).mkdir(parents=True, exist_ok=True)
     (root / source["raw_file"]).write_bytes(data)
-    (root / source["text_file"]).write_text(text, encoding="utf-8")
-    (root / source["markdown_file"]).write_text(md, encoding="utf-8")
+    # Persist the exact UTF-8 bytes hashed above; Windows text mode rewrites LF.
+    (root / source["text_file"]).write_bytes(text.encode("utf-8"))
+    (root / source["markdown_file"]).write_bytes(md.encode("utf-8"))
     atomic_yaml(
         root / source["clauses_file"],
         {"source": source_id, "source_sha256": source["text_sha256"], "clauses": [c.model_dump() for c in clauses]},

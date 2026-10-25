@@ -1,0 +1,165 @@
+schema: 1
+sources:
+- id: KR-AIBA
+  default_evidence_scope: organization
+  title: 인공지능 발전과 신뢰 기반 조성 등에 관한 기본법
+  issuer: 법제처 게재 법령
+  source_type: kr_law
+  format: law
+  condition: high_impact_ai
+  status: AVAILABLE
+  source_url: https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=282791&efYd=20260721&chrClsCd=010202
+  version: 2026-07-21 시행 본칙; 부칙·별표 제외
+  acquisition:
+    method: official_html_text_extraction
+    html_sha256: 3f7b939448a49d49760cd5c75f6cd4808fde84c5ed0b8e22071087879f9093db
+    attachment_url: https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=282791&efYd=20260721&chrClsCd=010202
+  kind: local
+  official_copy_verified: false
+  acquired_at: '2026-10-25T11:51:51.303372+00:00'
+  file_sha256: b4e28ba2e1e39d66d47f31c545a484479023927e6efa6a82e096b163d3347123
+  text_sha256: b4e28ba2e1e39d66d47f31c545a484479023927e6efa6a82e096b163d3347123
+  raw_file: raw/kr_aiba.txt
+  text_file: text/kr_aiba.txt
+  clauses_file: clauses/kr_aiba.yaml
+  page_count: 1
+  markdown_file: markdown/kr_aiba.md
+  markdown_sha256: 6a0c659af55c389bca2026c5c48f8b992098f0c915621e88d283d90876fc63cb
+- id: KR-AIBA-DECREE
+  default_evidence_scope: organization
+  title: 인공지능기본법 시행령
+  issuer: 법제처 게재 법령
+  source_type: kr_law
+  format: law
+  status: AVAILABLE
+  source_url: https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=288781&efYd=20260820&chrClsCd=010202
+  version: 2026-08-20 시행 본칙; 부칙·별표 제외
+  acquisition:
+    method: official_html_text_extraction
+    html_sha256: eb31bf3a589e09e7b9af5211a7574eea88db3952e80141d10a4863d135e5f634
+    attachment_url: https://www.law.go.kr/LSW/lsInfoR.do?lsiSeq=288781&efYd=20260820&chrClsCd=010202
+  kind: local
+  official_copy_verified: false
+  acquired_at: '2026-10-25T11:51:51.784218+00:00'
+  file_sha256: 887c5281d1bc019e0d3fd24a4e69cc6e6ff527e1d91b431075b2fb47287622b3
+  text_sha256: 887c5281d1bc019e0d3fd24a4e69cc6e6ff527e1d91b431075b2fb47287622b3
+  raw_file: raw/kr_aiba_decree.txt
+  text_file: text/kr_aiba_decree.txt
+  clauses_file: clauses/kr_aiba_decree.yaml
+  page_count: 1
+  markdown_file: markdown/kr_aiba_decree.md
+  markdown_sha256: b81e9f64ebf13cdd5fe060537ccb020a0d17cbac46f4b6d691c3caaf9ae2f3f8
+- id: FSC-AI-GL
+  default_evidence_scope: organization
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_type: kr_guideline
+  format: checklist
+  condition: finance
+  status: AVAILABLE
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  acquisition:
+    attachment_url: https://www.fsc.go.kr/comm/getFile?fileNo=6&fileTy=ATTACH&srvcId=BBSTY1&upperNo=87142
+    final_url: https://www.fsc.go.kr/comm/getFile?fileNo=6&fileTy=ATTACH&srvcId=BBSTY1&upperNo=87142
+    method: GET
+    form: null
+    downloaded_at: '2026-10-25T11:48:14.625290+00:00'
+  kind: local
+  official_copy_verified: false
+  acquired_at: '2026-10-25T11:48:15.117107+00:00'
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  text_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  raw_file: raw/fsc_ai_gl.pdf
+  text_file: text/fsc_ai_gl.txt
+  clauses_file: clauses/fsc_ai_gl.yaml
+  page_count: 91
+  markdown_file: markdown/fsc_ai_gl.md
+  markdown_sha256: 20271fd3b83ec391dc207443d2668bf448511efbce276c4c9f6b1a115cfdd794
+- id: FSC-AI-SEC
+  default_evidence_scope: organization
+  title: 금융분야 인공지능 보안 안내서
+  issuer: 금융보안원
+  source_type: kr_guideline
+  format: sections
+  condition: finance
+  status: AVAILABLE
+  source_url: https://www.fsec.or.kr/bbs/detail?bbsNo=11977&menuNo=222
+  version: 2026-06 공개본; 재게시 PDF
+  acquisition:
+    method: public_mirror_download
+    mirror_page: https://www.kmstech.co.kr/notice/?bmode=view&idx=172239527
+    publisher_download_unavailable: true
+    publisher_copy_identity_verified: false
+  kind: local
+  official_copy_verified: false
+  acquired_at: '2026-10-25T11:51:52.565449+00:00'
+  file_sha256: e463f4482f1d79ef5cbf9ebd01aec4e8027b41517753d4f30e0d83efacaabbe9
+  text_sha256: 4cf5ce19e058c93d68041839463623be759e1e83866db168ca5c62edaf6fc398
+  raw_file: raw/fsc_ai_sec.pdf
+  text_file: text/fsc_ai_sec.txt
+  clauses_file: clauses/fsc_ai_sec.yaml
+  page_count: 72
+  markdown_file: markdown/fsc_ai_sec.md
+  markdown_sha256: 1f4c913a423a593ff58438a96e841d8d924fcfeddd724b6295cf6070abae0c67
+- id: KR-AIBA-HIGH-GL
+  default_evidence_scope: organization
+  title: 고영향 인공지능 사업자 책무 가이드라인
+  issuer: 과학기술정보통신부
+  source_type: kr_guideline
+  format: sections
+  condition: high_impact_ai
+  status: AVAILABLE
+  source_url: https://www.sw.or.kr/site/sw/ex/board/View.do?bcIdx=64993&cbIdx=390&searchExt1=
+  version: 2026-01-22 공개본
+  acquisition:
+    attachment_url: https://www.sw.or.kr/common/board/Download.do?bcIdx=64993&cbIdx=390&streFileNm=44226837-73ef-4886-a0fb-81eb2386a08a.pdf
+    final_url: https://www.sw.or.kr/common/board/Download.do?bcIdx=64993&cbIdx=390&streFileNm=44226837-73ef-4886-a0fb-81eb2386a08a.pdf
+    method: GET
+    form: null
+    downloaded_at: '2026-10-25T11:48:35.198308+00:00'
+  kind: local
+  official_copy_verified: false
+  acquired_at: '2026-10-25T11:48:37.522360+00:00'
+  file_sha256: cbbd8a304563f879b2a584860481255cfb7b7e2d990fb13916404e306eea104e
+  text_sha256: a88b7a8f14cae8588398cee507581aca17410762f8a401a48ff0b1219c05d183
+  raw_file: raw/kr_aiba_high_gl.pdf
+  text_file: text/kr_aiba_high_gl.txt
+  clauses_file: clauses/kr_aiba_high_gl.yaml
+  page_count: 111
+  markdown_file: markdown/kr_aiba_high_gl.md
+  markdown_sha256: 363bde2dec30eee0121b87fc216809db384aba23c3cf81f2970ec931a3d88cc2
+- id: FSS-AI-RMF-NOTICE
+  scope_role: reference
+  title: 금융분야 AI 위험관리 프레임워크 도입 보도자료
+  issuer: 금융감독원
+  format: notice
+  status: AVAILABLE
+  regulatory_evidence: false
+  source_url: https://eiec.kdi.re.kr/policy/materialView.do?num=275955
+  version: 2026-01-16 보도자료 (KDI 정책자료 아카이브)
+  acquisition:
+    attachment_url: https://eiec.kdi.re.kr/policy/callDownload.do?filenum=1&num=275955
+    final_url: https://eiec.kdi.re.kr/policy/callDownload.do?filenum=1&num=275955
+    method: GET
+    form: null
+    downloaded_at: '2026-10-25T11:48:38.256657+00:00'
+  kind: local
+  official_copy_verified: false
+  acquired_at: '2026-10-25T11:48:38.375831+00:00'
+  file_sha256: 10a572f45d01a7b13cb5dc5241f17b6198eb9836b6e3dc669d1af5d0c2d469fb
+  text_sha256: a925f5bc877b701f48dc8a49375870af6c072a14503a3bd80323d5199d19daca
+  raw_file: raw/fss_ai_rmf_notice.pdf
+  text_file: text/fss_ai_rmf_notice.txt
+  clauses_file: clauses/fss_ai_rmf_notice.yaml
+  page_count: 7
+  markdown_file: markdown/fss_ai_rmf_notice.md
+  markdown_sha256: 154e98142d42178390dd676f06dc50e98193f4557075d8cd4b246abbec4d003f
+- id: FSS-AI-RMF
+  scope_role: excluded
+  title: 금융분야 AI 위험관리 프레임워크 본문
+  issuer: 금융감독원
+  source_type: kr_guideline
+  format: sections
+  status: MISSING
+  regulatory_evidence: false
