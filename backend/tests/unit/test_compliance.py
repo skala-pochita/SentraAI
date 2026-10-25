@@ -21,9 +21,9 @@ from core.compliance import (
     seal_report,
     verify_report,
 )
-from core.compliance_cli import atomic_yaml, bootstrap_links, merge_links, review_link
+from core.compliance_cli import atomic_yaml, bootstrap_links, import_source, merge_links, review_link
 from core.errors import AppError
-from core.regulation_sources import compact, load_clauses, normalize_clauses, sha256
+from core.regulation_sources import compact, load_clauses, normalize_clauses, read_manifest, sha256
 
 TEXT = "7. 보안성 원칙 점검 항목\n⑨ 입력 공격에 대한 방어 체계를 구성했는가?\n⑩ 모의 공격을 실행했는가?"
 
@@ -81,6 +81,36 @@ def test_law_boundaries_preserve_original_words():
 
 def test_notice_cannot_be_regulatory_body():
     assert normalize_clauses({"format": "notice"}, "보도자료") == []
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"])
+def test_import_preserves_hashed_bytes_across_platforms(tmp_path, newline):
+    root = tmp_path / "sources"
+    atomic_yaml(
+        root / "MANIFEST.yaml",
+        {
+            "sources": [
+                {
+                    "id": "TEST",
+                    "title": "합성 테스트 안내서",
+                    "issuer": "테스트",
+                    "source_type": "kr_guideline",
+                    "format": "checklist",
+                    "status": "MISSING",
+                }
+            ]
+        },
+    )
+    original = tmp_path / "original.txt"
+    expected = TEXT.replace("\n", newline).encode("utf-8")
+    original.write_bytes(expected)
+    assert import_source(root, "TEST", original) == 2
+    source = read_manifest(root)["sources"][0]
+    assert (root / source["raw_file"]).read_bytes() == expected
+    assert (root / source["text_file"]).read_bytes() == expected
+    assert sha256((root / source["markdown_file"]).read_bytes()) == source["markdown_sha256"]
+    clauses, missing = load_clauses(root)
+    assert len(clauses) == 2 and not missing
 
 
 def test_source_and_quote_validation_and_stable_digest(originals):

@@ -34,6 +34,11 @@ frontend/dist/
 # 분석 문서는 로컬 전용. 저장소에 올릴 문서만 예외로 허용한다
 docs/*
 !docs/security_QA_ver.01.md
+!docs/images/
+docs/images/*
+!docs/images/architecture.png
+!docs/images/app-flow.png
+!docs/images/compliance-flow.png
 
 /private/vault/
 

@@ -29,7 +29,7 @@ def originals(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     atomic_yaml(cfg / "links/default.yaml", [])
     copyfile(Path(__file__).resolve().parents[2] / "config/rag.yaml", cfg.parent / "rag.yaml")
     input_file = tmp_path / "synthetic.txt"
-    input_file.write_text(TEXT)
+    input_file.write_text(TEXT, encoding="utf-8", newline="\n")
     assert import_source(root, "TEST", input_file) == 2
     clauses, missing = load_clauses(root)
     assert not missing

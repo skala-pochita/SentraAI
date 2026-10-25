@@ -1,0 +1,1952 @@
+source: FSC-AI-GL
+source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+clauses:
+- id: FSC-AI-GL:1-CHK-01
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[1. 거버넌스 원칙] 점검 항목'
+  text: "① 인공지능 위험을 관리하기 위한 최고 의사결정기구(예: 인공지능 윤리위원회)를\n  설치하였는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 18
+  page_end: 18
+- id: FSC-AI-GL:1-CHK-02
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[1. 거버넌스 원칙] 점검 항목'
+  text: "② 최고 의사결정기구가 인공지능 위험관리 정책 수립 등 인공지능 개발･이용과\n  관련된 주요 의사결정에 적극적으로 관여하도록 하였는가?\
+    \ YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 18
+  page_end: 18
+- id: FSC-AI-GL:1-CHK-03
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[1. 거버넌스 원칙] 점검 항목'
+  text: "③ 인공지능서비스 기획 또는 인공지능시스템 개발 조직과 독립된 위험관리 전담\n  조직을 구성하여 인공지능 관련 업무 전반을 통제·관리하도록\
+    \ 하였는가?\n  YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 18
+  page_end: 18
+- id: FSC-AI-GL:1-CHK-04
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[1. 거버넌스 원칙] 점검 항목'
+  text: "④ 인공지능 위험관리 규정 및 지침 등 인공지능 관련 내규를 수립하였는가?\n YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 18
+  page_end: 18
+- id: FSC-AI-GL:1-CHK-05
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[1. 거버넌스 원칙] 점검 항목'
+  text: "⑤ 인공지능 관련 세부적인 업무 매뉴얼을 마련하여 인공지능 개발·이용 全 프로세스를\n 체계적으로 관리하고 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 18
+  page_end: 18
+- id: FSC-AI-GL:1-CHK-06
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[1. 거버넌스 원칙] 점검 항목'
+  text: "⑥ 인공지능 개발·이용 과정에서 발생할 수 있는 위험을 체계적으로 인식·측정·\n  관리하기 위해 위험평가 체계를 구축하였는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 18
+  page_end: 18
+- id: FSC-AI-GL:1-CHK-07
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[1. 거버넌스 원칙] 점검 항목'
+  text: "⑦ 위험평가 결과에 따른 위험 수준별로 차등화된 통제·관리를 수행하였는가?\n YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 18
+  page_end: 18
+- id: FSC-AI-GL:1-CHK-08
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[1. 거버넌스 원칙] 점검 항목'
+  text: "⑧ 인공지능 관련 모니터링, 문서화, 교육 등 위험통제를 위한 제반 절차를 마련·\n  이행하였는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 18
+  page_end: 18
+- id: FSC-AI-GL:2-CHK-01
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "① 인공지능서비스별로 적용 가능한 법령(공통·업권별)을 식별하고 법 적용 우선순위에\n    따라 의무 사항을 파악하고 있는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-02
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "② 생성형·고성능·고영향 인공지능 해당 여부를 판단하고, 해당 시 투명성·안전성·고영향\n    의무를 검토하여 확인하고 있는가?\
+    \ YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-03
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "③   고영향   인공지능과   관련하여     인공지능기본법령상의   책무를   검토하고   확인하고\n    있는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-04
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "④ 외부에서 제공받거나 위탁 운영하는 인공지능시스템에 대해서도 관련 법규 준수\n    사항을 계약서 등에 반영하고 점검 방법을 마련하고\
+    \ 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-05
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "⑤ 해외 고객 대상 서비스 또는 해외 데이터 처리 시, EU 인공지능법·GDPR 등\n    역외적용 가능성이 있는 해외 법규를 검토하고\
+    \ 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-06
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "⑥ 법규 요구사항을 반영한 정책 및 지침이 수립되어 전사에 공유되고 있는가?\n    YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-07
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: ⑦ 법규 준수와 관련된 부서별 역할과 책임이 문서화되어 있는가? YES□ | NO□
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-08
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "⑧ 인공지능시스템에 대한 법규 준수 여부를 확인하는 주기적인 자체 점검 및 내부 감사\n    절차가 마련되어 시정되고 있는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-09
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "⑨ 점검 및 감사 결과 발견된 미흡 사항에 대한 시정조치 및 재발 방지 대책이 수립·\n    이행되고 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-10
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "⑩ 내부 정책 및 시스템의 모든 재‧개정 이력이 체계적으로 관리되고 있는가?\n    YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:2-CHK-11
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[2. 합법성 원칙] 점검 항목'
+  text: "⑪ 국내외 인공지능 관련 법규 제·개정 동향을 모니터링하여 법 개정 발생시 내부 정책,\n    업무 절차, 인공지능시스템이 적시에\
+    \ 갱신되고 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 30
+  page_end: 30
+- id: FSC-AI-GL:3-CHK-01
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: ① 의사결정의 단계별 역할·책임·권한이 문서화되어 공유되고 있는가? YES□ | NO□
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-02
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "② 외부로부터 제공받아 운영하는 인공지능도 책임 수행 체계에 포함되어 있는가?\n  YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-03
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "③ 복수인 확인 또는 위원회 검토를 통해 고영향 인공지능의 편향에 대한 이중 또는\n  다중 책임을 수행할 수 있는 체계를 구축하고\
+    \ 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-04
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "④ 직무 분리와 이해상충 방지가 업무 배정·승인 운영에 실질적으로 적용되는가?\n  YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-05
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "⑤ 인공지능시스템의 위험 수준에 따라 인적 개입 방식(HITL, HOTL 등)을 적용하는\n  기준이 문서화되어 있는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-06
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "⑥ 고위험 인공지능에 대해서는 최종 의사결정을 인공지능이 수행하지 않도록 하는\n  HITL(Human-in-the-Loop) 방식이\
+    \ 적용되어 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-07
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "⑦ 인공지능의 결과에 대한 긴급정지(Kill switch), 재정의(Override), 안전모드 전환 등\n  구체적인 인적 개입\
+    \ 방법이 시스템에 마련되어 있고 관련 절차가 문서화되어\n  있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-08
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "⑧ 인적 개입 수단의 이행 결과는 책임 추적성을 위해 설명 가능한 사유와 함께 기록·\n  보존되는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-09
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "⑨ 비정상 상황 발생에 대비한 표준 운영 절차(SOP)가 마련되어 있고, 이에 따른\n  모의훈련을 실시하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-10
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: ⑩ 교육 목표와 원칙을 수립하여 정기적인 교육을 시행하고 있는가? YES□ | NO□
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-11
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "⑪ 실무자, 관리자, 감사인 등 역할별 차별화된 교육 커리큘럼이 있는가?\n  YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:3-CHK-12
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[3. 보조수단성 원칙] 점검 항목'
+  text: "⑫ 교육 내용에 긴급정지 기능의 운영 방법, 재정의 등 구체적인 개입 절차와 도구\n  활용법에 대한 실습 또는 시뮬레이션 훈련 등을\
+    \ 포함하고 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 39
+  page_end: 39
+- id: FSC-AI-GL:4-CHK-01
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "①   인공지능 모델의 성능을 측정할 수 있는 명확한 지표를 업무별로 설정하고\n    정기적으로 점검하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-02
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: ② 성능이 기준치 이하로 떨어질 경우 즉시 파악할 수 있는 체계를 마련했는가? YES□ | NO□
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-03
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "③ 모델 성능이 저하되는 경우 신속하게 대응할 수 있는 절차를 마련하고, 성능 저하 원인을\n    파악하여 구체적인 원인에 따라\
+    \ 대응하도록 하는 절차를 마련했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-04
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "④ 인공지능 개발·이용에 사용하는 데이터의 정확성, 완전성, 일관성, 대표성, 적시성을\n    체계적으로 검증하는 절차가 마련하여\
+    \ 운영하고 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-05
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑤ 잘못된 정보나 누락된 정보가 없는지 점검하고, 데이터 수집부터 전처리까지 전\n    과정에 걸쳐서 품질 검증을 수행하는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-06
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑥ 데이터 이상치 탐지를 통해 인공지능시스템의 성능을 저해할 수 있는 비정상적인\n    데이터를 사전에 식별하고 제거하는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-07
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑦ 운영 단계에서 비정상적인 데이터가 탐지될 경우 다시 입력하도록 요청하거나\n    수동으로 직원이 확인할 수 있는 절차가 마련되어\
+    \ 있는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-08
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑧ 학습·참조 및 운영에 사용되는 데이터의 편향성을 사전에 점검하고 조치하는\n    절차를 마련하고 시행하고 있는가? YES□ |\
+    \ NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-09
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑨ 고객의 의사결정에 직접적인 영향을 미치는 인공지능의 경우 편향성 평가 및\n    모니터링을 위한 지표를 선정하고 개발 및 운영\
+    \ 중에 테스트를 실시하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-10
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑩ 운영 중인 인공지능서비스의 공정성과 편향성을 주기적으로 점검하여 소비자 집단별\n    서비스 결과에 편향이 탐지될 경우 개선하는\
+    \ 절차를 마련했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-11
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑪ 고객의     금융거래에 직접적인    영향을 미치는     의사결정의    경우 기술적‧환경적\n    가능성을 고려하여 그\
+    \ 과정을 추적하고 설명할 수 있도록 절차를 마련했는가?\n    YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-12
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑫ 신용평가, 대출 승인, 투자권유 등 고객에게 직접적인 영향을 미치는 결정에 대해\n    설명 자료를 생성할 수 있는 절차를 마련했는가?\
+    \ YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-13
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑬ 인공지능의 결정이 금융소비자의 금융서비스 이용에 직접적인 영향을 미칠 경우,\n    금융소비자가 인공지능의 결정을 이해할 수\
+    \ 있도록 기술적 전문 지식이 없는 일반\n    고객도 이해할 수 있는 쉬운 언어로 설명을 제공하는가? (단, 개인정보 보호와 영업\n \
+    \   기밀 유지를 고려하여 적절한 수준에서 설명 범위 조정 필요) YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-14
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑭ 고객이 결정에 대해 문의하거나 이의를 제기할 경우 답변할 수 있는 창구와 절차를\n    마련했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:4-CHK-15
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[4. 신뢰성 원칙] 점검 항목'
+  text: "⑮ 모델의 학습 데이터, 알고리즘 선택 근거, 주요 변수의 영향도, 성능 검증 결과 등을\n    포함한 기술 문서를 작성하고 최신\
+    \ 상태로 유지하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 56
+  page_end: 56
+- id: FSC-AI-GL:5-CHK-01
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[5. 금융안정성 원칙] 점검 항목'
+  text: "① 인공지능시스템이 금융시장 전반 또는 금융안정에 미칠 수 있는 영향 등 위험을\n    평가·관리하는 방안을 마련하였는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 64
+  page_end: 64
+- id: FSC-AI-GL:5-CHK-02
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[5. 금융안정성 원칙] 점검 항목'
+  text: "② 시스템 위험관리를 위해 모형 오작동 시 백업모형 설계, 비상정지 장치 등\n    구체적인 대응 방안 등을 반영한 안전장치를 마련하였는가?\
+    \ YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 64
+  page_end: 64
+- id: FSC-AI-GL:5-CHK-03
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[5. 금융안정성 원칙] 점검 항목'
+  text: "③ 시스템 위험관리를 위해 인공지능 모형을 오픈소스로 활용하거나 외주 개발하는 경우\n    아웃소싱에 따른 제3자 리스크를 별도로\
+    \ 평가·관리하는 방안을 마련하였는가?\n    YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 64
+  page_end: 64
+- id: FSC-AI-GL:5-CHK-04
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[5. 금융안정성 원칙] 점검 항목'
+  text: "④ 제3자의 영향도 및 의존도 등을 파악할 수 있도록 위탁하는 정보, 시스템 현황,\n    중요도 등 제3자의 IT 현황 관리 등록부를\
+    \ 마련하고 최신 상태로 유지하고 있는가?\n    YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 64
+  page_end: 64
+- id: FSC-AI-GL:5-CHK-05
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[5. 금융안정성 원칙] 점검 항목'
+  text: "⑤ 계약 단계부터 사후관리 단계에 이르는 정보처리 위탁 과정 전반의 단계별 리스크\n    관리 방안을 마련하였는가? YES□ |\
+    \ NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 64
+  page_end: 64
+- id: FSC-AI-GL:5-CHK-06
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[5. 금융안정성 원칙] 점검 항목'
+  text: "⑥ 정보처리 업무위탁 및 제3자 IT리스크 관리 활동 내역 관련 기록을 문서화하여 보관\n    및 유지하고 있는가? YES□ |\
+    \ NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 64
+  page_end: 64
+- id: FSC-AI-GL:5-CHK-07
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[5. 금융안정성 원칙] 점검 항목'
+  text: "⑦ 시스템 리스크로 확대될 위험이 있는 인공지능 관련 사고 발생 위험을 선제적으로\n    점검할 수 있는 장치를 마련하였는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 64
+  page_end: 64
+- id: FSC-AI-GL:5-CHK-08
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[5. 금융안정성 원칙] 점검 항목'
+  text: "⑧    인공지능       관련       위험과       사고에   관한       사항을   감독당국에   보고하는    절차를\n\
+    \     마련하였는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 64
+  page_end: 64
+- id: FSC-AI-GL:5-CHK-09
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[5. 금융안정성 원칙] 점검 항목'
+  text: ⑨ 감독당국과 정보 공유·의사소통 체계를 마련하였는가? YES□ | NO□
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 64
+  page_end: 64
+- id: FSC-AI-GL:6-CHK-01
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[6. 신의성실 원칙] 점검 항목'
+  text: "① 인공지능서비스 개발 시 알고리즘 등의 사전테스트를 통해 금융소비자의 합리적인\n    이익 침해 여부를 점검하였는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 70
+  page_end: 70
+- id: FSC-AI-GL:6-CHK-02
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[6. 신의성실 원칙] 점검 항목'
+  text: "② 인공지능서비스 운영 시 금융소비자의 합리적인 선택이나 이익을 침해할 우려가\n    있는 거래조건이나 거래 방법을 사용하는지 지속적으로\
+    \ 점검하였는가?\n    YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 70
+  page_end: 70
+- id: FSC-AI-GL:6-CHK-03
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[6. 신의성실 원칙] 점검 항목'
+  text: "③   이해상충     행위    발생   방지를    위해    이해상충         행위   방지     기준이   포함된\n\
+    \    소프트웨어를 설치하거나 이해상충 행위 방지 기준의 문서화, 이해상충 행위\n    방지 기준 위반 시 조치 체계를 수립하였는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 70
+  page_end: 70
+- id: FSC-AI-GL:6-CHK-04
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[6. 신의성실 원칙] 점검 항목'
+  text: "④   고객에게     영향이   있는   인공지능서비스         제공    시   해당    서비스가     인공지능을\n\
+    \    활용하고 있다는 사실을 계약서, 약관, 상품설명서, 화면 내 표시 등을 통해 사전\n    고지했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 70
+  page_end: 70
+- id: FSC-AI-GL:6-CHK-05
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[6. 신의성실 원칙] 점검 항목'
+  text: "⑤ 금융소비자가 인공지능서비스 이용 과정에서 서비스 오류 등 위험을 신고할 수\n    있는 창구를 마련했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 70
+  page_end: 70
+- id: FSC-AI-GL:6-CHK-06
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[6. 신의성실 원칙] 점검 항목'
+  text: "⑥ 금융소비자가 인공지능서비스에 대해 이의를 제기하고 인공지능이 아닌 기존 서비스\n    이용을 요구하는 경우 제공이 가능한 체계를\
+    \ 마련했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 70
+  page_end: 70
+- id: FSC-AI-GL:7-CHK-01
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "① 인공지능 특화 위협 모델링 기법을 활용하여 별도 위협 식별 체계를 구축하고,\n  인공지능 특화 위협을 정기적으로 식별하는 절차를\
+    \ 마련했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-02
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "② 식별된 위협을 분류하고 분석하여 위험 수준에 따른 대응 전략을 마련했는가?\n YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-03
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "③ 각 위협의 발생 가능성과 영향도를 평가하여 우선순위를 정하고, 이에 맞는\n  구체적인 대응 방안을 수립했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-04
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "④ 기획 과정부터 보안성 확보 및 검증 방안을 수립하고, 개발 및 운영 시 이에 따라\n 보안성을 확보하고 검증하는가? YES□ |\
+    \ NO□\n\n\n[인공지능 특화 공격 탐지 및 대응]"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-05
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑤ 외부 사용자 입력이나 외부 데이터를 수집하는 인공지능서비스의 경우, 그 내용이\n  정상적인 범위를 벗어나는지 사전에 검토하는\
+    \ 기능을 구현했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-06
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑥ 대화형 인공지능서비스의 경우 시스템 제약을 우회하여 부적절한 결과를 얻으려는\n 시도를 탐지 및 차단할 수 있도록 입출력 필터링\
+    \ 체계를 마련했는가?\n YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-07
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑦ 입출력 데이터에서 목적 외 고유식별정보 및 개인(신용)정보 포함 여부를 탐지하고\n 마스킹 또는 차단하는 기능을 구현했는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-08
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑧ 출력 데이터와 에러 메시지에서 인공지능 모델 정보(구조, 프롬프트 등) 등\n  기밀정보가 노출되지 않도록 방지하는 기능을 구현했는가?\
+    \ YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-09
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑨ 판단형 모델의 경우 적대적 예제 공격에 대한 방어 체계를, 생성형 모델의 경우\n  프롬프트 인젝션 및 탈옥 공격에 대한 방어\
+    \ 체계를 구축했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-10
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑩ 고영향·고위험 시스템의 경우 인공지능을 속여 잘못된 결과를 유도하는 공격에 대한\n 정기적 모의훈련을 수행하여 방어 체계 실효성을\
+    \ 검증하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-11
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑪ 인공지능시스템에 대한 보안 위협을 실시간으로 감지하고 대응할 수 있는 체계를\n  구축했는가? YES□ | NO□\n\n\n\n\
+    [인공지능 자산 보호 및 관리]"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-12
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑫ 사용자별 질의 횟수 제한, 접근 빈도 모니터링 등의 통제 방안을 마련하여 인공지능\n 모델에 과도한 질의나 특정 패턴의 반복적인\
+    \ 접근을 제한하였는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 89
+  page_end: 89
+- id: FSC-AI-GL:7-CHK-13
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑬ 고영향 및 고위험 인공지능시스템의 경우 반복 질의를 통한 모델 구조 추론, 학습\n    데이터 추출, 시스템 프롬프트 노출 등\
+    \ 내부 정보 유출 공격에 대한 모의훈련을\n    정기적으로 수행하여 방어 체계의 실효성을 검증하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-14
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑭ 사용되는 데이터 및 모델의 목록을 관리하고, 데이터 및 모델에 대한 접근 권한과\n    변경·삭제에 대한 기록을 관리하는가?\
+    \ YES□ | NO□\n\n\n[외부 모델 및 데이터 검증]"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-15
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑮ 외부에서 제공하는 인공지능 모델이나 오픈소스 모델을 활용하는 경우, 해당 모델이\n    악의적으로 조작되지 않았는지 사전에 검증하는\
+    \ 절차를 마련했는가?\n    YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-16
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑯ 모델의 출처와 개발 이력을 확인하고, 신뢰할 수 있는 제공자로부터만 모델을\n    도입하도록 하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-17
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑰ 사전학습된 오픈소스 모델을 활용할 때는 모델 다운로드 전에 파일 무결성을\n    검증하고, 알려진 보안 취약점이 있는지 확인하는가?\
+    \ YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-18
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑱ 외부에서 제공받는 데이터 출처의 신뢰성을 확인하고, 의도적으로 조작되거나\n    오염되지 않았는지 검증하는 절차를 마련했는가?\
+    \ YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-19
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑲ 실시간 또는 주기적으로 외부 데이터를 수집하여 인공지능 모델의 학습 데이터\n    또는 참조 데이터로 사용하는 경우, 데이터\
+    \ 오염 공격에 대한 보안 위협 평가를\n    실시하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-20
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "⑳ 인공지능 생태계의 특수한 구조와 의존성을 고려하여 공급망 보안을 관리하는가?\n    YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-21
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉑ 인공지능 모델, API, 개발 프레임워크 등에 대한 사전 검증을 수행하고, 외부\n    인공지능 도구의 경우 학습 데이터 출처,\
+    \ 모델 무결성, 편향성 문제 등을 추가로\n    확인하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-22
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉒ 외부 인공지능서비스 제공 업체와의 계약 시에는 인공지능 특화 보안 위협 대응\n    능력과 거버넌스 수준을 평가하는가? YES□\
+    \ | NO□\n\n\n[기존 보안 관리의 인공지능 확장 적용]"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-23
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉓ 인공지능시스템의 동작과 직접 관련된 모델과 학습 데이터에 대해서는 프로그램\n    소스 코드와 동일한 수준의 접근 통제를 적용하는가?\
+    \ YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-24
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉔ 인공지능시스템의 자동화된 접근 패턴을 별도로 모니터링하고, 업무 목적에 필요한\n    최소한의 권한만 부여하는가? YES□ |\
+    \ NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 90
+- id: FSC-AI-GL:7-CHK-25
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉕   인공지능시스템      오작동   시   피해를   최소화할   수   있도록   긴급정지   기능을\n\n\n\n  구축하였는가?\
+    \ YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 90
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-26
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉖ 클라우드 기반 인공지능서비스나 상용 생성형 인공지능서비스 이용 시 데이터의\n  국외 이전 가능성을 확인했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-27
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉗ 외부 인공지능서비스 이용 시 모델 개선 목적의 데이터 재사용을 금하도록 사전에\n 확인하고 계약서 등에 명시했는가? YES□ |\
+    \ NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-28
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉘ 기존 정보보호 교육 외에 인공지능 특화 보안 위협에 대한 교육을 실시하는가?\n YES□ | NO□\n\n\n[인공지능시스템 보안성\
+    \ 검증 및 운영 관리]"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-29
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉙ 인공지능시스템을 운영 시스템으로 이관하기 전, 운영 중에는 정기적으로 보안성\n  검증을 수행하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-30
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉚ 고영향 및 고위험 인공지능의 경우 금융보안원 등 제3자 검증기관의 검증을\n  받는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-31
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉛ 검증 결과 발견된 취약점에 대해 즉시 보완하고 재검증하여 결과를 문서화하는가?\n YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-32
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉜ 새로운 인공지능 보안 위협, 시스템 환경 변화, 모델 업데이트에 대응하여 지속적인\n 보안 관리를 수행하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-33
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉝ 정기적인 보안 점검 일정을 수립하여 시스템의 보안 상태를 점검하는가?\n YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-34
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㉞ 인공지능 모델이나 학습 데이터 업데이트 시 보안성 영향을 사전에 평가하고\n  필요시 추가 보안성 검증을 수행하는가? YES□\
+    \ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-35
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: ㉟ 보안사고 발생 시 원인을 분석하고 재발 방지 방안을 수립하는가? YES□ | NO□
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-36
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㊱ 상용 생성형 인공지능을 내부망에서 이용할 경우 생성형 인공지능 연계 이용 보안\n 대책을 이행했는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-37
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㊲ 오픈소스 인공지능 도구 활용 시 금융분야 오픈소스 소프트웨어 활용·관리 안내서에\n 따라   라이선스    관리,   보안  \
+    \ 취약점   점검,   업데이트   관리   등을   체계적으로\n 수행하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91
+- id: FSC-AI-GL:7-CHK-38
+  source: FSC-AI-GL
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  file_sha256: c8879912a12d491356dbe482d0ff48eecee8fd47093cf0e7f284b14c2329c2f5
+  heading: '[7. 보안성 원칙] 점검 항목'
+  text: "㊳ 클라우드 환경에서 인공지능서비스 이용 시 클라우드 제공업체와의 보안 책임\n  분담을 명확히 하고 데이터 처리 지역, 암호화 수준,\
+    \ 접근 권한 관리 등에 대한\n  추가적인 보안 통제를 적용하는가? YES□ | NO□"
+  condition: finance
+  assessable: true
+  evidence_scope: finding
+  source_type: kr_guideline
+  title: 금융분야 인공지능 가이드라인
+  issuer: 금융위원회
+  source_url: https://www.fsc.go.kr/no010101/87142
+  version: 2026-06-18 공개본
+  content_kind: recommendation
+  classification_basis: structure
+  parent_id: null
+  page_start: 91
+  page_end: 91

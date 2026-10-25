@@ -1,0 +1,292 @@
+- key:
+    category: JAILBREAK
+  clause: FSC-AI-GL:7-CHK-09
+  quote: 프롬프트 인젝션 및 탈옥 공격에 대한 방어 체계를 구축했는가?
+  quote_sha256: 6e0518c5c92484581ecd6a822f485b79438865b76972db32ebbebb246ab8b65c
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 문제 유형과 원문 통제의 기술적 관련성을 확인. 적용 조건과 통제 효과는 별도 검토 필요.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.733411+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: TOOL_NO_APPROVAL
+  clause: KR-AIBA:34:EVIDENCE-HUMAN-OVERSIGHT
+  quote: 고영향 인공지능에 대한 사람의 관리ㆍ감독
+  quote_sha256: 6c783b8a3576653ea4f8b98b36aec987170eb3f3e27132b7a5eac7164e3cb307
+  source_sha256: b4e28ba2e1e39d66d47f31c545a484479023927e6efa6a82e096b163d3347123
+  relevance: ai_estimated
+  reason: 사람 승인 누락은 감독 체계 검토의 단서이며, 특정 승인 절차의 법정 의무나 감독 체계 전체의 이행 여부를 확정하지 않습니다. 코드
+    Findings 및 보고서 생성만으로 조직 의무 이행을 확인하지 않습니다.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.733411+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: TOOL_EXCESSIVE_SCOPE
+  clause: FSC-AI-GL:7-CHK-24
+  quote: 업무 목적에 필요한 최소한의 권한만 부여하는가?
+  quote_sha256: ecf411179cf59723ea6a6cf9490ed5f697a097fba71d32cf65e1a76b1b47b83f
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 문제 유형과 원문 통제의 기술적 관련성을 확인. 적용 조건과 통제 효과는 별도 검토 필요.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.733411+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: INDIRECT_INJECTION
+  clause: FSC-AI-GL:7-CHK-09
+  quote: 프롬프트 인젝션 및 탈옥 공격에 대한 방어 체계를 구축했는가?
+  quote_sha256: 6e0518c5c92484581ecd6a822f485b79438865b76972db32ebbebb246ab8b65c
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 문제 유형과 원문 통제의 기술적 관련성을 확인. 적용 조건과 통제 효과는 별도 검토 필요.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.733411+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: PROMPT_NO_INSTRUCTION_HIERARCHY
+  clause: FSC-AI-GL:7-CHK-09
+  quote: 프롬프트 인젝션 및 탈옥 공격에 대한 방어 체계를 구축했는가?
+  quote_sha256: 6e0518c5c92484581ecd6a822f485b79438865b76972db32ebbebb246ab8b65c
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 지시 계층 부재는 인젝션 방어 검토의 단서이며, 특정 프롬프트 문구 유무만으로 방어 전체의 이행을 판정하지 않습니다.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: TOOL_NO_APPROVAL
+  clause: FSC-AI-SEC:PAGE-057-01:EVIDENCE-TECH-5
+  quote: 고객 영향도가 큰 의사결정은 사람이 최종 승인
+  quote_sha256: 999b966ff2ecdef4c10f917997d2775443310e1f69ae222ab3b132491aba564e
+  source_sha256: 4cf5ce19e058c93d68041839463623be759e1e83866db168ca5c62edaf6fc398
+  relevance: ai_estimated
+  reason: 고객 영향도가 큰 금융 의사결정에 한정된 통제임을 명시하며 모든 도구 호출에 승인을 요구하지 않음.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: SYSTEM_PROMPT_LEAK
+  clause: FSC-AI-GL:7-CHK-13
+  quote: 시스템 프롬프트 노출 등 내부 정보 유출 공격에 대한 모의훈련
+  quote_sha256: 9357721258bf2136f60e609b7ca15c766b36a541c84dbef53d94d97c947e35c5
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 정기 모의훈련·운영 검증은 조직 운영 증적이 필요하며 이번 단발 감사로 이행 여부를 확인할 수 없음.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: TOOL_NO_APPROVAL
+  clause: KR-AIBA-HIGH-GL:PAGE-055-01:EVIDENCE-HUMAN-INTERVENTION
+  quote: "인공지능이 특정 조건이나 임계값을 초과할 경우, 자동으로 경고를 발생시키고 사람의 검토 및 승인을\n               유도하는\
+    \ 제어 절차를 포함할 수 있음."
+  quote_sha256: c93f35c6ba54a8db78a72c734f4f371d74e72230b1d147cfd264cf0369c970db
+  source_sha256: a88b7a8f14cae8588398cee507581aca17410762f8a401a48ff0b1219c05d183
+  relevance: ai_estimated
+  reason: 고영향 AI에서 사람의 개입을 지원하는 제어 절차의 구현 예에 해당합니다. 모든 도구 호출에 같은 승인 방식을 요구한다는 의미는
+    아닙니다. 고영향 AI 적용 여부와 개입이 필요한 상황인지 확인해야 합니다.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: DATA_EXFILTRATION
+  clause: FSC-AI-GL:7-CHK-07
+  quote: "⑦ 입출력 데이터에서 목적 외 고유식별정보 및 개인(신용)정보 포함 여부를 탐지하고\n 마스킹 또는 차단하는 기능을 구현했는가?"
+  quote_sha256: 988e0d57494c7bf6283d0913b87a03ed5a92c30224f97160eead51fe04d96ce4
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: INDIRECT_INJECTION_SURFACE
+  clause: FSC-AI-GL:7-CHK-05
+  quote: "⑤ 외부 사용자 입력이나 외부 데이터를 수집하는 인공지능서비스의 경우, 그 내용이\n  정상적인 범위를 벗어나는지 사전에 검토하는\
+    \ 기능을 구현했는가?"
+  quote_sha256: 488fbd9ba539bbd54c1c94d9066d5f6fd1926ff30c7fd66bf657c40e203fd24b
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: INDIRECT_INJECTION
+  clause: FSC-AI-GL:7-CHK-05
+  quote: "⑤ 외부 사용자 입력이나 외부 데이터를 수집하는 인공지능서비스의 경우, 그 내용이\n  정상적인 범위를 벗어나는지 사전에 검토하는\
+    \ 기능을 구현했는가?"
+  quote_sha256: 488fbd9ba539bbd54c1c94d9066d5f6fd1926ff30c7fd66bf657c40e203fd24b
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: SYSTEM_PROMPT_LEAK
+  clause: FSC-AI-GL:7-CHK-08
+  quote: "⑧ 출력 데이터와 에러 메시지에서 인공지능 모델 정보(구조, 프롬프트 등) 등\n  기밀정보가 노출되지 않도록 방지하는 기능을 구현했는가?"
+  quote_sha256: 86571e82d5d034e28e85e6ccb779b1a0f625371310174a79b720c9c5d57e4218
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    audit: audit_execution
+  clause: FSC-AI-GL:7-CHK-29
+  quote: 인공지능시스템을 운영 시스템으로 이관하기 전, 운영 중에는 정기적으로 보안성 검증
+  quote_sha256: 50d2cb5baca493f1801ac7c5a6fcd369ed0c2cda9a5c8e5b6e227ca027925b27
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 정기 모의훈련·운영 검증은 조직 운영 증적이 필요하며 이번 단발 감사로 이행 여부를 확인할 수 없음.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: TOOL_MISUSE
+  clause: FSC-AI-SEC:PAGE-052-01:EVIDENCE-TOOL-MISUSE
+  quote: "오남용 가능성 평가: 외부 서비스 및 도구가 AI 시스템에 연결될 경우, 데이터 오남용 또는\n\n\n\n\n          \
+    \            의도하지 않은 행동의 가능성을 사전 평가하고 위험 완화 조치 시행"
+  quote_sha256: 569b0c9d811ca1fa6d301ada0dd32115b43d7a312856f56bb6929fe780312758
+  source_sha256: 4cf5ce19e058c93d68041839463623be759e1e83866db168ca5c62edaf6fc398
+  relevance: ai_estimated
+  reason: 사전 도입 승인 문구 대신 연결된 외부 도구의 오남용·의도하지 않은 행동에 대한 위험 완화 문구로 교체.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: PRIVILEGE_ESCALATION
+  clause: FSC-AI-GL:7-CHK-24
+  quote: 업무 목적에 필요한 최소한의 권한만 부여하는가?
+  quote_sha256: ecf411179cf59723ea6a6cf9490ed5f697a097fba71d32cf65e1a76b1b47b83f
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: AI 에이전트의 권한 상승 시나리오와 최소 권한 통제의 관련성을 검토하는 후보. 일반 웹 권한 문제로 확대 적용하지 않습니다.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    audit: report_document
+  clause: KR-AIBA-DECREE:27:EVIDENCE-RETENTION
+  quote: "인공지능사업자는 법 제34조제1항 각 호의 조치를 이행하고 그 근거를 문서로 5년간 보관(전\n  자적 방법을 통한 보관을 포함한다)해야\
+    \ 한다."
+  quote_sha256: 31718c35dc6281c26afbb218a90d4985caa877d812e96218a7482e11615254ee
+  source_sha256: 887c5281d1bc019e0d3fd24a4e69cc6e6ff527e1d91b431075b2fb47287622b3
+  relevance: ai_estimated
+  reason: 보고서 작성은 근거 보관 체계 검토의 시작점이며, 5년 보관과 전체 조치 이행은 별도 조직 증적이 필요합니다. 코드 Findings
+    및 보고서 생성만으로 조직 의무 이행을 확인하지 않습니다.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: JAILBREAK
+  clause: FSC-AI-GL:7-CHK-06
+  quote: "⑥ 대화형 인공지능서비스의 경우 시스템 제약을 우회하여 부적절한 결과를 얻으려는\n 시도를 탐지 및 차단할 수 있도록 입출력 필터링\
+    \ 체계를 마련했는가?"
+  quote_sha256: 04b1a055d6346311c43682ff8fed9d4e211557c0e8a18d4e1495a794c0ee8519
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 대상 설명만 인용하던 부분을 실제 방어·탐지·차단 조치까지 포함하도록 보완.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    audit: report_document
+  clause: KR-AIBA:34:EVIDENCE-DOCUMENTATION
+  quote: 안전성ㆍ신뢰성 확보를 위한 조치의 내용을 확인할 수 있는 문서의 작성과 보관
+  quote_sha256: 015e16dfbc644c26fa47ad4402265a029753283568bb1a02650ee6d3eda5a186
+  source_sha256: b4e28ba2e1e39d66d47f31c545a484479023927e6efa6a82e096b163d3347123
+  relevance: ai_estimated
+  reason: 보고서는 증적 자료의 일부가 될 수 있으나 전체 조치 이행과 보관 의무를 입증하지 않습니다. 코드 Findings 및 보고서 생성만으로
+    조직 의무 이행을 확인하지 않습니다.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    audit: probe_execution
+  clause: FSC-AI-GL:7-CHK-10
+  quote: 고영향·고위험 시스템의 경우 인공지능을 속여 잘못된 결과를 유도하는 공격에 대한 정기적 모의훈련
+  quote_sha256: 35d35c393df6f078ac4eba37887e3ae728dd00274c95541b6e46558a5f937da9
+  source_sha256: 360c58822881a452a466f45753bc7a345173953022b5a9558535825fc6461ac7
+  relevance: ai_estimated
+  reason: 정기 모의훈련·운영 검증은 조직 운영 증적이 필요하며 이번 단발 감사로 이행 여부를 확인할 수 없음.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null
+- key:
+    category: TOOL_EXCESSIVE_SCOPE
+  clause: FSC-AI-SEC:PAGE-052-01:EVIDENCE-TOOL-SCOPE
+  quote: "연결 사용 범위 및 권한 제한: AI 시스템이 외부 서비스와 연결할 때, 서비스별로 구체적인\n                  \
+    \    사용 범위(특정 데이터, 기능)를 설정하여 연결 권한을 엄격히 제한하고 관리, 주기적 점검 및\n                  \
+    \    재평가 수행"
+  quote_sha256: b6028af64640e23a8c97f3c637b3e48311c55bb30f885551862116e332a53fc1
+  source_sha256: 4cf5ce19e058c93d68041839463623be759e1e83866db168ca5c62edaf6fc398
+  relevance: ai_estimated
+  reason: 개발자·운영자 역할 권한 문구 대신 외부 AI 서비스 연결 범위·권한 제한 문구로 교체.
+  generated_by:
+    model: assistant_source_review
+    prompt: evidence_policy_v1
+    at: '2026-10-25T12:25:50.749301+00:00'
+  confirmed_by: null
+  confirmed_at: null

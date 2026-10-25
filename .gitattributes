@@ -1,0 +1,4 @@
+# Regulatory hashes cover exact bytes, including extracted line endings.
+knowledge/regulation_bundle/** -text -whitespace
+knowledge/regulation_bundle/**/*.pdf binary
+knowledge/regulation_bundle/**/*.sqlite3 binary

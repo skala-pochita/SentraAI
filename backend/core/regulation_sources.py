@@ -248,6 +248,31 @@ def sources_root() -> Path:
     return get_settings().knowledge_dir / "sources"
 
 
+def bundled_root() -> Path:
+    return get_settings().knowledge_dir / "regulation_bundle"
+
+
+def effective_sources_root() -> Path:
+    """Fresh installs use the shipped corpus; explicit local imports stay authoritative."""
+    root = sources_root()
+    bundle = bundled_root() / "sources"
+    if (root / "MANIFEST.local.yaml").exists() or not (bundle / "MANIFEST.yaml").is_file():
+        return root
+    if (root / "MANIFEST.yaml").is_file():
+        manifest = read_manifest(root)
+        if any(s.get("status") == "AVAILABLE" for s in manifest["sources"]):
+            return root
+    return bundle
+
+
+def effective_regulation_index() -> Path | None:
+    if configured := get_settings().regulation_index_path:
+        return configured
+    if effective_sources_root() == bundled_root() / "sources":
+        return bundled_root() / "regulations.sqlite3"
+    return None
+
+
 def read_manifest(root: Path) -> dict[str, Any]:
     base = yaml.safe_load((root / "MANIFEST.yaml").read_text(encoding="utf-8"))
     overlay = root / "MANIFEST.local.yaml"
@@ -266,7 +291,7 @@ def read_manifest(root: Path) -> dict[str, Any]:
 def load_clauses(
     root: Path | None = None, *, include_policy: bool = True
 ) -> tuple[dict[str, Clause], list[dict[str, str]]]:
-    root = root or sources_root()
+    root = root or effective_sources_root()
     manifest = read_manifest(root)
     out: dict[str, Clause] = {}
     missing = []
