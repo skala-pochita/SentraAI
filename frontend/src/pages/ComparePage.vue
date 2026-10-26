@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 수정본 재업로드 비교: 기준 감사(이전 버전) 대비 Finding 변화와 동일 공격 재검증 결과
+// 수정본 재업로드 비교: 기준 감사(이전 버전) 대비 보안 문제 변화와 동일 공격 재검증 결과
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { get, ApiError } from '../api/client'
@@ -37,6 +37,11 @@ watch(baseline, async (b) => {
   catch (e) { error.value = e instanceof ApiError ? e.body.message : String(e) }
   finally { loading.value = false }
 })
+const pairedProbes = computed(() => (result.value?.probes ?? []).filter(p => p.baseline && p.current))
+const attackTotals = computed(() => pairedProbes.value.reduce((sum, p) => ({
+  before: sum.before + p.baseline!.successes, beforeAttempts: sum.beforeAttempts + p.baseline!.attempts,
+  after: sum.after + p.current!.successes, afterAttempts: sum.afterAttempts + p.current!.attempts,
+}), { before: 0, beforeAttempts: 0, after: 0, afterAttempts: 0 }))
 const shown = computed(() => (result.value?.findings ?? []).filter((f) => !filter.value || f.status === filter.value))
 const v = (n: number | null | undefined) => (n ? `v${n}` : '버전 미지정')
 const day = (s: string) => s.slice(0, 16).replace('T', ' ')
@@ -56,10 +61,10 @@ async function download() {
       <label class="field" style="min-width:320px; flex:1">비교 기준 감사 (같은 프로젝트의 이전 감사)
         <select v-model="baseline" aria-label="비교 기준 감사">
           <option value="">기준 감사를 선택하세요</option>
-          <option v-for="c in candidates" :key="c.id" :value="c.id">{{ v(c.version) }} · {{ day(c.created_at) }} · {{ c.mode }} · Finding {{ c.summary?.total ?? 0 }}건 · {{ c.id.slice(0, 8) }}</option>
+          <option v-for="c in candidates" :key="c.id" :value="c.id">{{ v(c.version) }} · {{ day(c.created_at) }} · {{ c.mode }} · 보안 문제 {{ c.summary?.total ?? 0 }}건 · {{ c.id.slice(0, 8) }}</option>
         </select>
       </label>
-      <button class="btn sm" :disabled="!result" @click="download"><Icon name="download" :size="14" />.md 다운로드</button>
+      <button class="btn sm" :disabled="!result" @click="download"><Icon name="download" :size="14" />비교 보고서 다운로드 (.md)</button>
     </div>
     <p v-if="!candidates.length" class="muted small mt-s">비교할 이전 감사가 없습니다. 수정본 ZIP을 올릴 때 이전 버전을 연결한 뒤 감사를 실행하세요.</p>
     <p class="muted small mt-s">확인 불가는 해결로 세지 않습니다. 감사기는 원본을 수정하지 않으며, 사용자가 고친 수정본을 같은 공격으로 다시 검사한 결과입니다.</p>
@@ -69,6 +74,16 @@ async function download() {
   <p v-if="loading" class="muted">비교 중…</p>
 
   <template v-if="result">
+    <section class="card comparison-hero mb">
+      <h2>수정 전후 검증 결과</h2>
+      <div class="version-comparison">
+        <div><span class="muted">수정 전 · {{ v(result.baseline.version) }}</span><template v-if="pairedProbes.length"><strong>{{ attackTotals.before }}<small> / {{ attackTotals.beforeAttempts }}회</small></strong><span>공격 성공 / 시도</span></template></div>
+        <Icon name="chevron" :size="28" />
+        <div><span class="muted">수정 후 · {{ v(result.current.version) }}</span><template v-if="pairedProbes.length"><strong>{{ attackTotals.after }}<small> / {{ attackTotals.afterAttempts }}회</small></strong><span>공격 성공 / 시도</span></template></div>
+      </div>
+      <p v-if="pairedProbes.length" class="muted small">양쪽에 실행 기록이 있는 {{ pairedProbes.length }}개 공격 유형 기준입니다. 확인 불가 판정과 실행 조건은 아래에서 함께 확인하세요.</p>
+      <p v-else class="muted">양쪽 실행 기록이 있는 공격이 없습니다. 아래 보안 문제 변화와 확인 불가 항목을 확인하세요.</p>
+    </section>
     <div class="row mb muted small">
       <span class="badge">기준 {{ v(result.baseline.version) }} · {{ result.baseline.model_verification }}</span>
       <Icon name="chevron" :size="14" />
@@ -122,7 +137,16 @@ async function download() {
           <td class="muted small">{{ f.reason }}</td>
         </tr></tbody>
       </table></div>
-      <div v-else class="empty"><Icon name="inbox" /><b>표시할 Finding 이 없습니다</b></div>
+      <div v-else class="empty"><Icon name="inbox" /><b>표시할 보안 문제가 없습니다</b></div>
     </div>
   </template>
 </template>
+
+<style scoped>
+.comparison-hero { border-top:4px solid var(--accent); }
+.comparison-hero h2 { font-size:28px; margin-bottom:24px; }
+.version-comparison { display:flex; align-items:center; gap:32px; flex-wrap:wrap; }
+.version-comparison > div { flex:1; min-width:160px; display:flex; flex-direction:column; gap:8px; }
+.version-comparison strong { font-size:44px; }
+.version-comparison small { font-size:20px; color:var(--text-2); }
+</style>

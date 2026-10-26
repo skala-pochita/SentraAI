@@ -40,7 +40,7 @@ const canRun = computed(() => auth.role === 'ADMIN' || auth.role === 'DEVELOPER'
       <div>
         <div class="row small" style="color:#6ee7b7; gap:8px; margin-bottom:8px"><span class="live" /> 실시간 감사 모니터링</div>
         <h2>안녕하세요, {{ auth.user?.name }}님</h2>
-        <p>감사 {{ audits.length }}건 중 {{ completed }}건 완료 · 누적 Finding {{ total }}건<template v-if="sev.CRITICAL"> · CRITICAL {{ sev.CRITICAL }}건 확인이 필요합니다</template>.</p>
+        <p>감사 {{ audits.length }}건 중 {{ completed }}건 완료 · 누적 보안 문제 {{ total }}건<template v-if="sev.CRITICAL"> · CRITICAL {{ sev.CRITICAL }}건 확인이 필요합니다</template>.</p>
       </div>
       <div class="row">
         <RouterLink v-if="canRun" to="/audits/new" class="btn primary"><Icon name="play" :size="15" />새 감사 실행</RouterLink>
@@ -52,7 +52,7 @@ const canRun = computed(() => auth.role === 'ADMIN' || auth.role === 'DEVELOPER'
   <div class="grid cols-4">
     <Stat label="전체 감사" :value="audits.length" icon="history" color="var(--accent-2)" :hint="`완료 ${completed}건`" />
     <Stat label="진행 중" :value="running" icon="radio" color="var(--accent)" hint="대기·실행 중" />
-    <Stat label="CRITICAL" :value="sev.CRITICAL ?? 0" icon="alert" color="var(--critical)" hint="누적 Finding 기준" />
+    <Stat label="CRITICAL" :value="sev.CRITICAL ?? 0" icon="alert" color="var(--critical)" hint="누적 보안 문제 기준" />
     <Stat label="완료" :value="completed" icon="check-circle" color="var(--accent-2)" hint="분석 및 보고서 생성 완료" />
   </div>
 
@@ -60,9 +60,9 @@ const canRun = computed(() => auth.role === 'ADMIN' || auth.role === 'DEVELOPER'
     <div class="card">
       <div class="card-head"><h3><Icon name="layers" :size="16" />최근 감사</h3><span class="spacer" /><RouterLink to="/audits" class="btn ghost sm">전체 보기<Icon name="chevron" :size="14" /></RouterLink></div>
       <div v-if="audits.length" class="table-wrap"><table>
-        <thead><tr><th>ID</th><th>상태</th><th>모드</th><th class="r">Finding</th><th>시작</th></tr></thead>
+        <thead><tr><th>감사 이름</th><th>상태</th><th>모드</th><th class="r">보안 문제</th><th>시작</th></tr></thead>
         <tbody><tr v-for="a in audits.slice(0, 8)" :key="a.id">
-          <td><RouterLink class="id-link" :to="`/audits/${a.id}`">{{ a.id.slice(0, 8) }}</RouterLink></td>
+          <td><RouterLink class="id-link" :to="`/audits/${a.id}`">{{ a.name || '이전 감사' }}</RouterLink></td>
           <td><span class="status" :class="a.status">{{ a.status }}</span></td>
           <td><span class="badge">{{ a.mode }}</span></td>
           <td class="r num">{{ a.summary?.total ?? '-' }}</td>

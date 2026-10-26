@@ -51,9 +51,9 @@ function download() {
   </div>
   <div class="card" style="padding:28px 32px">
     <div class="row mb" style="justify-content:flex-end">
-      <div class="tabs" style="margin:0"><button :class="{ on: !raw }" @click="raw = false">미리보기</button><button :class="{ on: raw }" @click="raw = true">원문</button></div>
+      <div class="tabs" style="margin:0"><button :class="{ on: !raw }" @click="raw = false">보고서 읽기</button><button :class="{ on: raw }" @click="raw = true">Markdown 원문 보기</button></div>
       <button v-if="view === 'compliance'" class="btn sm" :disabled="loading || !!error || !md" @click="downloadJson">JSON 다운로드</button>
-      <button class="btn sm" :disabled="!md" @click="download"><Icon name="download" :size="14" />.md 다운로드</button>
+      <button class="btn sm" :disabled="!md" @click="download"><Icon name="download" :size="14" />보고서 다운로드 (.md)</button>
     </div>
     <div v-if="error" role="alert">
       <p class="error">{{ error }}</p>

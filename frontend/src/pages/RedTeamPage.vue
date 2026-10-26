@@ -26,6 +26,7 @@ function pick(p: Row, r: Run) { open.value = r; openProbe.value = p.probe_id }
 </script>
 <template>
   <AuditTabs :id="id" />
+  <p class="muted mb">AI 에이전트에 실제 공격을 시도해, 잘못된 요청을 차단하는지 확인한 결과입니다. 공격 유형별 시도와 응답 근거를 살펴보세요.</p>
   <div v-for="c in data?.coverage ?? []" :key="c.target_id" class="callout info mb">
     <div><b>권한 검사 {{ c.static }} · 격리 실행 {{ c.runtime.status }} · 공격 검사 {{ c.attacks }}</b>
       <p class="muted small">{{ c.reason || c.runtime.reason }} · 실행 모드: {{ c.runtime.mode ?? '미실행' }} · 모델 검증: {{ c.model_verification ?? '미확인' }}</p>
@@ -34,7 +35,7 @@ function pick(p: Row, r: Run) { open.value = r; openProbe.value = p.probe_id }
   </div>
   <div v-if="data && shots.length" class="card mb">
     <div class="card-head"><h3><Icon name="crosshair" :size="16" />공격 재생</h3><span class="muted small">probe 시도 {{ shots.length }}건을 기록 순서대로 다시 보여줍니다</span>
-      <span class="spacer" /><button class="btn" @click="replay"><Icon name="refresh" :size="14" />다시 재생</button></div>
+      <span class="spacer" /><button class="btn" @click="replay"><Icon name="refresh" :size="14" />공격 시도 기록 다시 재생</button></div>
     <ProbeArena :feed="shots" />
   </div>
   <div v-if="data" class="grid side">

@@ -1,21 +1,18 @@
-// 테마 상태: light | dark | system. index.html 의 인라인 스크립트와 같은 규칙으로 data-theme 을 정한다.
+// 테마 상태: light | dark. public/theme-init.js와 같은 규칙으로 초기 테마를 정한다.
 import { computed, ref, watchEffect } from 'vue'
 
-export type ThemeMode = 'light' | 'dark' | 'system'
+export type ThemeMode = 'light' | 'dark'
 
 function readMode(): ThemeMode {
   try {
     const v = localStorage.getItem('theme')
-    return v === 'light' || v === 'dark' ? v : 'system'
-  } catch { return 'system' }
+    return v === 'light' || v === 'dark' ? v : 'light'
+  } catch { return 'light' }
 }
 
-const mq = window.matchMedia('(prefers-color-scheme: dark)')
 const mode = ref<ThemeMode>(readMode())
-const systemDark = ref(mq.matches)
-mq.addEventListener('change', (e) => { systemDark.value = e.matches })
 
-const isDark = computed(() => (mode.value === 'system' ? systemDark.value : mode.value === 'dark'))
+const isDark = computed(() => mode.value === 'dark')
 watchEffect(() => { document.documentElement.dataset.theme = isDark.value ? 'dark' : 'light' })
 
 function setMode(m: ThemeMode) {

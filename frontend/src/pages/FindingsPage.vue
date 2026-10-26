@@ -18,6 +18,7 @@ const count = (s: string) => rows.value.filter((f) => f.severity === s).length
 </script>
 <template>
   <AuditTabs :id="id" />
+  <p class="muted mb">검사에서 발견한 보안 문제입니다. 제목을 누르면 발견 근거와 수정 방법을 확인할 수 있습니다.</p>
   <div class="row mb" style="justify-content:space-between">
     <div class="chips" role="group" aria-label="심각도 필터">
       <button class="chip-btn" :class="{ on: !sev }" @click="sev = ''">전체 <span class="n">{{ rows.length }}</span></button>
@@ -42,6 +43,6 @@ const count = (s: string) => rows.value.filter((f) => f.severity === s).length
         <td><span class="status" :class="f.status === 'OPEN' ? 'WAITING_APPROVAL' : f.status === 'RESOLVED' ? 'COMPLETED' : ''">{{ f.status }}</span></td>
       </tr></tbody>
     </table></div>
-    <div v-else-if="loaded" class="empty"><Icon name="check-circle" /><b>조건에 맞는 Finding 이 없습니다</b></div>
+    <div v-else-if="loaded" class="empty"><Icon name="check-circle" /><b>조건에 맞는 보안 문제가 없습니다</b></div>
   </div>
 </template>
