@@ -13,7 +13,7 @@ import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy import select
 
-from api.seed import seed_users
+from api.seed import REPO_TARGET, seed_targets, seed_users
 from core.db.models import Audit, AuditTarget, Finding, Target
 from core.db.session import session_scope
 from core.graph.build import build_graph
@@ -46,6 +46,19 @@ async def users(client: httpx.AsyncClient, tmp_path: Path, monkeypatch: pytest.M
     result = await tokens(client)
     yield result
     get_settings.cache_clear()
+
+
+async def test_seed_targets_ignores_upload_with_demo_name(users: dict[str, Any]) -> None:
+    # 데모 대상과 같은 이름으로 업로드한 대상이 있어도 시드는 내장 대상만 찾는다 (MultipleResultsFound 회귀)
+    async with session_scope() as db:
+        owner = (await seed_users(db))["ADMIN"]
+        for i in range(2):
+            db.add(Target(type="repo", name=REPO_TARGET, ref=f"/workspace/uploads/{i}", owner_user_id=owner.id, config={"source": "upload"}))
+        await db.flush()
+        repo, agent = await seed_targets(db, owner)
+        again, _ = await seed_targets(db, owner)
+        assert repo.ref == str(get_settings().workspace_dir / REPO_TARGET) and again.id == repo.id
+        assert agent.linked_target_id == repo.id
 
 
 async def test_upload_scan_complete_visibility(client: httpx.AsyncClient, users: dict[str, Any]) -> None:

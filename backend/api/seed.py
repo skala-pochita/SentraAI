@@ -42,18 +42,24 @@ async def seed_users(db: AsyncSession) -> dict[str, User]:
 
 async def seed_targets(db: AsyncSession, owner: User) -> tuple[Target, Target]:
     s = get_settings()
-    repo = (await db.execute(select(Target).where(Target.name == REPO_TARGET))).scalar_one_or_none()
+    # 이름만으로 찾으면 같은 이름으로 업로드한 대상(ref=/workspace/uploads/…)과 겹친다 → 내장 대상의 위치까지 맞춘다
+    repo_ref = str(s.workspace_dir / REPO_TARGET)
+    repo = (
+        await db.execute(select(Target).where(Target.name == REPO_TARGET, Target.ref == repo_ref))
+    ).scalar_one_or_none()
     if repo is None:
         repo = Target(
             type="repo",
             name=REPO_TARGET,
-            ref=str(s.workspace_dir / REPO_TARGET),
+            ref=repo_ref,
             owner_user_id=owner.id,
             config={"default_branch": "main"},
         )
         db.add(repo)
         await db.flush()
-    agent = (await db.execute(select(Target).where(Target.name == AGENT_TARGET))).scalar_one_or_none()
+    agent = (
+        await db.execute(select(Target).where(Target.name == AGENT_TARGET, Target.ref == s.target_agent_url))
+    ).scalar_one_or_none()
     if agent is None:
         agent = Target(
             type="agent",
