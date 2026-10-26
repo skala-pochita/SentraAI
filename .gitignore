@@ -39,6 +39,8 @@ docs/images/*
 !docs/images/architecture.png
 !docs/images/app-flow.png
 !docs/images/compliance-flow.png
+!docs/images/demo-web.gif
+!docs/images/demo-cli.gif
 
 /private/vault/
 

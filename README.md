@@ -115,6 +115,8 @@ make seed                 # 데모 계정·대상·지식 문서
 open http://localhost:5173
 ```
 
+![웹사이트 실행 시연 — 검사 설정, 공격 검증 진행, 결과 확인, 종합 보고서](docs/images/demo-web.gif)
+
 `OPENAI_API_KEY`가 비어 있으면 LLM 노드를 건너뛰고 정적 규칙 결과로만 동작한다.
 
 | 서비스 | 포트 |
@@ -137,6 +139,8 @@ cd ~/my-agent-project
 sentraai            # Docker 확인 → (처음만) OpenAI·LangSmith 키 입력 → 감사 확인 → 진행 → 대시보드
 sentraai setup      # 키 다시 입력          sentraai stop   # 서버 멈춤 (기록 유지)
 ```
+
+![CLI 실행 시연 — 터미널에서 sentraai 실행, 대시보드의 Findings·레드팀 결과, 보고서](docs/images/demo-cli.gif)
 
 위 링크는 이미 공개된 프리릴리즈이며, 이후 main에 추가된 규제 기능은 새 버전 Release 전까지 저장소에서 실행한다. 배포는 `cli/package.json` 버전을 올리고 같은 이름의 태그를 push 하면 GitHub Actions가 이미지(GHCR)와 CLI(Release)를 올린다. 첫 배포 뒤 GHCR 패키지를 Public으로 바꿔야 로그인 없이 받을 수 있다. 로컬에서 이미지만 만들어 시험하려면 `make cli-images && make cli-pack`.
 
