@@ -12,7 +12,7 @@ AI 에이전트 프로젝트를 업로드하면 코드의 취약점과 에이전
 
 예를 들어 에이전트가 공격 지시를 따라 내부 데이터에 접근했다면, 어떤 요청이 성공했고 어느 코드와 연결되는지 확인할 수 있습니다. 이어 국내 AI 규제 기준에서 검토할 통제 항목과 원문 출처를 함께 살펴봅니다.
 
-## 팀
+## 팀 Pochita
 
 <div align="center">
 
@@ -45,11 +45,11 @@ AI 에이전트 프로젝트를 업로드하면 코드의 취약점과 에이전
     </td>
   </tr>
   <tr>
-    <td valign="top" width="20%"><sub>· 일정·범위 관리<br />· 대시보드 UI 구현<br />· 3D 위험·공격 시각화</sub></td>
-    <td valign="top" width="20%"><sub>· API·인증·DB 설계<br />· Kafka 작업 처리·재시도<br />· 격리 실행·CLI 배포</sub></td>
-    <td valign="top" width="20%"><sub>· LangGraph 감사 흐름<br />· ReAct 조사 에이전트<br />· 레드팀 공격 생성·판정</sub></td>
-    <td valign="top" width="20%"><sub>· 보안·규제 원문 색인<br />· 하이브리드 검색 구현<br />· 규제 근거 매핑</sub></td>
-    <td valign="top" width="20%"><sub>· 단위·통합·E2E 테스트<br />· 탐지 품질 비교 실험<br />· 수정본 재검증 흐름</sub></td>
+    <td valign="top" width="20%"><sub>· 일정·범위 관리<br />· 대시보드 UI<br />· 3D 시각화</sub></td>
+    <td valign="top" width="20%"><sub>· API·인증·DB<br />· Kafka 작업 처리<br />· 격리 실행·CLI</sub></td>
+    <td valign="top" width="20%"><sub>· LangGraph 흐름<br />· ReAct 에이전트<br />· 레드팀 공격</sub></td>
+    <td valign="top" width="20%"><sub>· 원문 색인<br />· 하이브리드 검색<br />· 규제 근거 매핑</sub></td>
+    <td valign="top" width="20%"><sub>· 단위·E2E 테스트<br />· 품질 비교 실험<br />· 재검증 흐름</sub></td>
   </tr>
 </table>
 
