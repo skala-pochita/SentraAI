@@ -12,6 +12,45 @@ AI 에이전트 프로젝트를 업로드하면 코드의 취약점과 에이전
 
 예를 들어 에이전트가 공격 지시를 따라 내부 데이터에 접근했다면, 어떤 요청이 성공했고 어느 코드와 연결되는지 확인할 수 있습니다. 이어 국내 AI 규제 기준에서 검토할 통제 항목과 원문 출처를 함께 살펴봅니다.
 
+## 팀
+
+<table>
+  <tr>
+    <td align="center" width="20%">
+      <a href="https://github.com/dkdlvhs"><img src="https://github.com/dkdlvhs.png?size=120" width="100" alt="김규현" /></a><br />
+      <a href="https://github.com/dkdlvhs"><b>김규현</b></a><br />
+      <sub>PM · Frontend</sub>
+    </td>
+    <td align="center" width="20%">
+      <a href="https://github.com/2heunxun"><img src="https://github.com/2heunxun.png?size=120" width="100" alt="유승헌" /></a><br />
+      <a href="https://github.com/2heunxun"><b>유승헌</b></a><br />
+      <sub>Backend</sub>
+    </td>
+    <td align="center" width="20%">
+      <a href="https://github.com/cres17"><img src="https://github.com/cres17.png?size=120" width="100" alt="문준석" /></a><br />
+      <a href="https://github.com/cres17"><b>문준석</b></a><br />
+      <sub>Agent Flow</sub>
+    </td>
+    <td align="center" width="20%">
+      <a href="https://github.com/nawonpp"><img src="https://github.com/nawonpp.png?size=120" width="100" alt="박나원" /></a><br />
+      <a href="https://github.com/nawonpp"><b>박나원</b></a><br />
+      <sub>RAG · Embedding</sub>
+    </td>
+    <td align="center" width="20%">
+      <a href="https://github.com/younheejae"><img src="https://github.com/younheejae.png?size=120" width="100" alt="윤희재" /></a><br />
+      <a href="https://github.com/younheejae"><b>윤희재</b></a><br />
+      <sub>QA</sub>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><sub>· 일정·범위 관리<br />· 대시보드 UI 구현<br />· 3D 위험·공격 시각화</sub></td>
+    <td valign="top"><sub>· API·인증·DB 설계<br />· Kafka 작업 처리·재시도<br />· 격리 실행·CLI 배포</sub></td>
+    <td valign="top"><sub>· LangGraph 감사 흐름<br />· ReAct 조사 에이전트<br />· 레드팀 공격 생성·판정</sub></td>
+    <td valign="top"><sub>· 보안·규제 원문 색인<br />· 하이브리드 검색 구현<br />· 규제 근거 매핑</sub></td>
+    <td valign="top"><sub>· 단위·통합·E2E 테스트<br />· 탐지 품질 비교 실험<br />· 수정본 재검증 흐름</sub></td>
+  </tr>
+</table>
+
 ## 앱 사용 흐름
 
 ![앱 사용 흐름 — 프로젝트 업로드, 검사 설정, 보안 검사, 보고서 확인, 수정 후 재검증](docs/images/app-flow.png)
