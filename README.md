@@ -44,14 +44,15 @@ AI 에이전트 프로젝트를 업로드하면 코드의 취약점과 에이전
       <sub>QA</sub>
     </td>
   </tr>
-  <tr>
-    <td valign="top" width="20%"><sub>· 일정·범위 관리<br />· 대시보드 UI<br />· 3D 시각화</sub></td>
-    <td valign="top" width="20%"><sub>· API·인증·DB<br />· Kafka 작업 처리<br />· 격리 실행·CLI</sub></td>
-    <td valign="top" width="20%"><sub>· LangGraph 흐름<br />· ReAct 에이전트<br />· 레드팀 공격</sub></td>
-    <td valign="top" width="20%"><sub>· 원문 색인<br />· 하이브리드 검색<br />· 규제 근거 매핑</sub></td>
-    <td valign="top" width="20%"><sub>· 단위·E2E 테스트<br />· 품질 비교 실험<br />· 재검증 흐름</sub></td>
-  </tr>
 </table>
+
+| 이름 | 역할 | 담당 |
+|---|---|---|
+| 김규현 | PM · Frontend | 일정·범위 관리, 대시보드 UI 구현, 3D 위험·공격 시각화 |
+| 유승헌 | Backend | API·인증·DB 설계, Kafka 작업 처리·재시도, 격리 실행·CLI 배포 |
+| 문준석 | Agent Flow | LangGraph 감사 흐름, ReAct 조사 에이전트, 레드팀 공격 생성·판정 |
+| 박나원 | RAG · Embedding | 보안·규제 원문 색인, 하이브리드 검색 구현, 규제 근거 매핑 |
+| 윤희재 | QA | 단위·통합·E2E 테스트, 탐지 품질 비교 실험, 수정본 재검증 흐름 |
 
 </div>
 
