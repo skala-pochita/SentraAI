@@ -18,6 +18,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field, field_validator
 from pydantic.json_schema import SkipJsonSchema
 
+from core.aio import gather_or_cancel
 from core.categories import category_definitions, category_refs, code_categories
 from core.errors import AppError, ErrorCode
 from core.graph.deps import Deps, LLMFactory, get_deps
@@ -412,7 +413,7 @@ async def investigate(state: dict[str, Any], config: RunnableConfig, llm: tuple[
         return found + _new_findings(final, path, base, tid, used), [], file_usage
 
     groups = _group_by_file(state.get("candidates", []), risky)
-    results = await asyncio.gather(*(one(p, c) for p, c in groups.items()))
+    results = await gather_or_cancel(*(one(p, c) for p, c in groups.items()))
     out: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
     usage: list[dict[str, Any]] = []

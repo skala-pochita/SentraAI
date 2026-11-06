@@ -21,6 +21,7 @@ from typing import Any
 import httpx
 import yaml
 
+from core.aio import gather_or_cancel
 from core.rules.engine import iter_repo_files, read_text
 from core.rules.models import RuleHit
 from core.settings import get_settings
@@ -409,6 +410,6 @@ async def run_external(root: Path, enabled: list[str]) -> ScanResult:
     for name in runners:
         if name not in enabled:
             res.status[name] = "DISABLED"
-    await asyncio.gather(*(runners[n](root, res) for n in runners if n in enabled))
+    await gather_or_cancel(*(runners[n](root, res) for n in runners if n in enabled))
     res.hits.sort(key=lambda h: (h.path, h.line, h.rule_id))
     return res

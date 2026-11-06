@@ -1,8 +1,9 @@
 """Kafka consumer 기반 (명세 11.3).
 
 - enable_auto_commit=False, 처리 완료 후 수동 커밋 (at-least-once)
-- 멱등: kafka:processed:{message_id} — 처리 중엔 lease("processing:<worker>", 60s, 하트비트 갱신),
+- 멱등: kafka:processed:{message_id} — 처리 중엔 lease("processing:<worker>:<token>", 60s, 하트비트 갱신),
   완료 후 "done" 24h. 워커가 처리 중 죽으면 lease 만료 후 재전달 메시지를 이어받는다 (DECISIONS #6).
+  하트비트·완료 표시는 소유자 토큰이 일치할 때만 하고, lease 를 잃은 워커는 처리를 취소한다.
 - 실패: retryable → jobs.retry (retry_count<3), 그 외·초과 → jobs.dlq
 """
 
@@ -19,6 +20,7 @@ from typing import Any
 
 from aiokafka import AIOKafkaConsumer, ConsumerRecord
 from aiokafka.errors import KafkaError
+from redis.exceptions import RedisError
 
 from core.errors import AppError, ErrorCode
 from core.kafka.envelope import Envelope, Headers, headers_from_kafka, retry_headers
@@ -45,26 +47,50 @@ class Message:
 Handler = Callable[[Message], Awaitable[None]]
 
 
-async def _acquire(message_id: str) -> bool:
-    """True = 처리 시작, False = 이미 완료(skip). 다른 워커가 처리 중이면 lease 만료까지 대기."""
-    r = get_redis()
-    key = f"kafka:processed:{message_id}"
-    while True:
-        if await r.set(key, f"processing:{WORKER_ID}", nx=True, ex=LEASE_S):
-            return True
-        val = await r.get(key)
-        if val == "done":
-            return False
-        if val == f"processing:{WORKER_ID}":
-            return True
-        await asyncio.sleep(5)
+# lease 값: processing:{worker}:{획득마다 새 토큰}. 같은 프로세스 안의 동시 처리(B6)도 서로 다른 소유자로 구분한다.
+# 소유자 확인과 변경은 Lua 한 번으로 처리한다 (2026-11-06 리뷰 B)
+_RENEW = """
+if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('expire', KEYS[1], ARGV[2]) else return 0 end
+"""
+_FINISH = """
+if redis.call('get', KEYS[1]) == ARGV[1] then redis.call('set', KEYS[1], 'done', 'EX', ARGV[2]) return 1 else return 0 end
+"""
+HEARTBEAT_S = LEASE_S / 3
+ACQUIRE_POLL_S = 5.0
 
 
-async def _heartbeat(message_id: str) -> None:
+def _lease_key(message_id: str) -> str:
+    return f"kafka:processed:{message_id}"
+
+
+async def _acquire(message_id: str) -> str | None:
+    """lease 토큰 = 처리 시작, None = 이미 완료(skip). 다른 소유자가 처리 중이면 lease 만료(또는 완료)까지 대기."""
+    r = get_redis()
+    token = f"processing:{WORKER_ID}:{uuid.uuid4().hex[:12]}"
+    while True:
+        if await r.set(_lease_key(message_id), token, nx=True, ex=LEASE_S):
+            return token
+        if await r.get(_lease_key(message_id)) == "done":
+            return None
+        await asyncio.sleep(ACQUIRE_POLL_S)
+
+
+async def _heartbeat(message_id: str, token: str, work: asyncio.Task[None], lost: asyncio.Event) -> None:
+    """내 lease 일 때만 TTL 을 늘린다. lease 를 잃었으면(만료 후 다른 소유자가 획득) 처리를 취소한다
+    → 같은 메시지를 두 워커가 끝까지 처리하지 않는다. Redis 오류는 경고 후 다음 주기에 다시 시도."""
     r = get_redis()
     while True:
-        await asyncio.sleep(LEASE_S / 3)
-        await r.set(f"kafka:processed:{message_id}", f"processing:{WORKER_ID}", xx=True, ex=LEASE_S)
+        await asyncio.sleep(HEARTBEAT_S)
+        try:
+            ok = await r.eval(_RENEW, 1, _lease_key(message_id), token, LEASE_S)
+        except (RedisError, OSError) as e:
+            log.warning("lease heartbeat failed %s err=%s", message_id, type(e).__name__)
+            continue
+        if not ok:
+            log.warning("lease lost %s → abort processing (new owner continues)", message_id)
+            lost.set()
+            work.cancel()
+            return
 
 
 async def route_failure(msg: Message, err: AppError) -> None:
@@ -99,22 +125,36 @@ async def handle_record(rec: ConsumerRecord, handler: Handler) -> None:
     msg = Message(rec.topic, (rec.key or b"").decode(), env, headers_from_kafka(rec.headers), raw)
     # 재시도로 재발행된 메시지는 message_id 가 같으므로 retry_count 를 포함해 멱등 키를 만든다
     dedupe_id = f"{env.message_id}:{msg.headers.get('retry_count', '0')}"
-    if not await _acquire(dedupe_id):
+    token = await _acquire(dedupe_id)
+    if token is None:
         log.info("skip duplicate message %s", dedupe_id)
         return
-    hb = asyncio.create_task(_heartbeat(dedupe_id))
-    try:
+
+    async def run() -> None:
         await handler(msg)
+
+    work = asyncio.create_task(run())
+    lost = asyncio.Event()
+    hb = asyncio.create_task(_heartbeat(dedupe_id, token, work, lost))
+    try:
+        await work
+    except asyncio.CancelledError:
+        cur = asyncio.current_task()
+        if not lost.is_set() or (cur is not None and cur.cancelling()):
+            raise  # 종료·리밸런스 등 바깥에서 취소: 그대로 전파 (lease 는 만료 후 다른 워커가 이어받음)
+        return  # lease 를 잃음: 새 소유자가 처리한다 → 실패 라우팅·done 표시를 하지 않는다
     except AppError as e:
         await route_failure(msg, e)
     except Exception as e:  # noqa: BLE001 - 예상 밖 오류는 INTERNAL 로 DLQ (로그 남김)
         log.exception("handler crashed for %s", env.message_id)
         await route_failure(msg, AppError(ErrorCode.INTERNAL, f"{type(e).__name__}: {e}"[:300]))
     finally:
+        work.cancel()
         hb.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await hb
-    await get_redis().set(f"kafka:processed:{dedupe_id}", "done", ex=DONE_TTL_S)
+    if not await get_redis().eval(_FINISH, 1, _lease_key(dedupe_id), token, DONE_TTL_S):
+        log.warning("lease lost before completion %s → not marking done", dedupe_id)
 
 
 POLL_INTERVAL_MS = 300_000  # 처리 중에도 poll 을 계속하므로 감사 길이와 무관하게 짧게 둔다

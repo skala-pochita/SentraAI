@@ -29,6 +29,7 @@ from core.errors import AppError, ErrorCode
 from core.kafka.envelope import Envelope
 from core.kafka.producer import publish
 from core.redis.client import get_redis
+from core.redis.locks import release_target_lock
 from harness.observability import trace_id_for
 
 router = APIRouter(tags=["audits"])
@@ -234,10 +235,8 @@ async def cancel_audit(
     if a.status in ("COMPLETED", "FAILED", "CANCELLED"):
         raise AppError(ErrorCode.CONFLICT, f"audit already {a.status}")
     a.status, a.finished_at = "CANCELLED", datetime.now(UTC)
-    r = get_redis()
     for t in tids:
-        if await r.get(f"lock:audit:target:{t}") == str(a.id):
-            await r.delete(f"lock:audit:target:{t}")
+        await release_target_lock(str(t), str(a.id))  # 소유자 확인과 삭제를 원자적으로
     from core.sandbox_client import sandbox_call
 
     try:

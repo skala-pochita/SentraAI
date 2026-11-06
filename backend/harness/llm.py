@@ -15,6 +15,7 @@ from pydantic import BaseModel, ValidationError
 from core.errors import AppError, ErrorCode
 from core.settings import get_settings, load_config
 from harness.budget import Budget
+from harness.context import estimate_tokens
 from harness.observability import cost_usd, span
 from harness.prompts import PromptSpec
 
@@ -74,32 +75,39 @@ async def invoke_messages(
     budget: Budget | None,
     usage: list[dict[str, Any]],
 ) -> AIMessage:
-    if budget is not None and budget.exceeded():
+    est_tokens = sum(estimate_tokens(m.content if isinstance(m.content, str) else str(m.content)) for m in messages)
+    est_out = budget.reserve_output_tokens if budget is not None else 0
+    est_usd = cost_usd(model_name, est_tokens, est_out)
+    if budget is not None and not budget.reserve(est_tokens + est_out, est_usd):
         raise AppError(ErrorCode.BUDGET_EXCEEDED, "audit token/cost budget exceeded", budget.snapshot())
-    async with span("llm", node, model=model_name, prompt_id=prompt_ref) as s:
-        try:
-            msg = await model.ainvoke(messages)
-        except AppError:
-            raise
-        except Exception as e:  # noqa: BLE001 - SDK 예외를 구조화된 오류로 변환
-            name = type(e).__name__
-            code = (
-                ErrorCode.UNAUTHORIZED
-                if "Authentication" in name or "PermissionDenied" in name
-                else ErrorCode.RATE_LIMITED
-                if "RateLimit" in name
-                else ErrorCode.UPSTREAM_TIMEOUT
-                if "Timeout" in name
-                else ErrorCode.UPSTREAM_ERROR
-            )
-            raise AppError(code, f"LLM call failed: {name}") from e
-        if not isinstance(msg, AIMessage):
-            msg = AIMessage(content=str(getattr(msg, "content", msg)))
-        tin, tout = usage_of(msg)
-        s.usage(model_name, tin, tout)
-    usd = cost_usd(model_name, tin, tout)
-    if budget is not None:
-        budget.charge(tin + tout, usd)
+    try:
+        async with span("llm", node, model=model_name, prompt_id=prompt_ref) as s:
+            try:
+                msg = await model.ainvoke(messages)
+            except AppError:
+                raise
+            except Exception as e:  # noqa: BLE001 - SDK 예외를 구조화된 오류로 변환
+                name = type(e).__name__
+                code = (
+                    ErrorCode.UNAUTHORIZED
+                    if "Authentication" in name or "PermissionDenied" in name
+                    else ErrorCode.RATE_LIMITED
+                    if "RateLimit" in name
+                    else ErrorCode.UPSTREAM_TIMEOUT
+                    if "Timeout" in name
+                    else ErrorCode.UPSTREAM_ERROR
+                )
+                raise AppError(code, f"LLM call failed: {name}") from e
+            if not isinstance(msg, AIMessage):
+                msg = AIMessage(content=str(getattr(msg, "content", msg)))
+            tin, tout = usage_of(msg)
+            s.usage(model_name, tin, tout)
+            usd = cost_usd(model_name, tin, tout)
+            if budget is not None:
+                budget.charge(tin + tout, usd)  # 예약을 풀기 전에 실제 사용량을 먼저 반영 (그 사이 빈틈 없음)
+    finally:
+        if budget is not None:
+            budget.release(est_tokens + est_out, est_usd)
     usage.append(
         {"node": node, "model": model_name, "in": tin, "out": tout, "usd": round(usd, 6), "prompt": prompt_ref}
     )

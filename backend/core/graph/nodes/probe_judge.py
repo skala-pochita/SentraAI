@@ -10,6 +10,7 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel
 
+from core.aio import gather_or_cancel
 from core.errors import AppError, ErrorCode
 from core.graph.deps import get_deps, node_error
 from core.graph.nodes._base import node
@@ -111,7 +112,7 @@ async def _judge_undetermined(
             except AppError as e:
                 return e
 
-    outcomes = await asyncio.gather(*(judge(t) for t in pending))
+    outcomes = await gather_or_cancel(*(judge(t) for t in pending))
     failed: list[str] = []
     for t, v in zip(pending, outcomes, strict=True):
         if isinstance(v, AppError):
@@ -173,7 +174,7 @@ async def probe_judge(state: dict[str, Any], config: RunnableConfig) -> dict[str
             continue
         jobs.append((r, base))
     if llm is not None:  # probe 간에도 동시에 판정한다 (전체 동시 실행 수는 sem 으로 제한)
-        failed_lists = await asyncio.gather(
+        failed_lists = await gather_or_cancel(
             *(_judge_undetermined(r, base, llm, deps, usage, errors, state, sem) for r, base in jobs)
         )
         for (r, _), failed in zip(jobs, failed_lists, strict=True):
