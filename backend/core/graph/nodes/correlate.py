@@ -7,6 +7,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
+from core.aio import gather_or_cancel
 from core.attack_paths import correlate_paths, correlation_gaps
 from core.graph.deps import get_deps
 from core.graph.nodes._base import node
@@ -79,7 +80,7 @@ async def correlate(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
             f.attack_path = AttackPath.model_validate(res["path_payload"])
         id_map[f.temp_id] = f.finding_id
 
-    await asyncio.gather(*(save(f) for f in final if f.source != "correlation"))
+    await gather_or_cancel(*(save(f) for f in final if f.source != "correlation"))
     for f in final:
         if f.source != "correlation":
             continue

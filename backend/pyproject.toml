@@ -41,6 +41,7 @@ dev = [
     "types-pyyaml",
     "fakeredis",
     "aiosqlite",
+    "lupa>=2.8",
 ]
 
 [tool.uv]

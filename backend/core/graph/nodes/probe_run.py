@@ -7,6 +7,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
+from core.aio import gather_or_cancel
 from core.errors import AppError, RetryableNodeError
 from core.graph.deps import get_deps, node_error
 from core.graph.nodes._base import node
@@ -94,6 +95,6 @@ async def probe_run(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
             }
 
     probes = state.get("probes", [])
-    results = await asyncio.gather(*(one(p) for p in probes))
+    results = await gather_or_cancel(*(one(p) for p in probes))
     prev = [r for r in state.get("probe_results", []) if r["probe_id"] not in {p["probe_id"] for p in probes}]
     return {"probe_results": prev + list(results), "errors": errors}

@@ -2,6 +2,7 @@
 audit:
   max_tokens: 400000
   max_cost_usd: 2.0
+  reserve_output_tokens: 2000   # LLM 호출 전 예약하는 출력 토큰 예상치 (병렬 호출 예산 초과 방지)
 react:
   max_steps: 6
   concurrency: 4                # 동시에 조사하는 파일 수 (B1)

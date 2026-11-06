@@ -10,6 +10,7 @@ from typing import Any, Literal
 import httpx
 from mcp.server.fastmcp import Context
 
+from core.aio import gather_or_cancel
 from core.db.models import ProbeRun
 from core.db.session import session_scope
 from core.errors import AppError, ErrorCode
@@ -360,7 +361,7 @@ async def run_injection_probe(
             return _record(t, audit_id, probe, ps, i, data, started)
 
     async with httpx.AsyncClient() as client:
-        pairs = await asyncio.gather(*(attempt(i) for i in range(1, attempts + 1)))
+        pairs = await gather_or_cancel(*(attempt(i) for i in range(1, attempts + 1)))
     results = [r for r, _ in pairs]
     rows = [row for _, row in pairs]
     if t.id not in _overrides:
