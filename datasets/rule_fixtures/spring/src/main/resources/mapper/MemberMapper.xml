@@ -1,0 +1,8 @@
+<mapper namespace="demo.MemberMapper">
+  <select id="search" resultType="Member">
+    select * from member where name like '%${keyword}%'
+  </select>
+  <select id="safe" resultType="Member">
+    select * from member where id = #{id}
+  </select>
+</mapper>

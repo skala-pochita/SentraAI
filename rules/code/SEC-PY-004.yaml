@@ -1,0 +1,15 @@
+id: SEC-PY-004
+name: Python SSRF candidate (request to variable URL)
+category: SSRF
+default_severity: HIGH
+target: code
+file_globs: ["**/*.py"]
+detector: regex
+patterns:
+  - '\brequests\.(?:get|post|put|patch|delete|head|request)\(\s*(?!["''])(?:url|target|link|endpoint|href|uri|request\.|params\[|args\[|data\[|body\[|f["''])'
+  - '\bhttpx\.(?:get|post|put|patch|delete|request|stream)\(\s*(?!["''])(?:url|target|link|endpoint|href|uri|request\.|f["''])'
+  - '\burllib\.request\.urlopen\(\s*(?!["''])'
+  - '\burlopen\(\s*(?!["''])(?:url|target|request\.|f["''])'
+needs_llm_review: true   # 변수가 설정값일 수 있어 LLM 이 출처를 확인
+references: ["OWASP-A10:2021", "CWE-918"]
+fix_hint: "허용 호스트 목록 검증, 사설·메타데이터 IP(169.254.169.254) 차단, 리다이렉트 비활성화"

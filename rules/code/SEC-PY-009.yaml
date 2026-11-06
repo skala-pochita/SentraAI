@@ -1,0 +1,14 @@
+id: SEC-PY-009
+name: Python weak hashing for passwords / weak cipher mode
+category: WEAK_CRYPTO
+default_severity: MEDIUM
+target: code
+file_globs: ["**/*.py"]
+detector: regex
+ignore_case: true
+patterns:
+  - 'hashlib\.(?:md5|sha1)\([^)]*(?:passw|pwd|secret)'
+  - '\bAES\.MODE_ECB\b|\bDES\.new\(|\bARC4\.new\('
+needs_llm_review: true
+references: ["OWASP-A02:2021", "CWE-327", "CWE-916"]
+fix_hint: "비밀번호는 bcrypt/argon2/scrypt, 암호화는 AES-GCM"

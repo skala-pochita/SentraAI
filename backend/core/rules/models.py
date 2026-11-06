@@ -24,13 +24,17 @@ class Rule(BaseModel):
     target: Literal["code", "agent"]
     file_globs: list[str] = Field(default_factory=lambda: ["**/*"])
     exclude_globs: list[str] = Field(default_factory=list)
-    detector: Literal["regex", "entropy", "ast_java", "yaml_path", "manifest", "python"]
+    detector: Literal["regex", "entropy", "ast_java", "ast_python", "yaml_path", "manifest", "python"]
     # regex
     pattern: str | None = None
     patterns: list[str] = Field(default_factory=list)
     require_also: str | None = None  # 같은 파일에 이 패턴도 있어야 함 (예: CORS allowCredentials)
+    forbid_also: str | None = None  # 같은 파일에 이 패턴이 있으면 탐지하지 않음 (예: XXE 방어 설정)
     comment_only: bool = False
     ignore_case: bool = False
+    # 여러 줄 모드: 패턴을 파일 전체에 적용하고 매치 시작 줄로 보고한다 (S4).
+    # \s 는 줄바꿈을 넘고, 문장 경계를 넘지 않으려면 [^;]* 처럼 쓴다. 주석 줄(//, #, *)에서 시작한 매치는 제외
+    multiline: bool = False
     # entropy
     min_entropy: float = 4.0
     min_length: int = 20

@@ -29,6 +29,7 @@ dependencies = [
     "langgraph-checkpoint-redis",
     "langchain-mcp-adapters",
     "mcp",
+    "bandit>=1.9.4",
 ]
 
 [dependency-groups]

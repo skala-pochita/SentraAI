@@ -107,32 +107,43 @@ class _SourceScan:
         self.findings: list[dict[str, Any]] = []
         self.tool_files: list[str] = []
         self.atlas = False
+        self.how: set[str] = set()  # literal | decorator | constructor
 
     def add_tools(self, rel: str, body: str, node: ast.stmt, value: ast.expr) -> None:
         for function in _literal_functions(value):
-            name = function["name"]
-            self.tools.append(
-                {
-                    "name": name,
-                    "description": str(function.get("description", "")),
-                    "parameters": function.get("parameters", {}),
-                    "policy_status": "UNKNOWN",
-                    "source_path": rel,
-                    "source_line": node.lineno,
-                }
-            )
-            self.tool_files.append(rel)
-            self.findings.append(
-                {
-                    "category": "TOOL_ACCESS_POLICY_UNKNOWN",
-                    "severity": "MEDIUM",
-                    "path": rel,
-                    "line": node.lineno,
-                    "snippet": ast.get_source_segment(body, node) or "",
-                    "title": f"도구 권한·승인 정책 확인 필요: {name}",
-                    "reason": TOOL_POLICY_REASON,
-                }
-            )
+            self._add_tool(rel, body, node, function)
+
+    def _add_tool(self, rel: str, body: str, node: ast.AST, function: dict[str, Any], how: str = "literal") -> None:
+        name = function["name"]
+        if any(t["name"] == name and t["source_path"] == rel for t in self.tools):
+            return
+        self.how.add(how)
+        line = getattr(node, "lineno", 1)
+        snippet = ast.get_source_segment(body, node) or ""  # type: ignore[arg-type]
+        if how != "literal":  # 함수 본문 전체가 들어가지 않게 시그니처 부근만
+            snippet = "\n".join(snippet.splitlines()[:6])
+        self.tools.append(
+            {
+                "name": name,
+                "description": str(function.get("description", "")),
+                "parameters": function.get("parameters", {}),
+                "policy_status": "UNKNOWN",
+                "source_path": rel,
+                "source_line": line,
+            }
+        )
+        self.tool_files.append(rel)
+        self.findings.append(
+            {
+                "category": "TOOL_ACCESS_POLICY_UNKNOWN",
+                "severity": "MEDIUM",
+                "path": rel,
+                "line": line,
+                "snippet": snippet,
+                "title": f"도구 권한·승인 정책 확인 필요: {name}",
+                "reason": TOOL_POLICY_REASON,
+            }
+        )
 
     def add_prompt(self, rel: str, body: str, node: ast.stmt, value: ast.expr) -> None:
         segment = ast.get_source_segment(body, value) or ""
@@ -158,6 +169,13 @@ class _SourceScan:
         except (SyntaxError, RecursionError):
             return
         for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if (tool := _decorated_tool(node)) is not None:  # @tool / @mcp.tool() / @function_tool (PY5)
+                    self._add_tool(rel, body, node, tool, "decorator")
+                continue
+            if isinstance(node, ast.Call) and (tool := _constructed_tool(node)) is not None:
+                self._add_tool(rel, body, node, tool, "constructor")  # Tool(...) / StructuredTool.from_function(...)
+                continue
             if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
                 continue
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
@@ -166,6 +184,71 @@ class _SourceScan:
                 self.add_tools(rel, body, node, node.value)
             if names & PROMPT_NAMES:
                 self.add_prompt(rel, body, node, node.value)
+
+
+TOOL_DECORATORS = {
+    "tool",
+    "function_tool",
+    "kernel_function",
+    "ai_function",
+}  # 이름 끝부분 (mcp.tool, server.tool 포함)
+TOOL_CONSTRUCTORS = {"Tool", "StructuredTool", "FunctionTool"}
+
+
+def _call_name(func: ast.expr) -> str:
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return f"{_call_name(func.value)}.{func.attr}"
+    return ""
+
+
+def _const_kw(call: ast.Call, key: str) -> str | None:
+    for k in call.keywords:
+        if k.arg == key and isinstance(k.value, ast.Constant) and isinstance(k.value.value, str):
+            return k.value.value
+    return None
+
+
+def _params(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[str, Any]:
+    names = [a.arg for a in [*fn.args.posonlyargs, *fn.args.args, *fn.args.kwonlyargs] if a.arg not in ("self", "ctx")]
+    return {"type": "object", "properties": {n: {} for n in names}}
+
+
+def _decorated_tool(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[str, Any] | None:
+    """@tool, @tool("name"), @mcp.tool(), @server.tool(name=...), @function_tool 로 등록한 함수."""
+    for dec in fn.decorator_list:
+        call = dec if isinstance(dec, ast.Call) else None
+        name = _call_name(call.func if call else dec)
+        if name.rsplit(".", 1)[-1] not in TOOL_DECORATORS:
+            continue
+        tool_name = fn.name
+        if call is not None:
+            if call.args and isinstance(call.args[0], ast.Constant) and isinstance(call.args[0].value, str):
+                tool_name = call.args[0].value
+            tool_name = _const_kw(call, "name") or tool_name
+        desc = (call and _const_kw(call, "description")) or ast.get_docstring(fn) or ""
+        return {"name": tool_name, "description": desc, "parameters": _params(fn)}
+    return None
+
+
+def _constructed_tool(call: ast.Call) -> dict[str, Any] | None:
+    """Tool(name="x", func=f, description=...) / StructuredTool.from_function(func=f, name="x")."""
+    name = _call_name(call.func)
+    head, _, method = name.rpartition(".")
+    cls = head.rsplit(".", 1)[-1] if method in ("from_function", "from_defaults") else name.rsplit(".", 1)[-1]
+    if cls not in TOOL_CONSTRUCTORS:
+        return None
+    tool_name = _const_kw(call, "name")
+    if tool_name is None:
+        fn = next(
+            (k.value for k in call.keywords if k.arg in ("func", "fn", "coroutine")),
+            call.args[0] if call.args else None,
+        )
+        tool_name = fn.id if isinstance(fn, ast.Name) else None
+    if not tool_name:
+        return None
+    return {"name": tool_name, "description": _const_kw(call, "description") or "", "parameters": {}}
 
 
 def discover_agent(root: Path) -> dict[str, Any] | None:
@@ -190,7 +273,8 @@ def discover_agent(root: Path) -> dict[str, Any] | None:
         "system_prompt": "\n".join(scan.prompts),
         "prompt_path": scan.tool_files[0],
         "source_findings": scan.findings,
-        "discovery": "python_literal_tools",
+        "discovery": "python_literal_tools" if scan.how <= {"literal"} else "python_source_tools",
+        "discovered_via": sorted(scan.how),
     }
 
 

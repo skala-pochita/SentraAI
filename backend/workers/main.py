@@ -37,7 +37,12 @@ async def run_audit() -> None:
         async def on_audit(msg):  # type: ignore[no-untyped-def]
             await runner.handle(msg)
 
-        await run_consumer(["audit.requested"], "cg-audit", on_audit)
+        from core.settings import get_settings
+
+        # 파티션(3)별로 감사를 동시에 처리한다 (B6). 감사마다 Deps·예산·이벤트 버퍼·trace 는 따로다
+        await run_consumer(
+            ["audit.requested"], "cg-audit", on_audit, concurrency=get_settings().audit_worker_concurrency
+        )
 
 
 async def run_eval() -> None:

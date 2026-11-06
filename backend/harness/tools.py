@@ -15,6 +15,8 @@ READ_TOOLS = {
     "business": {
         "list_audit_targets",
         "list_repo_files",
+        "rank_risky_files",
+        "related_files",
         "read_repo_file",
         "search_repo",
         "get_agent_manifest",
@@ -36,6 +38,7 @@ READ_TOOLS = {
 EXEC_TOOLS = {
     "business": {
         "run_static_scan",
+        "run_external_scan",
         "run_agent_rule_check",
         "run_injection_probe",
         "prepare_agent_sandbox",
@@ -50,10 +53,17 @@ MUTATING_TOOLS = {
 # 명세 8.3 노드 명세의 '사용 MCP 도구'
 NODE_ALLOWLIST: dict[str, set[str]] = {
     "compliance_link": {"search_regulation", "get_clause"},
-    "intake": {"list_audit_targets", "list_repo_files", "get_agent_manifest", "list_false_positive_rules"},
-    "code_static_scan": {"run_static_scan", "list_false_positive_rules"},
+    "intake": {
+        "list_audit_targets",
+        "list_repo_files",
+        "rank_risky_files",
+        "get_agent_manifest",
+        "list_false_positive_rules",
+    },
+    "code_static_scan": {"run_static_scan", "run_external_scan", "list_false_positive_rules"},
     "code_investigate": {
         "read_repo_file",
+        "related_files",
         "search_repo",
         "list_repo_files",
         "search_security_standard",

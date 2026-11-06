@@ -3,7 +3,7 @@ name: SQL built by string concatenation
 category: SQL_INJECTION
 default_severity: CRITICAL
 target: code
-file_globs: ["**/*.java"]
+file_globs: ["**/*.java", "**/*.kt"]
 detector: regex
 patterns:
   - 'jdbcTemplate\.(?:query|update|execute|queryForList|queryForObject)\(.*"\s*\+'

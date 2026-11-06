@@ -3,7 +3,7 @@ name: Internal IP or hostname in comment
 category: COMMENT_SENSITIVE
 default_severity: MEDIUM
 target: code
-file_globs: ["**/*.java", "**/*.kt", "**/*.yml", "**/*.yaml", "**/*.properties"]
+file_globs: ["**/*.java", "**/*.kt", "**/*.yml", "**/*.yaml", "**/*.properties", "**/*.py"]
 detector: regex
 comment_only: true
 patterns:

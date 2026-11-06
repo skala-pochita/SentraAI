@@ -1,0 +1,32 @@
+# 기대 탐지 (rule_id, file, line). 여기 없는 탐지는 오탐, 여기 있는데 안 나오면 미탐으로 테스트 실패.
+# 음성 케이스: exec_cases.safe() 전체(상수 인자·shell 없음·SafeLoader·model.eval()·literal_eval·문자열·주석), db.py 바인딩 2건,
+#   web.checksum()(체크섬 md5·상수 URL·상수 템플릿), settings.SECRET_NAME(저엔트로피), page.html {{ title }}, safe_xml.py(defusedxml)
+expected:
+  - {rule_id: SEC-PY-003, file: app/db.py, line: 9}  # cur.execute(f"select * from users where name = '{name}'")
+  - {rule_id: SEC-PY-003, file: app/db.py, line: 10}  # cur.execute("select * from users where id = %s" % uid)
+  - {rule_id: SEC-PY-003, file: app/db.py, line: 11}  # query = f"delete from sessions where user_id = {uid}"
+  - {rule_id: SEC-PY-003, file: app/db.py, line: 13}  # session.execute(text(f"select * from t where a = {name}"))
+  - {rule_id: SEC-LOG-001, file: app/db.py, line: 14}  # logger.info("login ok password=%s", name)
+  - {rule_id: SEC-PY-001, file: app/exec_cases.py, line: 11}  # eval(cmd)
+  - {rule_id: SEC-PY-001, file: app/exec_cases.py, line: 12}  # sp.Popen(
+  - {rule_id: SEC-PY-001, file: app/exec_cases.py, line: 16}  # run(cmd, shell=True)
+  - {rule_id: SEC-PY-001, file: app/exec_cases.py, line: 17}  # system(cmd)
+  - {rule_id: SEC-PY-001, file: app/exec_cases.py, line: 18}  # os.popen(cmd)
+  - {rule_id: SEC-PY-002, file: app/exec_cases.py, line: 19}  # pickle.loads(blob)
+  - {rule_id: SEC-PY-002, file: app/exec_cases.py, line: 20}  # yaml.load(doc)
+  - {rule_id: SEC-PY-002, file: app/exec_cases.py, line: 21}  # yaml.load(doc, Loader=yaml.FullLoader)
+  - {rule_id: SEC-PY-006, file: app/settings.py, line: 1}  # DEBUG = True
+  - {rule_id: SEC-PY-006, file: app/settings.py, line: 2}  # ALLOWED_HOSTS = ["*"]
+  - {rule_id: SEC-PY-007, file: app/templates/page.html, line: 1}  # <div>{{ comment | safe }}</div>
+  - {rule_id: SEC-PY-007, file: app/web.py, line: 9}  # env = Environment(autoescape=False)
+  - {rule_id: SEC-SECRET-002, file: app/web.py, line: 10}  # API_TOKEN = 'Zx81****'   테스트용 가짜 값
+  - {rule_id: SEC-PY-004, file: app/web.py, line: 16}  # r = requests.get(url, timeout=5, verify=False)
+  - {rule_id: SEC-PY-008, file: app/web.py, line: 16}  # r = requests.get(url, timeout=5, verify=False)
+  - {rule_id: SEC-PY-007, file: app/web.py, line: 17}  # return Markup(r.text)
+  - {rule_id: SEC-PY-005, file: app/web.py, line: 23}  # f = open(f"/srv/files/{name}")
+  - {rule_id: SEC-PY-005, file: app/web.py, line: 24}  # send_file(name)
+  - {rule_id: SEC-PY-007, file: app/web.py, line: 30}  # return render_template_string(request.args["tpl"])
+  - {rule_id: SEC-PY-009, file: app/web.py, line: 34}  # return hashlib.md5(password.encode()).hexdigest()
+  - {rule_id: SEC-PY-008, file: app/web.py, line: 44}  # ctx = ssl._create_unverified_context()
+  - {rule_id: SEC-PY-006, file: app/web.py, line: 47}  # app.run(host="0.0.0.0", debug=True)
+  - {rule_id: SEC-PY-010, file: app/xmlparse.py, line: 5}  # return etree.fromstring(data)

@@ -1,0 +1,16 @@
+id: SEC-SQLI-003
+name: MyBatis ${} substitution / JPA native query from variable / Kotlin string template SQL
+category: SQL_INJECTION
+default_severity: HIGH
+target: code
+file_globs: ["**/*Mapper.xml", "**/mapper/**/*.xml", "**/mappers/**/*.xml", "**/*.java", "**/*.kt"]
+detector: regex
+ignore_case: true
+patterns:
+  - '\$\{\s*[A-Za-z_][\w.]*\s*\}[^<]*(?:</select>|</update>|</delete>|</insert>|$)'   # MyBatis ${} 는 문자열 치환
+  - 'createNativeQuery\(\s*[a-z_]\w*\s*[,)]'                                            # 변수로 받은 네이티브 쿼리
+  - '(?:query|update|execute|createQuery|createNativeQuery)\w*\(\s*"[^"]*\b(?:select|insert|update|delete|where)\b[^"]*\$\{?[a-z_]'  # Kotlin "... $id"
+exclude_globs: ["**/application*.yml", "**/application*.yaml"]
+needs_llm_review: true
+references: ["OWASP-A03:2021", "CWE-89"]
+fix_hint: "MyBatis 는 #{} 바인딩, 정렬 컬럼은 화이트리스트로. JPA 는 상수 쿼리 + setParameter"

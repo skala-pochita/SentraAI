@@ -1,0 +1,15 @@
+id: SEC-PY-001
+name: Python command / code execution with non-constant input
+category: COMMAND_INJECTION
+default_severity: CRITICAL
+target: code
+file_globs: ["**/*.py"]
+detector: ast_python
+params:
+  calls:
+    - {names: [eval, exec, builtins.eval, builtins.exec], nonconst_arg: 0}
+    - {names: [os.system, os.popen, commands.getoutput, subprocess.getoutput, subprocess.getstatusoutput], nonconst_arg: 0}
+    - {names: [subprocess.run, subprocess.call, subprocess.Popen, subprocess.check_output, subprocess.check_call], kw_true: shell}
+needs_llm_review: true
+references: ["OWASP-A03:2021", "CWE-78", "CWE-95"]
+fix_hint: "shell=False + 인자 리스트, 입력은 허용 목록 검증. eval 대신 ast.literal_eval·json"

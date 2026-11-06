@@ -1,0 +1,11 @@
+id: SEC-SPRING-010
+name: IDOR candidate (lookup by path id without owner check)
+category: BROKEN_ACCESS_CONTROL
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java", "**/*.kt"]
+detector: python
+check: spring_idor_candidate
+needs_llm_review: true
+references: ["OWASP-A01:2021", "CWE-639"]
+fix_hint: "조회 결과의 소유자와 인증 주체(@AuthenticationPrincipal)를 비교하거나 findByIdAndOwnerId 로 조회"

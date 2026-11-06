@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
@@ -11,6 +12,8 @@ from core.graph.deps import get_deps
 from core.graph.nodes._base import node
 from core.path_schema import AttackPath
 from core.schemas import SEVERITY_ORDER, FindingDraft
+
+SAVE_CONCURRENCY = 8  # 구성 Finding 동시 저장 수 (B2)
 
 
 def _key(f: FindingDraft) -> tuple[str, str, str, int]:
@@ -61,24 +64,35 @@ async def correlate(state: dict[str, Any], config: RunnableConfig) -> dict[str, 
     kept = dedupe([f for f in raw if f.verdict != "FALSE_POSITIVE"])
     corr = apply_correlation(kept, state.get("probe_results", []), state.get("targets", []), state.get("plan", {}))
     final = kept + corr
-    # 저장: 구성 Finding 먼저 (correlation 의 component_ids 를 finding_id 로 치환)
+    # 저장: 구성 Finding 먼저 (동시 저장, create_finding 은 fingerprint ON CONFLICT 로 멱등) →
+    # correlation 은 component_ids 를 finding_id 로 치환한 뒤 순서대로 저장
     id_map: dict[str, str] = {}
-    for f in final:
-        if f.source == "correlation":
-            f.component_ids = [id_map.get(c, c) for c in f.component_ids]
-            if f.attack_path:
-                for reason in f.attack_path.code_reasons:
-                    if reason.ref.finding_id:
-                        reason.ref.finding_id = id_map.get(reason.ref.finding_id, reason.ref.finding_id)
-                for item in [*f.attack_path.steps, *f.attack_path.edges]:
-                    for ref in item.evidence_refs:
-                        if ref.finding_id:
-                            ref.finding_id = id_map.get(ref.finding_id, ref.finding_id)
-        res = await deps.call(state, "correlate", "create_finding", audit_id=state["audit_id"], finding=f.model_dump())
+    sem = asyncio.Semaphore(SAVE_CONCURRENCY)
+
+    async def save(f: FindingDraft) -> None:
+        async with sem:
+            res = await deps.call(
+                state, "correlate", "create_finding", audit_id=state["audit_id"], finding=f.model_dump()
+            )
         f.finding_id = res["finding_id"]
         if res.get("path_payload"):
             f.attack_path = AttackPath.model_validate(res["path_payload"])
         id_map[f.temp_id] = f.finding_id
+
+    await asyncio.gather(*(save(f) for f in final if f.source != "correlation"))
+    for f in final:
+        if f.source != "correlation":
+            continue
+        f.component_ids = [id_map.get(c, c) for c in f.component_ids]
+        if f.attack_path:
+            for reason in f.attack_path.code_reasons:
+                if reason.ref.finding_id:
+                    reason.ref.finding_id = id_map.get(reason.ref.finding_id, reason.ref.finding_id)
+            for item in [*f.attack_path.steps, *f.attack_path.edges]:
+                for ref in item.evidence_refs:
+                    if ref.finding_id:
+                        ref.finding_id = id_map.get(ref.finding_id, ref.finding_id)
+        await save(f)
     final.sort(key=lambda f: (-SEVERITY_ORDER[f.severity], -f.confidence))
     risk_paths = [
         {

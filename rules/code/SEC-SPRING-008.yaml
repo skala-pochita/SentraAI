@@ -1,0 +1,14 @@
+id: SEC-SPRING-008
+name: "@CrossOrigin allows any origin"
+category: SECCONFIG_CORS
+default_severity: MEDIUM
+target: code
+file_globs: ["**/*.java", "**/*.kt"]
+detector: regex
+multiline: true
+patterns:
+  - '@CrossOrigin\(\s*(?:origins\s*=\s*|value\s*=\s*)?[{\[]?\s*"\*"'
+  - '@CrossOrigin\s*(?:\(\s*\))?\s*\n\s*(?:public\s+)?(?:class|@|\w+\s+\w+\()'   # 인자 없는 @CrossOrigin = 모든 origin
+needs_llm_review: true
+references: ["OWASP-A05:2021", "CWE-942"]
+fix_hint: "허용 origin 을 명시적으로 나열하고, 자격증명(쿠키)을 쓰는 API 는 와일드카드 금지"

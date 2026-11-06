@@ -3,7 +3,7 @@ name: File path built from request input
 category: PATH_TRAVERSAL
 default_severity: HIGH
 target: code
-file_globs: ["**/*.java"]
+file_globs: ["**/*.java", "**/*.kt"]
 detector: regex
 patterns:
   - 'Paths\.get\(.*\+'

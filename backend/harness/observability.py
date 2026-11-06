@@ -101,28 +101,32 @@ async def _persist(span: Span, parent: str | None) -> None:
     audit_id, eval_run = _audit.get(), _eval_run.get()
     if not audit_id and not eval_run:
         return
+    from harness.events import current_buffer
+
     try:
+        row = TraceSpan(
+            id=uuid.UUID(span.id),
+            audit_id=uuid.UUID(audit_id) if audit_id else None,
+            eval_run_id=uuid.UUID(eval_run) if eval_run else None,
+            trace_id=_trace_id.get(),
+            parent_id=uuid.UUID(parent) if parent else None,
+            kind=span.kind,
+            name=span.name,
+            model=span.model,
+            prompt_id=span.prompt_id,
+            input_tokens=span.input_tokens or None,
+            output_tokens=span.output_tokens or None,
+            cost_usd=Decimal(str(round(cost_usd(span.model, span.input_tokens, span.output_tokens), 6))),
+            latency_ms=int((time.monotonic() - span.started) * 1000),
+            status=span.status,
+            error_code=span.error_code,
+            started_at=span.started_at,
+        )
+        if (buf := current_buffer()) is not None:  # 감사 실행 중: 이벤트와 함께 묶어서 기록 (B7)
+            buf.add_row(row)
+            return
         async with session_scope() as db:
-            db.add(
-                TraceSpan(
-                    id=uuid.UUID(span.id),
-                    audit_id=uuid.UUID(audit_id) if audit_id else None,
-                    eval_run_id=uuid.UUID(eval_run) if eval_run else None,
-                    trace_id=_trace_id.get(),
-                    parent_id=uuid.UUID(parent) if parent else None,
-                    kind=span.kind,
-                    name=span.name,
-                    model=span.model,
-                    prompt_id=span.prompt_id,
-                    input_tokens=span.input_tokens or None,
-                    output_tokens=span.output_tokens or None,
-                    cost_usd=Decimal(str(round(cost_usd(span.model, span.input_tokens, span.output_tokens), 6))),
-                    latency_ms=int((time.monotonic() - span.started) * 1000),
-                    status=span.status,
-                    error_code=span.error_code,
-                    started_at=span.started_at,
-                )
-            )
+            db.add(row)
     except (SQLAlchemyError, OSError, ValueError) as e:
         log.warning("span persist failed %s/%s: %s", span.kind, span.name, type(e).__name__)
 
@@ -152,3 +156,47 @@ async def span(kind: str, name: str, **attrs: Any) -> AsyncIterator[Span]:
     finally:
         _parent.reset(token)
         await _persist(s, parent)
+
+
+async def latency_breakdown(audit_id: str, top: int = 12) -> dict[str, Any]:
+    """감사 1건의 소요 시간: 노드·LLM·도구별 호출 수·합계·최대 (trace_spans, EV4). 실패하면 빈 결과."""
+    from sqlalchemy import func, select
+
+    from harness.events import current_buffer
+
+    if (buf := current_buffer()) is not None:
+        await buf.flush()  # 묶음 기록 대기 중인 span 까지 (B7)
+    try:
+        async with session_scope() as db:
+            rows = (
+                await db.execute(
+                    select(
+                        TraceSpan.kind,
+                        TraceSpan.name,
+                        func.count(),
+                        func.sum(TraceSpan.latency_ms),
+                        func.max(TraceSpan.latency_ms),
+                        func.sum(func.coalesce(TraceSpan.input_tokens, 0) + func.coalesce(TraceSpan.output_tokens, 0)),
+                    )
+                    .where(TraceSpan.audit_id == uuid.UUID(audit_id))
+                    .group_by(TraceSpan.kind, TraceSpan.name)
+                )
+            ).all()
+    except (SQLAlchemyError, OSError, ValueError) as e:
+        log.warning("latency breakdown failed audit=%s: %s", audit_id, type(e).__name__)
+        return {}
+    out: dict[str, Any] = {"span_count": int(sum(r[2] for r in rows))}
+    for kind in ("node", "llm", "tool"):
+        items: list[dict[str, Any]] = [
+            {
+                "name": r[1],
+                "calls": int(r[2]),
+                "total_ms": int(r[3] or 0),
+                "max_ms": int(r[4] or 0),
+                "tokens": int(r[5] or 0),
+            }
+            for r in rows
+            if r[0] == kind
+        ]
+        out[kind] = sorted(items, key=lambda x: -int(x["total_ms"]))[:top]
+    return out

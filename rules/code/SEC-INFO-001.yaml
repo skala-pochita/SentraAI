@@ -3,7 +3,7 @@ name: Stack trace included in error responses
 category: INFO_EXPOSURE
 default_severity: LOW
 target: code
-file_globs: ["**/application*.yml", "**/application*.yaml"]
+file_globs: ["**/application*.yml", "**/application*.yaml", "**/application*.properties"]
 detector: yaml_path
 paths: ["server.error.include-stacktrace"]
 equals: always

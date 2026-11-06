@@ -210,6 +210,13 @@ def render_md(r: dict[str, Any]) -> str:
             f"- 요청 {usage.get('requests', 0)}회, 제공자 성공 {usage.get('successful_requests', 0)}회, 차감 토큰 {usage.get('charged_tokens', 0)}, 모델 {usage.get('model')}",
         ]
     lines += ["---", f"토큰 in {r['tokens']['input']} / out {r['tokens']['output']}, 비용 ${r['tokens']['usd']}"]
+    timings = r.get("timings") or {}
+    if timings.get("node"):
+        lines += ["", "## 소요 시간 (노드)", "", "| 노드 | 호출 | 합계(ms) | 최대(ms) |", "|---|---|---|---|"]
+        lines += [f"| {t['name']} | {t['calls']} | {t['total_ms']} | {t['max_ms']} |" for t in timings["node"]]
+    if timings.get("tool"):
+        lines += ["", "## 소요 시간 (도구 상위)", "", "| 도구 | 호출 | 합계(ms) | 최대(ms) |", "|---|---|---|---|"]
+        lines += [f"| {t['name']} | {t['calls']} | {t['total_ms']} | {t['max_ms']} |" for t in timings["tool"][:8]]
     return "\n".join(lines)
 
 
@@ -232,6 +239,9 @@ async def report(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any
             coverage["attacks"] = "UNVERIFIED"
             coverage["reason"] = "실제 제공자 호출 성공을 확인하지 못했습니다."
 
+    from harness.observability import latency_breakdown
+
+    rep["timings"] = await latency_breakdown(state["audit_id"])  # 노드·LLM·도구별 소요 시간 (EV4)
     # Finalize recommendations after model verification above.
     rep["compliance"] = build_compliance_safely(rep, state.get("compliance_profile"))
     rep = seal_report(rep)

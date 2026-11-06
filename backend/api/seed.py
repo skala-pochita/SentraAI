@@ -20,6 +20,7 @@ log = logging.getLogger("seed")
 
 REPO_TARGET = "vuln-spring-app"
 AGENT_TARGET = "cs-helper"
+PY_REPO_TARGET = "vuln-python-app"
 
 
 async def seed_users(db: AsyncSession) -> dict[str, User]:
@@ -75,6 +76,20 @@ async def seed_targets(db: AsyncSession, owner: User) -> tuple[Target, Target]:
     return repo, agent
 
 
+async def seed_python_target(db: AsyncSession, owner: User) -> Target | None:
+    """Python 감사 평가 샘플 (EV1). demo-reset 이 작업공간에 복사한 경우에만 등록한다."""
+    s = get_settings()
+    ref = str(s.workspace_dir / PY_REPO_TARGET)
+    if not (s.workspace_dir / PY_REPO_TARGET).is_dir():
+        return None
+    t = (await db.execute(select(Target).where(Target.name == PY_REPO_TARGET, Target.ref == ref))).scalar_one_or_none()
+    if t is None:
+        t = Target(type="repo", name=PY_REPO_TARGET, ref=ref, owner_user_id=owner.id, config={"default_branch": "main"})
+        db.add(t)
+        await db.flush()
+    return t
+
+
 async def main(local: bool = False) -> None:
     logging.basicConfig(level=logging.INFO)
     if local:
@@ -87,6 +102,7 @@ async def main(local: bool = False) -> None:
     async with session_scope() as db:
         users = await seed_users(db)
         repo, agent = await seed_targets(db, users["DEVELOPER"])
+        await seed_python_target(db, users["DEVELOPER"])
         log.info("seeded users=%s targets=%s,%s", list(users), repo.id, agent.id)
     async with session_scope() as db:
         docs = await ingest_dir(db, get_settings().knowledge_dir)

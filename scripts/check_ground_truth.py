@@ -1,6 +1,6 @@
 """정답셋 위치 검증 (Phase 2 완료 조건).
 
-datasets/ground_truth/code.yaml 의 모든 항목(findings, decoys, auditor_injections)에 대해
+datasets/ground_truth/code*.yaml 의 모든 항목(findings, decoys, auditor_injections)에 대해
 targets/<target>/<file> 의 <line> 번째 줄에 match 문자열이 실제로 있는지 확인한다.
 
   python scripts/check_ground_truth.py          # 검증만 (불일치 시 exit 1)
@@ -21,11 +21,11 @@ GT = ROOT / "datasets" / "ground_truth" / "code.yaml"
 SECTIONS = ("findings", "decoys", "auditor_injections")
 
 
-def check(fill: bool) -> list[str]:
-    data = yaml.safe_load(GT.read_text(encoding="utf-8"))
+def check(fill: bool, gt_path: Path = GT) -> list[str]:
+    data = yaml.safe_load(gt_path.read_text(encoding="utf-8"))
     base = ROOT / "targets" / data["target"]
     errors: list[str] = []
-    text = GT.read_text(encoding="utf-8")
+    text = gt_path.read_text(encoding="utf-8")
     for section in SECTIONS:
         for item in data.get(section, []):
             path = base / item["file"]
@@ -45,14 +45,16 @@ def check(fill: bool) -> list[str]:
             else:
                 errors.append(f"{item['id']}: '{item['match']}' not at {item['file']}:{line} (found at {hits})")
     if fill:
-        GT.write_text(text, encoding="utf-8")
-    return errors
+        gt_path.write_text(text, encoding="utf-8")
+    return [f"{gt_path.name} {e}" for e in errors]
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--fill", action="store_true")
-    errors = check(ap.parse_args().fill)
+    fill = ap.parse_args().fill
+    # code.yaml(Spring) + code_*.yaml(Python 등, 2026-11-06) 전부
+    errors = [e for p in sorted(GT.parent.glob("code*.yaml")) for e in check(fill, p)]
     for e in errors:
         print("ERROR", e)
     print("OK" if not errors else f"{len(errors)} error(s)")

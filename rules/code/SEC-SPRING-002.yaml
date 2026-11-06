@@ -3,11 +3,15 @@ name: CSRF protection disabled
 category: SECCONFIG_CSRF
 default_severity: MEDIUM
 target: code
-file_globs: ["**/*Config*.java", "**/*Security*.java"]
+file_globs: ["**/*.java", "**/*.kt"]
+require_also: "SecurityFilterChain|HttpSecurity|WebSecurityConfigurerAdapter|ServerHttpSecurity"  # 이름이 아니라 내용으로 보안 설정 파일 선택 (SP4)
 detector: regex
+multiline: true  # 람다 DSL 이 여러 줄로 나뉘어도 탐지 (SP3)
 patterns:
-  - 'csrf\(.*disable'
-  - 'csrf\(\)\s*\.\s*disable\(\)'
+  - 'csrf\(\s*(\w+)\s*->\s*\1\s*\.\s*disable\(\)'        # .csrf(c -> c.disable()) — 여러 줄 허용
+  - 'csrf\(\s*\w*(?:Configurer)?::disable\s*\)'              # .csrf(AbstractHttpConfigurer::disable)
+  - 'csrf\(\)\s*\.\s*disable\(\)'                           # .csrf().disable()
+  - 'csrf\s*\{\s*disable\(\)\s*\}'                          # Kotlin DSL csrf { disable() }
 needs_llm_review: true
 references: ["OWASP-A01:2021", "CWE-352"]
 fix_hint: "세션·폼 로그인 체인은 CSRF 를 켜고(CookieCsrfTokenRepository), Stateless JWT API 체인만 비활성화"

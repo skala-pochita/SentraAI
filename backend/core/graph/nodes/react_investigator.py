@@ -7,20 +7,22 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
-import re
 import time
 import uuid
 from collections import Counter
-from functools import lru_cache
 from typing import Any, Literal
 
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field, field_validator
+from pydantic.json_schema import SkipJsonSchema
 
+from core.categories import category_definitions, category_refs, code_categories
 from core.errors import AppError, ErrorCode
 from core.graph.deps import Deps, LLMFactory, get_deps
 from core.graph.nodes.code_investigate_static import static_verdicts
+from core.rules.engine import TEST_PATH
 from core.schemas import Evidence, FindingDraft, Severity
 from harness.budget import limits
 from harness.context import UNTRUSTED_RULE, compact_observations, estimate_tokens, truncate_tool_result, wrap_untrusted
@@ -28,7 +30,6 @@ from harness.llm import structured_call
 from harness.prompts import get_prompt
 from harness.tools import read_only_tools_for
 
-TEST_PATH = re.compile(r"(^|/)src/test/")
 # 커밋된 자격증명은 '가짜 값·임시 계정'이라는 주장을 감사기가 검증할 수 없다 → 테스트 경로 밖에서는 기각하지 않고 검토로 남긴다
 CREDENTIAL_CATEGORIES = {"HARDCODED_SECRET", "HARDCODED_CREDENTIAL", "SECRET_LEAK", "COMMENT_SENSITIVE"}
 
@@ -45,21 +46,12 @@ class Verdict(BaseModel):
     reason: str = ""
 
 
-@lru_cache
 def allowed_categories() -> frozenset[str]:
-    from core.rules.models import load_rules
-
-    return frozenset({r.category for r in load_rules("code")})
+    return code_categories()
 
 
-@lru_cache
 def category_defs() -> str:
-    from core.rules.models import load_rules
-
-    names: dict[str, list[str]] = {}
-    for r in load_rules("code"):
-        names.setdefault(r.category, []).append(r.name)
-    return "\n    ".join(f"- {c}: {' / '.join(n)}" for c, n in sorted(names.items()))
+    return category_definitions()
 
 
 class NewFinding(BaseModel):
@@ -85,6 +77,8 @@ class NewFinding(BaseModel):
 class Final(BaseModel):
     verdicts: list[Verdict] = Field(default_factory=list)
     new_findings: list[NewFinding] = Field(default_factory=list)
+    # 시스템이 채움: 새 발견을 보고할 수 있는 관련 파일 (모델 출력 스키마에서는 제외)
+    related_paths: SkipJsonSchema[list[str]] = Field(default_factory=list, exclude=True)
 
 
 class ReactStep(BaseModel):
@@ -118,7 +112,9 @@ async def _investigate_file(
     max_same = int(cfg.get("max_same_tool_calls", 3))
     max_chars = int(cfg.get("tool_result_max_chars", 8000))
     ctx_budget = int(cfg.get("context_tokens", 6000))
-    token_cap = int(cfg.get("max_tokens_per_file", 12000))
+    token_cap = int(cfg.get("max_tokens_per_file", 12000))  # 도구 결과(관찰) 토큰 상한
+    llm_token_cap = int(cfg.get("max_llm_tokens_per_file", 60000))  # 이 파일의 LLM 입력+출력 토큰 상한
+    final_grace = float(cfg.get("final_grace_s", 30))  # 한도 도달 후 마지막 final 요청에 주는 시간
     tid = state["target"]["target_id"]
     allowed = set(read_only_tools_for("code_investigate"))
     prompt = get_prompt("code_investigate")
@@ -137,47 +133,76 @@ async def _investigate_file(
         }
         for c in cands
     ]
+    try:  # 파일을 넘나드는 흐름: import·타입 참조로 이어진 파일을 먼저 알려 준다 (S3)
+        related = await deps.call(state, "code_investigate", "related_files", target_id=tid, path=path)
+    except AppError:
+        related = []
+    related = [r for r in related if isinstance(r, dict) and "path" in r] if isinstance(related, list) else []
+    related_text = (
+        "\n".join(
+            f"- {r['path']} ({'이 파일이 사용' if r['relation'] == 'uses' else '이 파일을 사용'})" for r in related
+        )
+        or "(없음)"
+    )
     cand_text = (
         wrap_untrusted(json.dumps(brief, ensure_ascii=False), "static_candidates")
         if brief
         else "(없음 — 위험 파일 휴리스틱으로 선택됨)"
     )
 
+    def llm_tokens() -> int:
+        return sum(int(u.get("in", 0)) + int(u.get("out", 0)) for u in usage)
+
+    async def bounded(coro: Any, timeout: float) -> Any:
+        """LLM 호출 1회(SDK 재시도·스키마 재요청 포함)를 남은 시간 안으로 자른다."""
+        try:
+            return await asyncio.wait_for(coro, timeout=max(0.1, timeout))
+        except TimeoutError as e:
+            raise AppError(ErrorCode.UPSTREAM_TIMEOUT, f"ReAct LLM call exceeded time limit ({path})") from e
+
     async def summarize(old: list[str]) -> str:
         nonlocal turns
         turns += 1
-        out = await structured_call(
-            model,
-            get_prompt("context_summarize"),
-            ContextSummary,
-            node="code_investigate",
-            model_name=model_name,
-            budget=deps.budget,
-            usage=usage,
-            untrusted_rule=UNTRUSTED_RULE,
-            observations="\n".join(old),
+        out = await bounded(
+            structured_call(
+                model,
+                get_prompt("context_summarize"),
+                ContextSummary,
+                node="code_investigate",
+                model_name=model_name,
+                budget=deps.budget,
+                usage=usage,
+                untrusted_rule=UNTRUSTED_RULE,
+                observations="\n".join(old),
+            ),
+            deadline - time.monotonic(),
         )
-        return out.summary
+        return str(out.summary)
 
-    async def ask(steps_left: int) -> ReactStep:
+    async def ask(steps_left: int, timeout: float) -> ReactStep:
         nonlocal turns
         turns += 1
-        return await structured_call(
-            model,
-            prompt,
-            ReactStep,
-            node="code_investigate",
-            model_name=model_name,
-            budget=deps.budget,
-            usage=usage,
-            path=path,
-            candidates=cand_text,
-            steps_left=steps_left,
-            observations="\n".join(obs) if obs else "(없음)",
-            categories=", ".join(sorted(allowed_categories())),
-            category_defs=category_defs(),
-            untrusted_rule=UNTRUSTED_RULE,
+        out: ReactStep = await bounded(
+            structured_call(
+                model,
+                prompt,
+                ReactStep,
+                node="code_investigate",
+                model_name=model_name,
+                budget=deps.budget,
+                usage=usage,
+                path=path,
+                candidates=cand_text,
+                steps_left=steps_left,
+                observations="\n".join(obs) if obs else "(없음)",
+                categories=", ".join(sorted(allowed_categories())),
+                category_defs=category_defs(),
+                untrusted_rule=UNTRUSTED_RULE,
+                related=related_text,
+            ),
+            timeout,
         )
+        return out
 
     stop_reason = "steps"
     forced_read = False
@@ -188,18 +213,28 @@ async def _investigate_file(
         if time.monotonic() >= deadline:
             stop_reason = "timeout"
             break
-        obs, compacted = await compact_observations(obs, ctx_budget, summarize)
-        if compacted:
-            await deps.event(
-                state, "context.compacted", {"file": path, "budget_tokens": ctx_budget}, node="code_investigate"
-            )
-        step_out = await ask(max_steps - step)
+        if llm_tokens() >= llm_token_cap:  # 파일당 LLM 토큰 예산 (H8)
+            stop_reason = "llm_token_budget"
+            break
+        try:
+            obs, compacted = await compact_observations(obs, ctx_budget, summarize)
+            if compacted:
+                await deps.event(
+                    state, "context.compacted", {"file": path, "budget_tokens": ctx_budget}, node="code_investigate"
+                )
+            step_out = await ask(max_steps - step, deadline - time.monotonic())
+        except AppError as e:
+            if e.code != ErrorCode.UPSTREAM_TIMEOUT or time.monotonic() < deadline:
+                raise
+            stop_reason = "timeout"  # 호출 도중 작업 시간 한도 도달
+            break
         if step_out.final is not None:
             if not brief and "read_repo_file" not in used and not forced_read:
                 # Harness: 정적 후보 없는 위험 파일을 읽지 않고 결론 내는 것을 막는다 (1회)
                 forced_read = True
                 obs.append("[규칙] 이 파일은 아직 읽지 않았다. read_repo_file 로 파일을 읽은 뒤 final 을 낸다.")
                 continue
+            step_out.final.related_paths = [r["path"] for r in related]
             return step_out.final, used
         act = step_out.action
         if act is None:
@@ -237,10 +272,15 @@ async def _investigate_file(
             break
     if stop_reason != "steps":
         await deps.event(
-            state, "loop.limit", {"file": path, "reason": stop_reason, "turns": turns}, node="code_investigate"
+            state,
+            "loop.limit",
+            {"file": path, "reason": stop_reason, "turns": turns, "llm_tokens": llm_tokens()},
+            node="code_investigate",
         )
     obs.append(f"[중단: {stop_reason}] 더 조회할 수 없다. final 을 지금 낸다.")
-    last = await ask(0)
+    last = await ask(0, final_grace)
+    if last.final is not None:
+        last.final.related_paths = [r["path"] for r in related]
     return last.final, used
 
 
@@ -296,11 +336,21 @@ def _apply_verdict(
 def _new_findings(
     final: Final, path: str, base: list[dict[str, Any]], tid: str, used: list[str]
 ) -> list[dict[str, Any]]:
-    """모델이 새로 찾은 Finding. 다른 파일·정적 후보와 같은 위치(±3줄) 재보고는 버린다."""
-    known_lines = [int((c.get("evidence") or [{}])[0].get("line_start") or 0) for c in base]
+    """모델이 새로 찾은 Finding. 조사 파일·관련 파일(S3) 밖의 보고, 정적 후보와 같은 위치(±3줄) 재보고는 버린다.
+    관련 파일에 보고한 것도 다음 노드(code_evidence_check)가 실제 파일과 대조한다."""
+    known = [
+        (
+            (c.get("evidence") or [{}])[0].get("file_path") or path,
+            int((c.get("evidence") or [{}])[0].get("line_start") or 0),
+        )
+        for c in base
+    ]
+    allowed_paths = {path, *final.related_paths}
     out = []
     for nf in final.new_findings:
-        if (nf.file_path != path and path) or any(abs(nf.line_start - ln) <= 3 for ln in known_lines):
+        if path and nf.file_path not in allowed_paths:
+            continue
+        if any(f == nf.file_path and abs(nf.line_start - ln) <= 3 for f, ln in known):
             continue
         out.append(
             FindingDraft(
@@ -324,38 +374,52 @@ def _new_findings(
                 reasoning_summary=nf.reasoning[:400],
                 tools_used=sorted({*used, "read_repo_file"}),
                 verdict="TRUE_POSITIVE",
+                standard_refs=category_refs(nf.category),
             ).model_dump()
         )
     return out
 
 
 async def investigate(state: dict[str, Any], config: RunnableConfig, llm: tuple[Any, str]) -> dict[str, Any]:
+    """파일별 ReAct 조사를 동시에 최대 `react.concurrency` 개 실행한다 (결과 순서는 파일 순서 그대로)."""
     deps = get_deps(config)
     model, model_name = llm
     tid = state["target"]["target_id"]
     risky = state.get("plan", {}).get("repos", {}).get(tid, {}).get("risky_files", [])
-    usage: list[dict[str, Any]] = []
-    out: list[dict[str, Any]] = []
-    errors: list[dict[str, Any]] = []
-    for path, cands in _group_by_file(state.get("candidates", []), risky).items():
+    sem = asyncio.Semaphore(max(1, int(limits().get("react", {}).get("concurrency", 4))))
+
+    async def one(
+        path: str, cands: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[Any]]:
         base = static_verdicts(cands)
-        try:
-            final, used = await _investigate_file(deps, state, model, model_name, path, base, usage)
-        except AppError as e:
-            if e.code == ErrorCode.BUDGET_EXCEEDED:  # 예산 소진: 남은 파일은 정적 판정으로
-                payload = {"node": "code_investigate", "file": path}
-                await deps.event(state, "budget.exceeded", payload, node="code_investigate")
-            else:
-                errors.append({"node": "code_investigate", "file": path, "code": str(e.code), "message": e.message})
-            out.extend(base)
-            continue
+        file_usage: list[dict[str, Any]] = []  # 파일별로 따로 세야 파일당 토큰 예산이 정확하다
+        async with sem:
+            try:
+                final, used = await _investigate_file(deps, state, model, model_name, path, base, file_usage)
+            except AppError as e:
+                errs: list[dict[str, Any]] = []
+                if e.code == ErrorCode.BUDGET_EXCEEDED:  # 예산 소진: 남은 파일은 정적 판정으로
+                    payload = {"node": "code_investigate", "file": path}
+                    await deps.event(state, "budget.exceeded", payload, node="code_investigate")
+                else:
+                    errs.append({"node": "code_investigate", "file": path, "code": str(e.code), "message": e.message})
+                return base, errs, file_usage
         if final is None:
-            out.extend(base)
-            continue
+            return base, [], file_usage
         verdicts = {v.temp_id: v for v in final.verdicts}
         poisoned = any(c["category"] == "AUDITOR_INJECTION_ATTEMPT" for c in base)
-        out.extend(_apply_verdict(c, verdicts.get(c["temp_id"]), path, used, poisoned) for c in base)
-        out.extend(_new_findings(final, path, base, tid, used))
+        found = [_apply_verdict(c, verdicts.get(c["temp_id"]), path, used, poisoned) for c in base]
+        return found + _new_findings(final, path, base, tid, used), [], file_usage
+
+    groups = _group_by_file(state.get("candidates", []), risky)
+    results = await asyncio.gather(*(one(p, c) for p, c in groups.items()))
+    out: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    usage: list[dict[str, Any]] = []
+    for found, errs, file_usage in results:
+        out.extend(found)
+        errors.extend(errs)
+        usage.extend(file_usage)
     return {"investigated": out, "errors": errors, "token_usage": usage}
 
 

@@ -80,6 +80,21 @@ async def run(repo: dict[str, Any], script: list[Any], st: dict[str, Any]) -> tu
     return out, deps
 
 
+class PathScriptedModel(ScriptedModel):
+    """파일별 스크립트: 병렬 조사(B1)에서도 각 파일이 자기 응답 순서를 받는다."""
+
+    def __init__(self, scripts: dict[str, list[Any]]) -> None:
+        super().__init__([{}])
+        self.scripts = {k: list(v) for k, v in scripts.items()}
+
+    async def ainvoke(self, messages: list[Any]) -> Any:
+        human = str(messages[1].content)
+        path = next(p for p in self.scripts if p in human.split("observations", 1)[0] or p in human)
+        q = self.scripts[path]
+        self.responses = [q.pop(0) if len(q) > 1 else q[0]]
+        return await super().ainvoke(messages)
+
+
 async def test_c19_c20_found_by_reading_risky_files(repo: dict[str, Any]) -> None:
     script = [
         read_step(PAY_CFG),
@@ -111,7 +126,16 @@ async def test_c19_c20_found_by_reading_risky_files(repo: dict[str, Any]) -> Non
             ]
         ),
     ]
-    out, deps = await run(repo, script, state(repo, risky=[PAY_CFG, PAY_CLIENT]))
+    deps = Deps(gateway=inprocess_gateway(), emit_events=False)
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    async def capture(state: Any, type_: str, payload: Any = None, node: Any = None, progress: Any = None) -> None:
+        events.append((type_, payload or {}))
+
+    deps.event = capture  # type: ignore[method-assign]
+    deps.captured = events  # type: ignore[attr-defined]
+    model = PathScriptedModel({PAY_CFG: script[:2], PAY_CLIENT: script[2:]})
+    out = await investigate(state(repo, risky=[PAY_CFG, PAY_CLIENT]), cfg(deps), (model, "fake"))
     found = {
         (f["evidence"][0]["file_path"], f["evidence"][0]["line_start"])
         for f in out["investigated"]
@@ -148,6 +172,52 @@ async def test_timeout_forces_final(repo: dict[str, Any], monkeypatch: pytest.Mo
     limits_ev = [p for t, p in deps.captured if t == "loop.limit"]  # type: ignore[attr-defined]
     assert limits_ev and limits_ev[0]["reason"] == "timeout"
     assert not [p for t, p in deps.captured if t == "investigate.step"]  # type: ignore[attr-defined]
+
+
+def _patched_react(monkeypatch: pytest.MonkeyPatch, **react: Any) -> None:
+    import core.graph.nodes.react_investigator as ri
+
+    real = ri.limits
+
+    def patched() -> dict[str, Any]:
+        cfg = real()
+        return {**cfg, "react": {**cfg["react"], **react}}
+
+    monkeypatch.setattr(ri, "limits", patched)
+
+
+async def test_slow_llm_call_is_cut_at_deadline(repo: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    """P0-5: LLM 1회 호출이 오래 걸려도 파일당 작업 시간 한도 + final 유예 안에서 끝난다."""
+    import asyncio
+    import time
+
+    class SlowModel:
+        async def ainvoke(self, messages: list[Any]) -> Any:
+            await asyncio.sleep(5)  # 한도(0.3초)보다 훨씬 긴 호출
+
+    _patched_react(monkeypatch, max_seconds=0.3, final_grace_s=0.2)
+    deps = Deps(gateway=inprocess_gateway(), emit_events=False)
+    events: list[tuple[str, dict[str, Any]]] = []
+
+    async def capture(state: Any, type_: str, payload: Any = None, node: Any = None, progress: Any = None) -> None:
+        events.append((type_, payload or {}))
+
+    deps.event = capture  # type: ignore[method-assign]
+    started = time.monotonic()
+    out = await investigate(state(repo, risky=[PAY_CFG]), cfg(deps), (SlowModel(), "fake"))
+    assert time.monotonic() - started < 2.0
+    assert [p["reason"] for t, p in events if t == "loop.limit"] == ["timeout"]
+    assert out["errors"] and out["errors"][0]["code"] == "UPSTREAM_TIMEOUT"  # final 도 시간 초과 → 정적 판정 유지
+
+
+async def test_llm_token_budget_per_file(repo: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    """P0-6: 파일당 LLM 입력+출력 토큰이 상한을 넘으면 더 조사하지 않고 판정한다 (ScriptedModel 은 호출당 150 토큰)."""
+    _patched_react(monkeypatch, max_llm_tokens_per_file=300)
+    out, deps = await run(repo, [read_step(PAY_CFG)] * 5 + [final()], state(repo, risky=[PAY_CFG]))
+    limits_ev = [p for t, p in deps.captured if t == "loop.limit"]  # type: ignore[attr-defined]
+    assert limits_ev and limits_ev[0]["reason"] == "llm_token_budget" and limits_ev[0]["llm_tokens"] >= 300
+    assert len([p for t, p in deps.captured if t == "investigate.step"]) == 2  # type: ignore[attr-defined]
+    assert sum(u["in"] + u["out"] for u in out["token_usage"]) == 450  # 2스텝 + final 1회, 사용량 누락 없음
 
 
 async def test_disallowed_tool_is_refused_by_gate_and_loop_continues(repo: dict[str, Any]) -> None:
@@ -277,3 +347,45 @@ async def test_budget_exhaustion_falls_back_to_static_verdicts(repo: dict[str, A
     }
     out = await investigate(state(repo, [cand]), cfg(deps), (ScriptedModel([final()]), "fake"))
     assert out["investigated"][0]["verdict"] == "TRUE_POSITIVE"  # 정적 판정(confidence≥0.8)
+
+
+ORDER_CTRL = "src/main/java/com/demo/shop/controller/OrderController.java"
+ORDER_REPO = "src/main/java/com/demo/shop/repository/OrderQueryRepository.java"
+
+
+async def test_related_files_tool_follows_layers(repo: dict[str, Any]) -> None:
+    """S3: 컨트롤러 → 리포지토리 관계를 알려 준다."""
+    from core.mcp_client import CallCtx
+
+    gw = inprocess_gateway()
+    rel = await gw.call(
+        "related_files", {"target_id": repo["target_id"], "path": ORDER_CTRL}, CallCtx("code_investigate", "ADMIN")
+    )
+    assert {"path": ORDER_REPO, "relation": "uses"} in rel
+
+
+async def test_new_finding_in_related_file_is_kept_unrelated_dropped(repo: dict[str, Any]) -> None:
+    """S3: 관련 파일에 보고한 발견은 유지, 관련 없는 파일은 버린다. 모델이 related_paths 를 채워도 무시한다."""
+    nf = {
+        "category": "SQL_INJECTION",
+        "title": "t",
+        "severity": "HIGH",
+        "line_start": 5,
+        "snippet": "x",
+        "reasoning": "r",
+    }
+    script = [
+        read_step(ORDER_CTRL),
+        {
+            "why": "",
+            "action": None,
+            "final": {
+                "verdicts": [],
+                "new_findings": [{**nf, "file_path": ORDER_REPO}, {**nf, "file_path": PAY_CFG}],
+                "related_paths": [PAY_CFG],  # 모델이 끼워 넣은 값 — 시스템이 덮어쓴다
+            },
+        },
+    ]
+    out, deps = await run(repo, script, state(repo, risky=[ORDER_CTRL]))
+    found = [f["evidence"][0]["file_path"] for f in out["investigated"] if f["rule_id"] == "LLM-REACT"]
+    assert found == [ORDER_REPO]

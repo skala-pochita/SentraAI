@@ -1,4 +1,7 @@
-# 모델별 1M 토큰당 USD. 팀이 직접 기입한다 (명세 17.3). 0이면 비용 미집계.
+# 모델별 1M 토큰당 USD (명세 17.3). 0이면 비용 미집계.
+# 2026-11-06 기입 — 출처: OpenAI 모델 페이지(developers.openai.com/api/docs/models/gpt-5.4-nano)·GPT-5.4 mini/nano 공지.
+# 캐시 입력 할인(nano $0.02)은 아직 반영하지 않는다 (usage_metadata 의 cached 토큰을 따로 받지 않음).
 models:
-  gpt-5.4-nano: {input: 0.0, output: 0.0}
-  text-embedding-3-small: {input: 0.0, output: 0.0}
+  gpt-5.4-nano: {input: 0.20, output: 1.25}
+  gpt-5.4-mini: {input: 0.75, output: 4.50}
+  text-embedding-3-small: {input: 0.02, output: 0.0}

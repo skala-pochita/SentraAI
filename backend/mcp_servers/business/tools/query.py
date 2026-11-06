@@ -82,6 +82,54 @@ async def list_repo_files(target_id: str, glob: str | None = None, ctx: Context 
 
 
 @mcp_tool(mcp)
+async def rank_risky_files(
+    target_id: str, top_k: int = 8, name_keywords: list[str] | None = None, ctx: Context | None = None
+) -> Any:
+    """내용 신호(진입점·입력·위험 싱크·보안 설정·비밀 흔적·난독화)로 위험 파일을 고른다 (언어 중립).
+
+    입력: target_id, top_k (기본 8, ≤50), name_keywords (선택, 동점일 때 작은 보너스)
+    출력: [{path, score, signals}] 점수 내림차순. 테스트 경로·비코드 파일 제외.
+    오류: NOT_FOUND, VALIDATION. 부작용: 없음 (파일 내용은 돌려주지 않는다).
+    """
+    from core.risk_signals import rank_files
+
+    if not 1 <= top_k <= 50:
+        raise AppError(ErrorCode.VALIDATION, "top_k must be 1..50")
+    t = await get_target(target_id, "repo")
+
+    def _scan() -> list[dict[str, Any]]:
+        pairs = ((rel, read_text(p) or "") for rel, p in iter_repo_files(t.root))
+        return [
+            {"path": r.path, "score": r.score, "signals": r.signals}
+            for r in rank_files(pairs, top_k, name_keywords or [])
+        ]
+
+    return await asyncio.to_thread(_scan)
+
+
+@mcp_tool(mcp)
+async def related_files(target_id: str, path: str, limit: int = 5, ctx: Context | None = None) -> Any:
+    """이 파일과 import·타입 참조로 이어진 파일 (파일을 넘나드는 입력→싱크 흐름 추적용, S3).
+
+    입력: target_id, path, limit (기본 5, ≤20)
+    출력: [{path, relation: uses|used_by}] — uses(이 파일이 쓰는 파일) 먼저. 정적 근사이므로 판정 근거가 아니라 읽을 후보.
+    오류: NOT_FOUND, VALIDATION(경로 탈출). 부작용: 없음.
+    """
+    from core.code_graph import build_graph
+
+    if not 1 <= limit <= 20:
+        raise AppError(ErrorCode.VALIDATION, "limit must be 1..20")
+    t = await get_target(target_id, "repo")
+    safe_path(t.root, path)
+
+    def _build() -> list[dict[str, str]]:
+        files = {rel: read_text(p) or "" for rel, p in iter_repo_files(t.root) if rel.endswith((".java", ".kt", ".py"))}
+        return build_graph(files).related(path, limit)
+
+    return await asyncio.to_thread(_build)
+
+
+@mcp_tool(mcp)
 async def read_repo_file(
     target_id: str, path: str, start_line: int | None = None, end_line: int | None = None, ctx: Context | None = None
 ) -> Any:

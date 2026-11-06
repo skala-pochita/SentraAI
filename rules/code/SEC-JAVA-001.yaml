@@ -1,0 +1,13 @@
+id: SEC-JAVA-001
+name: XML parser without XXE protection
+category: XXE
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java", "**/*.kt"]
+detector: regex
+patterns:
+  - '(?:DocumentBuilderFactory|SAXParserFactory|XMLInputFactory|TransformerFactory|SchemaFactory)\s*\.\s*new(?:Instance|Factory|DefaultFactory)\('
+forbid_also: 'disallow-doctype-decl|FEATURE_SECURE_PROCESSING|SUPPORT_DTD|ACCESS_EXTERNAL_DTD|IS_SUPPORTING_EXTERNAL_ENTITIES|external-general-entities'
+needs_llm_review: true
+references: ["OWASP-A05:2021", "CWE-611"]
+fix_hint: "setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", true) 또는 XMLConstants.ACCESS_EXTERNAL_DTD=\"\""

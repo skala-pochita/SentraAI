@@ -111,6 +111,36 @@ async def run_static_scan(
 
 
 @mcp_tool(mcp)
+async def run_external_scan(target_id: str, ctx: Context | None = None) -> Any:
+    """외부 SAST·SCA(Bandit·Semgrep·의존성 취약점)를 실행해 우리 카테고리로 매핑한 결과를 돌려준다 (E1~E3).
+
+    설치된 도구만 실행하고(없으면 NOT_INSTALLED), 실패·타임아웃은 상태로만 알린다. 결과는 커밋 기준 캐시.
+    입력: target_id
+    출력: {commit_sha, cached, status: {scanner: COMPLETED|NOT_INSTALLED|DISABLED|ERROR|TIMEOUT|SKIPPED_NO_PYTHON},
+           detail, hits: [{rule_id, category, path, line, snippet_masked, severity, references, extra}]}
+    오류: NOT_FOUND, VALIDATION. 부작용: 없음 (Redis 캐시만, OSV 는 SCA_OSV_ONLINE=true 일 때만 외부 조회).
+    """
+    from core.external_scanners import run_external
+
+    t = await get_target(target_id, "repo")
+    sha = await commit_sha(t.root)
+    enabled = sorted(get_settings().external_scanners)
+    key = f"cache:extscan:{target_id}:{sha}:{','.join(enabled)}:{int(get_settings().sca_osv_online)}"
+    if sha != "nogit" and (cached := await cache_get(key)) is not None:
+        return {**cached, "cached": True}
+    res = await run_external(t.root, enabled)
+    out = {
+        "commit_sha": sha,
+        "status": res.status,
+        "detail": res.detail,
+        "hits": [h.model_dump() for h in res.hits],
+    }
+    if sha != "nogit" and not any(v in ("ERROR", "TIMEOUT") for v in res.status.values()):
+        await cache_set(key, out, SCAN_CACHE_TTL_S)
+    return {**out, "cached": False}
+
+
+@mcp_tool(mcp)
 async def run_agent_rule_check(target_id: str, ctx: Context | None = None) -> Any:
     """에이전트 매니페스트·시스템 프롬프트에 Agent 규칙(rules/agent/*.yaml, AGT-*)을 실행한다.
 
@@ -150,6 +180,12 @@ async def run_agent_rule_check(target_id: str, ctx: Context | None = None) -> An
         "code_secret_names": sorted(names),
         "tool_code_evidence": code_evidence,
     }
+
+
+def attempt_concurrency() -> int:
+    from core.settings import load_config
+
+    return max(1, int(load_config("budget").get("probe", {}).get("attempt_concurrency", 3)))
 
 
 def _check_allowlist(base_url: str) -> str:
@@ -314,15 +350,19 @@ async def run_injection_probe(
     ps = await _probe_set_for(t, target_id, audit_id or "")
     probe = _resolve_probe(ps, probe_id, payload, channel, kb_docs)
     url = "" if t.config.get("source") == "upload" else _check_allowlist(t.ref)
-    results: list[dict[str, Any]] = []
-    rows: list[ProbeRun] = []
-    async with httpx.AsyncClient() as client:
-        for i in range(1, attempts + 1):
+    # 시도마다 session_id 가 달라 서로 독립 → 동시에 실행한다 (B5). 결과는 시도 번호 순서
+    sem = asyncio.Semaphore(attempt_concurrency())
+
+    async def attempt(i: int) -> tuple[dict[str, Any], ProbeRun]:
+        async with sem:
             started = time.monotonic()
             data = await _converse(client, t, url, audit_id or "", probe)
-            result, row = _record(t, audit_id, probe, ps, i, data, started)
-            results.append(result)
-            rows.append(row)
+            return _record(t, audit_id, probe, ps, i, data, started)
+
+    async with httpx.AsyncClient() as client:
+        pairs = await asyncio.gather(*(attempt(i) for i in range(1, attempts + 1)))
+    results = [r for r, _ in pairs]
+    rows = [row for _, row in pairs]
     if t.id not in _overrides:
         await _persist(rows)
     return {
