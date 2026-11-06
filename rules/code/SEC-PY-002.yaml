@@ -1,0 +1,15 @@
+id: SEC-PY-002
+name: Python insecure deserialization
+category: INSECURE_DESERIALIZATION
+default_severity: HIGH
+target: code
+file_globs: ["**/*.py"]
+detector: ast_python
+params:
+  calls:
+    - {names: [pickle.load, pickle.loads, cPickle.load, cPickle.loads, dill.load, dill.loads, marshal.load, marshal.loads, jsonpickle.decode, shelve.open, pandas.read_pickle, joblib.load], nonconst_arg: 0}
+    - {names: [yaml.unsafe_load, yaml.full_load], nonconst_arg: 0}
+    - {names: [yaml.load, yaml.load_all], missing_safe_loader: true}
+needs_llm_review: true
+references: ["OWASP-A08:2021", "CWE-502"]
+fix_hint: "json 등 데이터 전용 형식, YAML 은 yaml.safe_load"

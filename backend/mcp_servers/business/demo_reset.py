@@ -38,6 +38,13 @@ def reset(targets_dir: Path, workspace: Path, variant: str) -> None:
         shutil.rmtree(repo_dst)
     shutil.copytree(targets_dir / "vuln-spring-app", repo_dst)
     _init_repo(repo_dst, "initial import (demo)")
+    py_src = targets_dir / "vuln-python-app"  # Python 감사 평가 샘플 (EV1, 2026-11-06)
+    if py_src.is_dir():
+        py_dst = workspace / "vuln-python-app"
+        if py_dst.exists():
+            shutil.rmtree(py_dst)
+        shutil.copytree(py_src, py_dst)
+        _init_repo(py_dst, "initial import (python demo)")
 
     cfg_dst = workspace / "agent-config"
     if cfg_dst.exists():

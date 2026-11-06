@@ -1,0 +1,31 @@
+# 기대 탐지 (rule_id, file, line). 여기 없는 탐지는 오탐, 여기 있는데 안 나오면 미탐으로 테스트 실패.
+# 음성 케이스(탐지되면 안 됨): SafeChain.java 전체, SecuredAdminApi.java(클래스 레벨 인가), SafeXml.java(XXE 방어),
+#   OrderApi.mine(소유자 확인), MemberDao.safe/safeNative(바인딩·상수), Legacy.safeRun(인자 배열), WebAuth 11행(actuator/health·info),
+#   WebAuth 9행(frameOptions disable 은 CSRF 아님), WebAuth 22행(주석), MemberMapper #{id}, application.properties ${DB_USER}
+expected:
+  - {rule_id: SEC-SPRING-009, file: src/main/java/demo/AdminApi.java, line: 6}  # @GetMapping("/users")
+  - {rule_id: SEC-JAVA-001, file: src/main/java/demo/Legacy.java, line: 5}  # DocumentBuilderFactory f = DocumentBuilderFactory.newInstanc
+  - {rule_id: SEC-JAVA-002, file: src/main/java/demo/Legacy.java, line: 10}  # return new ObjectInputStream(in).readObject();
+  - {rule_id: SEC-JAVA-003, file: src/main/java/demo/Legacy.java, line: 14}  # Runtime.getRuntime().exec("ping -c 1 " + host);
+  - {rule_id: SEC-JAVA-003, file: src/main/java/demo/Legacy.java, line: 15}  # new ProcessBuilder("sh", "-c", cmd).start();
+  - {rule_id: SEC-SQLI-002, file: src/main/java/demo/MemberDao.java, line: 5}  # String sql = "select * from member where name = '" + name + 
+  - {rule_id: SEC-SQLI-002, file: src/main/java/demo/MemberDao.java, line: 10}  # String q = String.format("select * from member where status 
+  - {rule_id: SEC-SQLI-002, file: src/main/java/demo/MemberDao.java, line: 16}  # sb.append(" order by ").append(col);
+  - {rule_id: SEC-SQLI-003, file: src/main/java/demo/MemberDao.java, line: 21}  # return em.createNativeQuery(nativeSql).getResultList();
+  - {rule_id: SEC-SPRING-008, file: src/main/java/demo/OrderApi.java, line: 5}  # @CrossOrigin(origins = "*")
+  - {rule_id: SEC-SPRING-010, file: src/main/java/demo/OrderApi.java, line: 7}  # @GetMapping("/{orderId}")
+  - {rule_id: SEC-SPRING-002, file: src/main/java/demo/WebAuth.java, line: 7}  # .csrf(c -> c
+  - {rule_id: SEC-SPRING-007, file: src/main/java/demo/WebAuth.java, line: 12}  # .requestMatchers("/admin/**",
+  - {rule_id: SEC-SPRING-007, file: src/main/java/demo/WebAuth.java, line: 14}  # .requestMatchers("/actuator/**").permitAll()
+  - {rule_id: SEC-SPRING-001, file: src/main/java/demo/WebAuth.java, line: 15}  # .anyRequest()
+  - {rule_id: SEC-SPRING-002, file: src/main/java/demo/WebAuth.java, line: 21}  # http.csrf(AbstractHttpConfigurer::disable);
+  - {rule_id: SEC-SPRING-002, file: src/main/kotlin/demo/KtSecurity.kt, line: 6}  # csrf { disable() }
+  - {rule_id: SEC-SQLI-003, file: src/main/kotlin/demo/UserRepo.kt, line: 4}  # fun byEmail(email: String) = jdbc.queryForList("select * fro
+  - {rule_id: SEC-LOG-001, file: src/main/kotlin/demo/UserRepo.kt, line: 6}  # fun log(token: Stri**** = log.info("issued token=$token")
+  - {rule_id: SEC-SPRING-004, file: src/main/kotlin/demo/UserRepo.kt, line: 8}  # fun encoder() = NoOpPasswordEncoder.getInstance()
+  - {rule_id: SEC-SPRING-011, file: src/main/resources/application-prod.yml, line: 3}  # show-sql: true
+  - {rule_id: SEC-SECRET-003, file: src/main/resources/application.properties, line: 2}  # spring.datasource.password=Fake****
+  - {rule_id: SEC-SPRING-005, file: src/main/resources/application.properties, line: 3}  # spring.h2.console.enabled=true
+  - {rule_id: SEC-SPRING-006, file: src/main/resources/application.properties, line: 4}  # management.endpoints.web.exposure.include=*
+  - {rule_id: SEC-INFO-001, file: src/main/resources/application.properties, line: 5}  # server.error.include-stacktrace=always
+  - {rule_id: SEC-SQLI-003, file: src/main/resources/mapper/MemberMapper.xml, line: 3}  # select * from member where name like '%${keyword}%'

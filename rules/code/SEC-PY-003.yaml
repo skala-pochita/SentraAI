@@ -1,0 +1,23 @@
+id: SEC-PY-003
+name: Python SQL built with f-string / % / format / concatenation
+category: SQL_INJECTION
+default_severity: CRITICAL
+target: code
+file_globs: ["**/*.py"]
+detector: regex
+multiline: true
+ignore_case: true
+# 큰따옴표 문자열 안의 작은따옴표('%{kw}%')를 허용하도록 따옴표 종류별로 나눈다
+patterns:
+  - '\.execute(?:many)?\(\s*f"[^"]*\b(?:select|insert|update|delete|where)\b'
+  - "\\.execute(?:many)?\\(\\s*f'[^']*\\b(?:select|insert|update|delete|where)\\b"
+  - '\.execute(?:many)?\(\s*"[^"]*\b(?:select|insert|update|delete)\b[^"]*"\s*(?:%\s*[\w(]|\.format\(|\+\s*\w)'
+  - "\\.execute(?:many)?\\(\\s*'[^']*\\b(?:select|insert|update|delete)\\b[^']*'\\s*(?:%\\s*[\\w(]|\\.format\\(|\\+\\s*\\w)"
+  - '\b\w*(?:sql|query|stmt)\w*\s*=\s*f"[^"]*\b(?:select|insert|update|delete)\b[^"]*\{'
+  - "\\b\\w*(?:sql|query|stmt)\\w*\\s*=\\s*f'[^']*\\b(?:select|insert|update|delete)\\b[^']*\\{"
+  - '\b\w*(?:sql|query|stmt)\w*\s*=\s*"[^"]*\b(?:select|insert|update|delete)\b[^"]*"\s*(?:%\s*[\w(]|\.format\(|\+\s*[a-z_])'
+  - '\btext\(\s*f["'']'                     # SQLAlchemy text(f"...")
+  - '\.raw\(\s*f["'']|\.extra\(\s*where='   # Django raw/extra
+needs_llm_review: true
+references: ["OWASP-A03:2021", "CWE-89"]
+fix_hint: "cursor.execute(sql, params) 바인딩, SQLAlchemy text() 는 :name 바인드 파라미터"

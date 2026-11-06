@@ -23,7 +23,7 @@ def _matches(hits: list[RuleHit], item: dict[str, Any], tol: int = 3) -> list[Ru
 
 
 def test_rules_load() -> None:
-    assert len(load_rules("code")) == 17
+    assert len(load_rules("code")) == 37  # 17 + Spring·Java 10 + Python 10 (2026-11-06)
     assert len(load_rules("agent")) == 7
 
 

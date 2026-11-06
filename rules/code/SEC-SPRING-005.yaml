@@ -3,7 +3,7 @@ name: H2 console enabled
 category: SECCONFIG_H2_CONSOLE
 default_severity: MEDIUM
 target: code
-file_globs: ["**/application*.yml", "**/application*.yaml"]
+file_globs: ["**/application*.yml", "**/application*.yaml", "**/application*.properties"]
 detector: yaml_path
 paths: ["spring.h2.console.enabled"]
 equals: true

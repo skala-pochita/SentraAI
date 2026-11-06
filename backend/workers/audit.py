@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -20,13 +22,13 @@ from core.db.models import Audit, AuditTarget
 from core.db.session import session_scope
 from core.errors import AppError, ErrorCode, RetryableNodeError
 from core.graph.build import build_graph
-from core.graph.deps import Deps
+from core.graph.deps import Deps, get_deps
 from core.kafka.consumer import Message
 from core.kafka.envelope import Envelope
 from core.kafka.producer import publish
-from core.mcp_client import Gateway, http_gateway
-from core.redis.locks import release_target_lock
-from harness.events import emit
+from core.mcp_client import Gateway, audit_gateway, close_gateway
+from core.redis.locks import keep_locks_alive, release_target_lock
+from harness.events import buffered_events, emit
 from harness.observability import langsmith_config, set_trace_context, trace_id_for
 
 log = logging.getLogger("worker.audit")
@@ -54,9 +56,19 @@ async def _set_audit(audit_id: str, **fields: Any) -> Audit | None:
         return a
 
 
+async def _target_ids(audit_id: str) -> list[str]:
+    from sqlalchemy import select
+
+    async with session_scope() as db:
+        rows = (
+            await db.execute(select(AuditTarget.target_id).where(AuditTarget.audit_id == uuid.UUID(audit_id)))
+        ).scalars()
+        return [str(t) for t in rows]
+
+
 class AuditRunner:
     def __init__(
-        self, checkpointer: BaseCheckpointSaver, gateway_factory: Any = http_gateway, deps_factory: Any = None
+        self, checkpointer: BaseCheckpointSaver, gateway_factory: Any = audit_gateway, deps_factory: Any = None
     ) -> None:
         self.graph: CompiledStateGraph = build_graph(checkpointer)  # type: ignore[type-arg]
         self.gateway_factory = gateway_factory
@@ -105,6 +117,11 @@ class AuditRunner:
             log.warning("ignored topic %s (read-only audit has no resume)", msg.topic)
 
     async def run(self, audit_id: str) -> str:
+        # 감사 중 이벤트는 큐에 쌓고 백그라운드에서 묶어서 기록한다 (노드가 Redis·DB 왕복을 기다리지 않음, B3)
+        async with buffered_events():
+            return await self._run(audit_id)
+
+    async def _run(self, audit_id: str) -> str:
         async with session_scope() as db:
             audit = await db.get(Audit, uuid.UUID(audit_id))
         if audit is None:
@@ -120,8 +137,14 @@ class AuditRunner:
             inp = await self._initial(audit)
         elif snap.next:
             log.info("audit %s resuming from checkpoint (next=%s)", audit_id, snap.next)
+            # 재개 시 예산을 0 부터 다시 세지 않게 이미 쓴 사용량을 복원한다
+            deps = get_deps(config)
+            deps.budget.restore(snap.values.get("token_usage", []))
+            log.info("audit %s budget restored %s", audit_id, deps.budget.snapshot())
         await _set_audit(audit_id, status="RUNNING", started_at=audit.started_at or datetime.now(UTC))
         await emit(audit_id, "audit.running", {"resumed": inp is None})
+        # 긴 감사(샌드박스 준비·ReAct·probe) 중 대상 락이 만료되지 않게 주기적으로 연장한다
+        heartbeat = asyncio.create_task(keep_locks_alive(await _target_ids(audit_id), audit_id))
         try:
             if inp is not None or snap.next:
                 await self.graph.ainvoke(inp, config)
@@ -131,6 +154,11 @@ class AuditRunner:
         except AppError as e:
             await self._fail(audit_id, e)
             raise
+        finally:
+            heartbeat.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await heartbeat
+            await close_gateway(get_deps(config).gateway)
         return await self._complete(audit_id, (await self.graph.aget_state(config)).values)
 
     async def _complete(self, audit_id: str, v: dict[str, Any]) -> str:

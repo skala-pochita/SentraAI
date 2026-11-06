@@ -1,0 +1,19 @@
+id: SEC-SQLI-002
+name: SQL built in a variable / String.format / StringBuilder
+category: SQL_INJECTION
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java", "**/*.kt"]
+detector: regex
+multiline: true
+ignore_case: true
+patterns:
+  # String sql = "select ... where id=" + id;  (변수로 만든 뒤 다른 줄에서 실행)
+  - '(?:String|val|var)\s+\w*(?:sql|query|stmt|jpql|hql)\w*\s*(?::\s*String\s*)?=\s*"[^";]*\b(?:select|insert|update|delete)\b[^";]*"\s*\+\s*[a-z_]'
+  # String.format("select ... %s", x)
+  - 'String\.format\(\s*"[^"]*\b(?:select|insert|update|delete)\b[^"]*%s'
+  # sb.append("... where name = '").append(name)
+  - '\.append\(\s*"[^"]*(?:\bwhere\b|\band\b|\bor\b|\border by\b)[^"]*"\s*\)\s*\.\s*append\(\s*[a-z_]'
+needs_llm_review: true
+references: ["OWASP-A03:2021", "CWE-89"]
+fix_hint: "쿼리는 상수 문자열로 두고 ? 바인딩·:named 파라미터·QueryDSL/Criteria 로 값 전달"

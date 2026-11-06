@@ -1,0 +1,17 @@
+id: SEC-PY-007
+name: Python template XSS (autoescape off / unsafe markup)
+category: XSS
+default_severity: MEDIUM
+target: code
+file_globs: ["**/*.py", "**/*.html", "**/*.jinja", "**/*.jinja2", "**/*.j2"]
+detector: regex
+patterns:
+  - '\bautoescape\s*=\s*False'
+  - '\b(?:Markup|mark_safe|SafeString)\(\s*(?!["''])'
+  - '\brender_template_string\(\s*(?!["''])'
+  - '\brender_template_string\([^)]*["'']\s*\+'          # "<h1>" + 입력
+  - '\{\{[^}]*\|\s*safe\s*\}\}'
+  - '\{%\s*autoescape\s+(?:false|off)\s*%\}'
+needs_llm_review: true
+references: ["OWASP-A03:2021", "CWE-79"]
+fix_hint: "자동 이스케이프 유지, 신뢰할 수 없는 값은 |safe·Markup 금지, 필요하면 bleach 로 정화"

@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     agent_variant: Literal["vuln", "hardened"] = "vuln"
     fault_injection: str = ""
     probe_attempts: int = 3
+    audit_worker_concurrency: int = 3  # audit-worker 1개가 동시에 처리하는 감사 수 (파티션 수 이하)
+    # 외부 SAST·SCA (E1~E3). 설치된 도구만 실행. OSV 온라인 조회는 패키지 정보가 외부로 나가므로 기본 꺼짐
+    external_scanners: list[str] = ["bandit", "semgrep", "sca"]
+    semgrep_config: str = "p/default"
+    sca_osv_online: bool = False
     workspace_dir: Path = Field(default_factory=lambda: _default_path("WORKSPACE_DIR", "workspace"))
 
     # Paths

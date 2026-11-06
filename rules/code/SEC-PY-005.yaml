@@ -1,0 +1,16 @@
+id: SEC-PY-005
+name: Python path traversal candidate
+category: PATH_TRAVERSAL
+default_severity: HIGH
+target: code
+file_globs: ["**/*.py"]
+detector: regex
+patterns:
+  - '\bopen\(\s*(?:f["''][^"'']*\{|[\w.]+\s*\+)'                                 # open(f"{base}/{name}") / open(base + name)
+  - 'os\.path\.join\([^)]*\brequest\.(?:args|form|values|GET|POST|query_params|path_params)'
+  - '\bsend_file\(\s*(?!["''])'
+  - '\bsend_from_directory\([^,]+,\s*request\.'
+  - '\bFileResponse\(\s*(?:f["'']|[\w.]+\s*\+)'
+needs_llm_review: true
+references: ["OWASP-A01:2021", "CWE-22"]
+fix_hint: "os.path.realpath 후 기준 디렉터리 하위인지 검사, werkzeug.utils.secure_filename"

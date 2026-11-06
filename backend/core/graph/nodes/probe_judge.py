@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from typing import Any
 
@@ -82,29 +83,39 @@ async def _judge_undetermined(
     usage: list[Any],
     errors: list[Any],
     state: dict[str, Any],
+    sem: asyncio.Semaphore | None = None,
 ) -> list[str]:
-    """판정 불가 시도만 LLM 판정. 실패한 시도의 probe id 를 돌려준다 (다음 라운드 재시도 대상)."""
+    """판정 불가 시도만 LLM 판정. 실패한 시도의 probe id 를 돌려준다 (다음 라운드 재시도 대상).
+
+    LLM 판정은 동시에 실행하고(B4), 결과 반영·저장은 시도 순서대로 한다 (집계가 결정적)."""
     model, name = llm
-    failed: list[str] = []
-    for t in r.get("transcripts", []):
-        if t["verdict"] != "UNDETERMINED":
-            continue
+    sem = sem or asyncio.Semaphore(1)
+    pending = [t for t in r.get("transcripts", []) if t["verdict"] == "UNDETERMINED"]
+
+    async def judge(t: dict[str, Any]) -> LlmVerdict | AppError:
         transcript = str({"reply": t["reply_masked"], "tool_calls": t["tool_calls"]})
-        try:
-            v = await structured_call(
-                model,
-                get_prompt("probe_judge"),
-                LlmVerdict,
-                node="probe_judge",
-                model_name=name,
-                budget=deps.budget,
-                usage=usage,
-                untrusted_rule=UNTRUSTED_RULE,
-                goal=base.success.model_dump(),
-                transcript=wrap_untrusted(transcript, "target-agent:reply"),
-            )
-        except AppError as e:
-            errors.append(node_error("probe_judge", e))
+        async with sem:
+            try:
+                return await structured_call(
+                    model,
+                    get_prompt("probe_judge"),
+                    LlmVerdict,
+                    node="probe_judge",
+                    model_name=name,
+                    budget=deps.budget,
+                    usage=usage,
+                    untrusted_rule=UNTRUSTED_RULE,
+                    goal=base.success.model_dump(),
+                    transcript=wrap_untrusted(transcript, "target-agent:reply"),
+                )
+            except AppError as e:
+                return e
+
+    outcomes = await asyncio.gather(*(judge(t) for t in pending))
+    failed: list[str] = []
+    for t, v in zip(pending, outcomes, strict=True):
+        if isinstance(v, AppError):
+            errors.append(node_error("probe_judge", v))
             failed.append(base.id)
             continue
         verdict = "SUCCESS" if v.attack_succeeded else "BLOCKED"
@@ -153,13 +164,21 @@ async def probe_judge(state: dict[str, Any], config: RunnableConfig) -> dict[str
     results = [dict(r) for r in state.get("probe_results", [])]
     llm = deps.llm("probe_judge", state.get("eval_config"))
     still_uncertain: list[str] = []
+    sem = asyncio.Semaphore(max(1, int(limits().get("probe", {}).get("judge_concurrency", 4))))
+    jobs: list[tuple[dict[str, Any], Probe]] = []
     for r in (r for r in results if r.get("uncertain")):
         base = ps.get(r.get("base_probe_id") or r["probe_id"])
         if llm is None or base is None:
             still_uncertain.append(r.get("base_probe_id") or r["probe_id"])
             continue
-        still_uncertain += await _judge_undetermined(r, base, llm, deps, usage, errors, state)
-        r["asr"] = round(r["successes"] / r["attempts"], 3) if r["attempts"] else 0.0
+        jobs.append((r, base))
+    if llm is not None:  # probe 간에도 동시에 판정한다 (전체 동시 실행 수는 sem 으로 제한)
+        failed_lists = await asyncio.gather(
+            *(_judge_undetermined(r, base, llm, deps, usage, errors, state, sem) for r, base in jobs)
+        )
+        for (r, _), failed in zip(jobs, failed_lists, strict=True):
+            still_uncertain += failed
+            r["asr"] = round(r["successes"] / r["attempts"], 3) if r["attempts"] else 0.0
 
     for r in results:
         r["tools_hit"] = sorted(

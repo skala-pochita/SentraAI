@@ -1,0 +1,45 @@
+# 오프라인 의존성 취약점 권고 (E3). 대표적인 고위험 사례만 담은 작은 로컬 DB다 — 전체·최신 데이터가 아니다.
+# 전체 조회가 필요하면 SCA_OSV_ONLINE=true (OSV querybatch, 패키지 이름·버전만 전송). 범위는 OSV 형식: introduced ≤ v < fixed
+version: 2026-11-06
+advisories:
+  # ---- Maven ----
+  - {id: CVE-2021-44228, ecosystem: Maven, package: "org.apache.logging.log4j:log4j-core", severity: CRITICAL,
+     ranges: [{introduced: "2.0", fixed: "2.17.1"}], refs: [CWE-502, CVE-2021-45046, CVE-2021-44832],
+     summary: "Log4Shell — JNDI lookup 원격 코드 실행 (후속 CVE 포함 2.17.1 이상)"}
+  - {id: CVE-2022-22965, ecosystem: Maven, package: "org.springframework:spring-beans", severity: CRITICAL,
+     ranges: [{fixed: "5.2.20"}, {introduced: "5.3.0", fixed: "5.3.18"}], refs: [CWE-94],
+     summary: "Spring4Shell — 데이터 바인딩을 통한 원격 코드 실행"}
+  - {id: CVE-2022-22965, ecosystem: Maven, package: "org.springframework:spring-webmvc", severity: CRITICAL,
+     ranges: [{fixed: "5.2.20"}, {introduced: "5.3.0", fixed: "5.3.18"}], refs: [CWE-94],
+     summary: "Spring4Shell — 데이터 바인딩을 통한 원격 코드 실행"}
+  - {id: CVE-2022-22965, ecosystem: Maven, package: "org.springframework.boot:spring-boot-starter-web", severity: CRITICAL,
+     ranges: [{fixed: "2.5.12"}, {introduced: "2.6.0", fixed: "2.6.6"}], refs: [CWE-94],
+     summary: "Spring4Shell — spring-beans 취약 버전을 포함하는 Boot 스타터"}
+  - {id: CVE-2022-42889, ecosystem: Maven, package: "org.apache.commons:commons-text", severity: CRITICAL,
+     ranges: [{introduced: "1.5", fixed: "1.10.0"}], refs: [CWE-94], summary: "Text4Shell — 문자열 보간 원격 코드 실행"}
+  - {id: CVE-2015-7501, ecosystem: Maven, package: "commons-collections:commons-collections", severity: CRITICAL,
+     ranges: [{introduced: "3.0", fixed: "3.2.2"}], refs: [CWE-502], summary: "InvokerTransformer 역직렬화 가젯"}
+  - {id: CVE-2022-1471, ecosystem: Maven, package: "org.yaml:snakeyaml", severity: HIGH,
+     ranges: [{fixed: "2.0"}], refs: [CWE-502], summary: "Constructor 역직렬화 원격 코드 실행"}
+  - {id: CVE-2020-36518, ecosystem: Maven, package: "com.fasterxml.jackson.core:jackson-databind", severity: HIGH,
+     ranges: [{fixed: "2.12.6.1"}, {introduced: "2.13.0", fixed: "2.13.2.1"}], refs: [CWE-787],
+     summary: "깊게 중첩된 JSON 으로 스택 오버플로(DoS)"}
+  # ---- PyPI ----
+  - {id: CVE-2020-14343, ecosystem: PyPI, package: pyyaml, severity: CRITICAL,
+     ranges: [{fixed: "5.4"}], refs: [CWE-20], summary: "full_load/FullLoader 임의 코드 실행"}
+  - {id: CVE-2021-35042, ecosystem: PyPI, package: django, severity: HIGH,
+     ranges: [{introduced: "3.1", fixed: "3.1.13"}, {introduced: "3.2", fixed: "3.2.5"}], refs: [CWE-89],
+     summary: "QuerySet.order_by 의 SQL 주입"}
+  - {id: CVE-2023-30861, ecosystem: PyPI, package: flask, severity: HIGH,
+     ranges: [{fixed: "2.2.5"}, {introduced: "2.3.0", fixed: "2.3.2"}], refs: [CWE-539],
+     summary: "프록시 캐시로 세션 쿠키가 다른 사용자에게 노출"}
+  - {id: CVE-2024-34069, ecosystem: PyPI, package: werkzeug, severity: HIGH,
+     ranges: [{fixed: "3.0.3"}], refs: [CWE-352], summary: "디버거 원격 코드 실행"}
+  - {id: CVE-2024-22195, ecosystem: PyPI, package: jinja2, severity: MEDIUM,
+     ranges: [{fixed: "3.1.3"}], refs: [CWE-79], summary: "xmlattr 필터 XSS"}
+  - {id: CVE-2023-32681, ecosystem: PyPI, package: requests, severity: MEDIUM,
+     ranges: [{introduced: "2.3.0", fixed: "2.31.0"}], refs: [CWE-200], summary: "리다이렉트 시 Proxy-Authorization 헤더 유출"}
+  - {id: CVE-2023-45803, ecosystem: PyPI, package: urllib3, severity: MEDIUM,
+     ranges: [{fixed: "1.26.18"}, {introduced: "2.0.0", fixed: "2.0.7"}], refs: [CWE-200], summary: "리다이렉트 시 요청 본문 유지"}
+  - {id: CVE-2023-4863, ecosystem: PyPI, package: pillow, severity: HIGH,
+     ranges: [{fixed: "10.0.1"}], refs: [CWE-787], summary: "libwebp 힙 버퍼 오버플로"}

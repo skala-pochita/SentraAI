@@ -1,0 +1,14 @@
+id: SEC-PY-010
+name: lxml parser with external entities
+category: XXE
+default_severity: HIGH
+target: code
+file_globs: ["**/*.py"]
+detector: regex
+require_also: 'from lxml|import lxml'
+forbid_also: 'defusedxml|resolve_entities\s*=\s*False'
+patterns:
+  - '\betree\.(?:parse|fromstring|XML|XMLParser)\('
+needs_llm_review: true
+references: ["OWASP-A05:2021", "CWE-611"]
+fix_hint: "defusedxml 사용 또는 XMLParser(resolve_entities=False, no_network=True)"

@@ -159,3 +159,12 @@ AI RMF 보도자료는 본문으로 취급하지 않고 규제 검색 대상에�
 - API 교체 후 nginx의 Docker DNS 재조회로 복구한다. 개발 포트는 loopback에 바인딩한다.
 - 기본 265개, 분리 E2E 3개, CLI 9개와 실제 Docker MOCK/live 업로드 전체 흐름을 검증했다. 이전 실원문 QA의 테스트 대역 한계를 이번 실행으로 보완한다.
 - PR/main CI를 추가하되 유료 LLM QA와 태그 기반 Release는 별개로 유지한다. main merge를 임의 운영 서버 배포로 간주하지 않는다. 상세 결과: [최종 QA](LAW_EVIDENCE_RELEASE_QA.md).
+
+## 2026-11-06 — 감사 파이프라인 개선 (`workHistory/Todo.md`, 기록 `workHistory/개선.md`)
+
+- **실행 구조**: 파일 단위 ReAct·probe 판정·probe 시도·Finding 저장을 동시에 실행한다(상한은 `config/budget.yaml`). 결과 반영 순서는 기존과 같다. 감사 실행은 MCP 세션을 재사용하고(`audit_gateway()`), 진행 이벤트는 감사 중에 큐에 쌓아 묶어서 기록한다(`buffered_events()`). audit-worker는 파티션별로 최대 `AUDIT_WORKER_CONCURRENCY`건을 동시에 처리하고, `max_poll_interval_ms`는 30분에서 5분으로 줄인다.
+- **안정성**: 대상 락은 감사 중 heartbeat로 연장한다. 재개할 때는 예산을 `token_usage`로 복원한다. 근거 검증은 파일 전체를 400줄씩 나눠 읽는다. ReAct LLM 호출은 남은 시간 안으로 자르고, 파일당 LLM 토큰 상한(`max_llm_tokens_per_file`)을 추가한다.
+- **카테고리 (명세 7.2와의 차이)**: ReAct 새 발견의 카테고리를 "규칙에 있는 카테고리"에서 "규칙 카테고리 ∪ `config/categories.yaml`"로 넓힌다. 규칙이 없는 유형(명령 주입·역직렬화·SSRF·XSS·디버그 모드 등)을 LLM이 발견해도 버리지 않기 위해서다. 자유 문자열은 여전히 거부한다(집계·채점 일관성).
+- **정답셋 (2026-11-06)**: 새 규칙의 양성·음성 검증은 데모 앱이 아니라 규칙 fixture(`datasets/rule_fixtures/`)로 한다. 데모 앱(`vuln-spring-app`)에서 새 규칙이 찾은 것은 하나씩 확인했다. 원래 샘플에 있었지만 정답셋에서 빠져 있던 실제 취약점 2건(`/admin` 엔드포인트 인가 누락)을 C21·C22로 추가한다. 이 때문에 이전 A/B 실측(`reports/eval_*.md`)과 재현율 분모가 다르다(20→22). `/actuator/health`·`info` 공개는 정상 설정으로 보고 SEC-SPRING-007에서 제외한다.
+- **외부 도구 (2026-11-06)**: Bandit은 런타임 의존성으로 추가한다. Semgrep은 설치된 경우에만 실행한다(`--metrics=off`). 둘 다 결과를 우리 카테고리로 매핑되는 것만, MEDIUM 이상만 정적 후보(NEEDS_REVIEW)로 넣는다. SCA는 오프라인 로컬 권고 DB(`datasets/advisories/`, 대표 CVE 16건)로 항상 검사한다. OSV 온라인 조회는 감사 대상의 패키지 이름·버전을 외부로 보내므로 기본 꺼짐(`SCA_OSV_ONLINE`)으로 둔다.
+- **평가 도구 (2026-11-06)**: `harness/eval/code_target_eval.py`는 코드 감사 서브그래프만 in-process로 실행한다. Kafka·워커를 거치는 전체 A/B 러너(`make eval`)를 대체하지 않는다. 경량 채점기의 INFO 허용 함정·함정 이중 집계 규칙을 `scorer.py`와 맞춘다. 이전 보고서(`reports/eval_*.md`)의 정밀도는 수정 전 규칙으로 계산된 값이다.

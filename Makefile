@@ -6,7 +6,7 @@ CODE_CONFIGS ?= A_nano_single,B_nano_harness
 SENTRA_REGISTRY ?= ghcr.io/skala-pochita
 SENTRA_VERSION ?= $(shell node -p "require('./cli/package.json').version")
 
-.PHONY: cli-images cli-pack up down logs seed demo-reset test test-e2e lint eval eval-code fault-on fault-off env
+.PHONY: cli-images cli-pack up down logs seed demo-reset test test-e2e lint eval eval-code fault-on fault-off env eval-target bench
 
 env:
 	@test -f .env || cp .env.example .env
@@ -36,6 +36,18 @@ test-e2e:
 lint:
 	$(BACKEND) uv run ruff check . && uv run mypy core harness mcp_servers
 	cd frontend && pnpm run lint
+
+# 대상별 코드 감사 평가 (EV2). 로컬 postgres·redis 필요. 예: make eval-target TARGET=vuln-python-app TRUTH=code_python.yaml CONFIGS=S,SX,H REPEAT=3
+TARGET ?= vuln-python-app
+TRUTH ?= code_python.yaml
+CONFIGS ?= S,SX,H
+eval-target:
+	$(BACKEND) DATABASE_URL=$${EVAL_DATABASE_URL:-postgresql+asyncpg://auditor:auditor@localhost:5432/auditor_eval} REDIS_URL=$${EVAL_REDIS_URL:-redis://localhost:6379/0} \
+		uv run python -m harness.eval.code_target_eval --target $(TARGET) --truth $(TRUTH) --configs $(CONFIGS) --repeat $(REPEAT) --out ../reports/code_eval_$(TARGET).md
+
+# 속도 개선 벤치마크 (B1~B7)
+bench:
+	$(BACKEND) uv run python -m harness.eval.bench_speed --repeat 3 --out ../reports/bench_speed.md
 
 # 코드·Agent 감사 A/B/C 비교 실험 (명세 17장). 예: make eval CODE_CONFIGS=A_nano_single,B_nano_harness REPEAT=1
 eval:

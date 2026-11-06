@@ -1,0 +1,16 @@
+id: SEC-JAVA-002
+name: Java native deserialization of untrusted data
+category: INSECURE_DESERIALIZATION
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java", "**/*.kt"]
+detector: regex
+patterns:
+  - 'new\s+ObjectInputStream\('
+  - 'new\s+XMLDecoder\('
+  - '\.fromXML\('                                   # XStream (allowlist 없이)
+  - 'enableDefaultTyping\(|activateDefaultTyping\(' # Jackson 다형 역직렬화
+exclude_globs: ["**/src/test/**"]
+needs_llm_review: true
+references: ["OWASP-A08:2021", "CWE-502"]
+fix_hint: "JSON 등 데이터 전용 형식 사용. 불가하면 ObjectInputFilter 로 허용 클래스 제한"

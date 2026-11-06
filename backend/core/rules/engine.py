@@ -15,7 +15,8 @@ from harness.masking import mask_text
 
 SKIP_DIRS = {".git", "build", "target", "node_modules", ".gradle", ".idea", "out"}
 MAX_FILE_BYTES = 512 * 1024
-TEST_PATH = re.compile(r"(^|/)src/test/")
+# 테스트 코드 경로: Java(src/test) + Python(tests/, test_*.py, *_test.py, conftest.py). 테스트 값은 참고(INFO)로만
+TEST_PATH = re.compile(r"(^|/)src/test/|(^|/)tests?/|(^|/)test_[^/]*\.py$|_test\.py$|(^|/)conftest\.py$")
 
 
 @lru_cache(maxsize=256)

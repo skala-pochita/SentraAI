@@ -12,6 +12,32 @@ from core.graph.deps import get_deps
 from core.graph.nodes._base import node
 from harness.guardrails import evidence_matches, relocate_evidence
 
+READ_CHUNK_LINES = 400  # read_repo_file 1회 최대 라인 수 (MAX_READ_LINES)
+MAX_READ_CHUNKS = 50  # 파일당 최대 20,000줄까지 검증
+
+
+async def read_full_file(deps: Any, state: dict[str, Any], tid: str, path: str) -> str:
+    """read_repo_file 은 1회 400줄까지만 돌려준다. 근거가 400줄 뒤에 있어도 검증되도록 끝까지 나눠 읽는다."""
+    parts: list[str] = []
+    start = 1
+    for _ in range(MAX_READ_CHUNKS):
+        res = await deps.call(
+            state,
+            "code_evidence_check",
+            "read_repo_file",
+            target_id=tid,
+            path=path,
+            start_line=start,
+            end_line=start + READ_CHUNK_LINES - 1,
+        )
+        if res.get("content_masked"):
+            parts.append(res["content_masked"])
+        end, total = int(res.get("end_line") or 0), int(res.get("total_lines") or 0)
+        if end >= total or end < start:
+            break
+        start = end + 1
+    return "\n".join(parts)
+
 
 @node("code_evidence_check")
 async def code_evidence_check(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any]:
@@ -30,8 +56,7 @@ async def code_evidence_check(state: dict[str, Any], config: RunnableConfig) -> 
             path = ev["file_path"]
             if path not in cache:
                 try:
-                    res = await deps.call(state, "code_evidence_check", "read_repo_file", target_id=tid, path=path)
-                    cache[path] = res["content_masked"]
+                    cache[path] = await read_full_file(deps, state, tid, path)
                 except AppError:
                     cache[path] = ""
             if not evidence_matches(cache[path], ev):

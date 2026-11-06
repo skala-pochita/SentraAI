@@ -86,6 +86,16 @@ def _decoy_hit(f: CodeF, d: dict[str, Any]) -> bool:
     return f.file == d["file"] and abs(f.line - int(d["line"])) <= 1 and f.category == d["category"] and not info_ok
 
 
+def _info_excused(f: CodeF, decoys: list[dict[str, Any]]) -> bool:
+    return f.severity == "INFO" and any(
+        d.get("expected") == "NOT_REPORTED_OR_INFO"
+        and f.file == d["file"]
+        and abs(f.line - int(d["line"])) <= 1
+        and f.category == d["category"]
+        for d in decoys
+    )
+
+
 def _decoy_fps(code: list[CodeF], decoys: list[dict[str, Any]], per_case: dict[str, Any]) -> list[str]:
     fps = []
     for d in decoys:
@@ -153,8 +163,13 @@ def score(
         for i, f in enumerate(code)
         if i not in m["used"] and any(_near(f, g) and f.category == g["category"] for g in gt)
     }
-    decoy_fp = _decoy_fps(code, truth["code"].get("decoys", []), per_case)
-    other_fp = len([i for i in range(len(code)) if i not in m["used"] and i not in dup]) - len(decoy_fp)
+    decoys = truth["code"].get("decoys", [])
+    decoy_fp = _decoy_fps(code, decoys, per_case)
+    # INFO 허용 함정(테스트 경로 값 등)에 INFO 로 보고한 것은 오탐이 아니다 (2026-11-06 채점 버그 수정)
+    excused = {i for i, f in enumerate(code) if _info_excused(f, decoys)}
+    other_fp = len([i for i in range(len(code)) if i not in m["used"] and i not in dup and i not in excused]) - len(
+        decoy_fp
+    )
     tp = len(tp_ids)
     fp = len(decoy_fp) + max(0, other_fp)
     p, r = _ratio(tp, tp + fp), _ratio(tp, len(gt))

@@ -42,13 +42,23 @@ async def intake(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any
     for t in targets:
         if t["type"] == "repo":
             files = await deps.call(state, "intake", "list_repo_files", target_id=t["target_id"])
+            keywords = react.get("risky_name_keywords", [])
+            top_k = int(react.get("risky_file_top_k", 8))
+            try:  # 내용 신호로 선택 (S2). 실패하면 이전 방식(파일 이름)으로 계속한다
+                ranked = await deps.call(
+                    state, "intake", "rank_risky_files", target_id=t["target_id"], top_k=top_k, name_keywords=keywords
+                )
+                risky, risky_by = [r["path"] for r in ranked], "content"
+            except AppError as e:
+                if e.code == ErrorCode.FORBIDDEN:
+                    raise
+                risky, risky_by = risky_files(files, keywords, top_k), "name"
             plan["repos"][t["target_id"]] = {
                 "file_count": len(files),
                 "files": [f["path"] for f in files],
                 "sizes": {f["path"]: f["size"] for f in files},
-                "risky_files": risky_files(
-                    files, react.get("risky_name_keywords", []), int(react.get("risky_file_top_k", 8))
-                ),
+                "risky_files": risky,
+                "risky_selected_by": risky_by,
                 "commit_sha": t.get("commit_sha"),
             }
         else:

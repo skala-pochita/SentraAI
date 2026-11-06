@@ -1,0 +1,17 @@
+id: SEC-PY-006
+name: Python debug mode / permissive hosts
+category: DEBUG_ENABLED
+default_severity: MEDIUM
+target: code
+file_globs: ["**/*.py"]
+exclude_globs: ["**/tests/**", "**/test_*.py"]
+detector: regex
+multiline: true
+patterns:
+  - '\.run\([^)]*\bdebug\s*=\s*True'
+  - '(?m)^\s*DEBUG\s*=\s*True\b'
+  - '(?m)^\s*ALLOWED_HOSTS\s*=\s*\[\s*["'']\*["'']\s*\]'
+  - 'uvicorn\.run\([^)]*\breload\s*=\s*True'
+needs_llm_review: false
+references: ["OWASP-A05:2021", "CWE-489"]
+fix_hint: "환경변수로 분기하고 운영에서는 DEBUG=False, ALLOWED_HOSTS 명시"

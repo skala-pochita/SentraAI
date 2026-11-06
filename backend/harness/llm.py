@@ -42,6 +42,8 @@ def make_chat_model(model: str) -> BaseChatModel:
 
     cfg = load_config("models")["defaults"]
     kwargs: dict[str, Any] = {"model": model, "timeout": float(cfg.get("timeout_s", 60)), "max_retries": 2}
+    if key := get_settings().openai_api_key:  # .env 로만 설정한 경우에도 (환경변수가 없는 로컬 실행)
+        kwargs["api_key"] = key
     temp = cfg.get("temperature")
     if temp is not None and not model.startswith(("gpt-5", "o")):  # 일부 모델은 temperature 고정
         kwargs["temperature"] = float(temp)

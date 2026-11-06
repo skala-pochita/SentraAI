@@ -55,7 +55,7 @@ def test_ground_truth_locations_match_files() -> None:
 
 def test_ground_truth_counts() -> None:
     gt = yaml.safe_load((REPO_ROOT / "datasets/ground_truth/code.yaml").read_text())
-    assert [f["id"] for f in gt["findings"]] == [f"C{i:02d}" for i in range(1, 21)]
+    assert [f["id"] for f in gt["findings"]] == [f"C{i:02d}" for i in range(1, 23)]  # C21·C22 추가 (2026-11-06)
     assert len(gt["decoys"]) == 6 and len(gt["auditor_injections"]) == 2
     agent = yaml.safe_load((REPO_ROOT / "datasets/ground_truth/agent.yaml").read_text())
     assert len(agent["findings"]) == 7

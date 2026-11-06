@@ -1,0 +1,12 @@
+id: SEC-SPRING-011
+name: SQL logging enabled in production profile
+category: INFO_EXPOSURE
+default_severity: LOW
+target: code
+file_globs: ["**/application-prod*.yml", "**/application-prod*.yaml", "**/application-prod*.properties"]
+detector: yaml_path
+paths: ["spring.jpa.show-sql"]
+equals: true
+needs_llm_review: false
+references: ["OWASP-A09:2021", "CWE-532"]
+fix_hint: "운영 프로필에서는 show-sql 을 끄고 필요 시 파라미터를 마스킹한 로거 사용"

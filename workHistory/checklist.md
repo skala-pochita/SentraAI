@@ -138,6 +138,8 @@
   - DECISIONS #17~#25 추가 (루트 `DECISIONS.md`).
 - 2026-10-20: **원격 병합 → `develop` 브랜치 푸시** (`20367ed`, Claude 작성자 표기 없음). 원격 main 의 Cloud 삭제·`docs/` 로컬 전용 정책을 따름. migration 0003 의 부모를 0001 로(0002 삭제됨), 새 DB 에서 IF NOT EXISTS 로 안전하게. `make eval` = 코드 감사 A/B/C. 병합 후 make test 109개·lint 통과. `docs/HARNESS.md`·`docs/diagrams/*` 는 로컬에만 있음.
 
+- 2026-11-06: **감사 파이프라인 개선** (`Todo.md` 전 항목, 기록 `개선.md`, DECISIONS 2026-11-06) — 안정성 버그 6, 속도 B1~B7(벤치마크 `reports/bench_speed.md`), 카테고리·여러 줄 매칭·Spring/Python 규칙(17→37)·AST·내용 기반 위험 파일·파일 간 관계, 외부 SAST·SCA, Python 샘플·정답셋(`code_python.yaml`, C21·C22 추가), 대상별 평가(`make eval-target`), 채점 버그 2건. make test 310개·ruff·mypy·vue-tsc 통과. **막힘: OpenAI 키 invalid_api_key → EV5(실 LLM 재측정) 미실행**. 커밋 안 함.
+
 ---
 
 ## 🔁 다음 세션 인수인계 (2026-10-20 기준)

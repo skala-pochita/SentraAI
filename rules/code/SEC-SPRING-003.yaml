@@ -3,7 +3,7 @@ name: CORS wildcard origin with credentials
 category: SECCONFIG_CORS
 default_severity: HIGH
 target: code
-file_globs: ["**/*.java"]
+file_globs: ["**/*.java", "**/*.kt"]
 detector: regex
 pattern: 'allowedOrigin(?:Pattern)?s\("\*"\)'
 require_also: 'allowCredentials\(true\)'

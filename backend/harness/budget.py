@@ -21,6 +21,11 @@ class Budget:
         a = load_config("budget").get("audit", {})
         return cls(int(a.get("max_tokens", 400000)), float(a.get("max_cost_usd", 2.0)))
 
+    def restore(self, usage: list[dict[str, Any]]) -> None:
+        """체크포인트 재개·Kafka 재시도 시 이미 쓴 토큰·비용을 다시 반영한다 (state.token_usage 합계)."""
+        self.used_tokens = sum(int(u.get("in", 0) or 0) + int(u.get("out", 0) or 0) for u in usage)
+        self.used_usd = sum(float(u.get("usd", 0) or 0) for u in usage)
+
     def charge(self, tokens: int, usd: float) -> None:
         self.used_tokens += tokens
         self.used_usd += usd

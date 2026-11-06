@@ -1,0 +1,16 @@
+id: SEC-SPRING-007
+name: Sensitive path opened with permitAll
+category: SECCONFIG_PERMIT_ALL
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java", "**/*.kt"]
+require_also: "SecurityFilterChain|HttpSecurity|WebSecurityConfigurerAdapter|ServerHttpSecurity"
+detector: regex
+multiline: true
+ignore_case: true
+patterns:
+  - '(?:requestMatchers|antMatchers|mvcMatchers|pathMatchers)\(\s*[^)]*"/(?:[\w*{}-]+/)*(?:admin|actuator(?!/(?:health|info)\b)|internal|manage|management|h2-console|swagger-ui|v3/api-docs)\b[^)]*\)\s*\.\s*permitAll\(\)'
+needs_llm_review: true
+references: ["OWASP-A01:2021", "CWE-284"]
+# actuator/health·info 공개는 일반적인 운영 설정이라 제외
+fix_hint: "관리·운영 경로는 hasRole('ADMIN') 또는 별도 내부망 필터 체인으로. Actuator 는 health 만 공개"

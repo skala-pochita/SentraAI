@@ -27,7 +27,7 @@ from core.db.session import session_scope
 from core.errors import AppError, ErrorCode
 from core.graph.build import build_graph
 from core.graph.deps import Deps
-from core.mcp_client import CallCtx, Gateway, http_gateway
+from core.mcp_client import CallCtx, Gateway, audit_gateway, close_gateway, http_gateway
 from core.probes import load_probe_set
 from core.rules.engine import check_manifest
 from core.rules.models import load_rules
@@ -271,8 +271,9 @@ async def run_harness(cfg: str, repo_id: str, agent_id: str, admin_id: str) -> d
     aid = str(audit_id)
     set_trace_context(aid)
     graph = build_graph(InMemorySaver())
+    gw = audit_gateway()
     config = {
-        "configurable": {"thread_id": f"audit:{aid}", "deps": Deps(gateway=http_gateway())},
+        "configurable": {"thread_id": f"audit:{aid}", "deps": Deps(gateway=gw)},
         "recursion_limit": 200,
         **langsmith_config(aid, {"eval_config": cfg}),
     }
@@ -295,6 +296,7 @@ async def run_harness(cfg: str, repo_id: str, agent_id: str, admin_id: str) -> d
         status = "FAILED"
         raise
     finally:
+        await close_gateway(gw)
         values = (await graph.aget_state(config)).values  # type: ignore[arg-type]
         async with session_scope() as db:
             a = await db.get(Audit, audit_id)

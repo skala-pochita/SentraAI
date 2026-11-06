@@ -1,0 +1,44 @@
+# ReAct 조사(LLM)가 새 발견에 쓸 수 있는 추가 카테고리 (DECISIONS 2026-11-06).
+# 정적 규칙(rules/code/*.yaml)의 카테고리는 자동으로 포함된다. 여기는 규칙이 아직 없거나
+# 규칙만으로는 잡기 어려운 유형이다. severity 는 기본값, refs 는 OWASP/CWE 참조.
+code:
+  COMMAND_INJECTION:
+    description: "사용자 입력이 셸·프로세스 실행(subprocess shell=True, os.system, Runtime.exec, ProcessBuilder)이나 eval/exec 에 들어감"
+    severity: CRITICAL
+    refs: ["OWASP-A03:2021", "CWE-78", "CWE-95"]
+  INSECURE_DESERIALIZATION:
+    description: "신뢰할 수 없는 데이터를 pickle/marshal/yaml.load(SafeLoader 없이)/ObjectInputStream 으로 역직렬화"
+    severity: HIGH
+    refs: ["OWASP-A08:2021", "CWE-502"]
+  SSRF:
+    description: "사용자가 준 URL·호스트로 서버가 요청을 보냄 (requests/urllib/httpx/RestTemplate/WebClient)"
+    severity: HIGH
+    refs: ["OWASP-A10:2021", "CWE-918"]
+  XSS:
+    description: "사용자 입력을 이스케이프 없이 HTML 로 출력 (autoescape=False, Markup, |safe, th:utext, innerHTML)"
+    severity: MEDIUM
+    refs: ["OWASP-A03:2021", "CWE-79"]
+  XXE:
+    description: "외부 엔티티를 막지 않은 XML 파서 (DocumentBuilderFactory, XMLInputFactory, SAXParser, lxml resolve_entities)"
+    severity: HIGH
+    refs: ["OWASP-A05:2021", "CWE-611"]
+  DEBUG_ENABLED:
+    description: "운영 설정에서 디버그 모드·상세 오류 노출 (Flask debug=True, Django DEBUG=True, include-stacktrace=always)"
+    severity: MEDIUM
+    refs: ["OWASP-A05:2021", "CWE-489"]
+  BROKEN_ACCESS_CONTROL:
+    description: "엔드포인트에 인가 검사 누락, 민감 경로 permitAll, 소유자 확인 없는 ID 기반 조회(IDOR)"
+    severity: HIGH
+    refs: ["OWASP-A01:2021", "CWE-284", "CWE-639"]
+  INSECURE_TRANSPORT:
+    description: "TLS 인증서 검증 끔 (verify=False, TrustAllCerts, HostnameVerifier 무조건 true)"
+    severity: MEDIUM
+    refs: ["OWASP-A02:2021", "CWE-295"]
+  WEAK_CRYPTO:
+    description: "비밀번호·서명에 MD5/SHA1·ECB·하드코딩 IV 사용"
+    severity: MEDIUM
+    refs: ["OWASP-A02:2021", "CWE-327", "CWE-916"]
+  VULNERABLE_DEPENDENCY:
+    description: "알려진 취약 버전 라이브러리 (pom.xml, build.gradle, requirements.txt, pyproject.toml)"
+    severity: HIGH
+    refs: ["OWASP-A06:2021", "CWE-1104"]

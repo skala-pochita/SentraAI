@@ -50,6 +50,7 @@ async def test_tool_list_has_spec_tools() -> None:
     for n in [
         "list_audit_targets",
         "list_repo_files",
+        "rank_risky_files",
         "read_repo_file",
         "search_repo",
         "get_agent_manifest",

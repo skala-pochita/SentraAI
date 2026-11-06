@@ -7,6 +7,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
+from core.errors import AppError, ErrorCode
 from core.graph.deps import get_deps
 from core.graph.nodes._base import node
 from core.schemas import Evidence, FindingDraft, finding_fingerprint
@@ -32,7 +33,9 @@ def hit_to_draft(target_id: str, h: dict[str, Any]) -> FindingDraft:
             )
         ],
         reasoning_summary=f"정적 규칙 {h['rule_id']} 이(가) 탐지했다.",
-        tools_used=["run_static_scan"],
+        tools_used=["run_external_scan:" + str(h["extra"].get("scanner"))]
+        if (h.get("extra") or {}).get("external")
+        else ["run_static_scan"],
         verdict="NEEDS_REVIEW",
         standard_refs=list(h.get("references", [])),
         fix_hint=h.get("fix_hint"),
@@ -49,6 +52,30 @@ def suppressed(f: FindingDraft, fp_rules: list[dict[str, Any]]) -> dict[str, Any
     return None
 
 
+async def _external(deps: Any, state: dict[str, Any], tid: str) -> dict[str, Any]:
+    """외부 SAST·SCA (E1~E3). 실패해도 내장 규칙 결과로 계속한다 (상태는 이벤트로 남김)."""
+    try:
+        out: dict[str, Any] = await deps.call(state, "code_static_scan", "run_external_scan", target_id=tid)
+        return out
+    except AppError as e:
+        if e.code == ErrorCode.FORBIDDEN:
+            raise
+        return {"status": {"external": f"ERROR:{e.code}"}, "hits": []}
+
+
+def _new_external_hits(internal: list[dict[str, Any]], external: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """내장 규칙이 같은 파일·카테고리를 ±2줄 안에서 이미 잡은 외부 결과는 버린다 (같은 위치의 외부 결과끼리도 1건)."""
+    kept: list[dict[str, Any]] = []
+    seen = [(h["path"], h["category"], int(h["line"])) for h in internal]
+    for h in external:
+        key = (h["path"], h["category"], int(h["line"]))
+        if any(p == key[0] and c == key[1] and abs(ln - key[2]) <= 2 for p, c, ln in seen):
+            continue
+        seen.append(key)
+        kept.append(h)
+    return kept
+
+
 @node("code_static_scan")
 async def code_static_scan(state: dict[str, Any], config: RunnableConfig) -> dict[str, Any]:
     deps = get_deps(config)
@@ -56,9 +83,11 @@ async def code_static_scan(state: dict[str, Any], config: RunnableConfig) -> dic
     tid = target["target_id"]
     res = await deps.call(state, "code_static_scan", "run_static_scan", target_id=tid)
     fp_rules = await deps.call(state, "code_static_scan", "list_false_positive_rules", target_id=tid)
+    ext = await _external(deps, state, tid)
+    hits = list(res["hits"]) + _new_external_hits(res["hits"], ext.get("hits", []))
     candidates: list[dict[str, Any]] = []
     dropped = 0
-    for h in res["hits"]:
+    for h in hits:
         d = hit_to_draft(tid, h)
         if suppressed(d, fp_rules):
             dropped += 1
@@ -73,6 +102,8 @@ async def code_static_scan(state: dict[str, Any], config: RunnableConfig) -> dic
             "suppressed_by_fp_rules": dropped,
             "cached": res["cached"],
             "commit_sha": res["commit_sha"],
+            "external": ext.get("status", {}),
+            "external_hits": len(hits) - len(res["hits"]),
         },
         node="code_static_scan",
     )

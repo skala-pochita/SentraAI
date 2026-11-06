@@ -15,8 +15,10 @@ import socket
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import Any
 
 from aiokafka import AIOKafkaConsumer, ConsumerRecord
+from aiokafka.errors import KafkaError
 
 from core.errors import AppError, ErrorCode
 from core.kafka.envelope import Envelope, Headers, headers_from_kafka, retry_headers
@@ -115,8 +117,15 @@ async def handle_record(rec: ConsumerRecord, handler: Handler) -> None:
     await get_redis().set(f"kafka:processed:{dedupe_id}", "done", ex=DONE_TTL_S)
 
 
+POLL_INTERVAL_MS = 300_000  # 처리 중에도 poll 을 계속하므로 감사 길이와 무관하게 짧게 둔다
+
+
 async def run_consumer(
-    topics: list[str], group_id: str, handler: Handler, on_idle: Callable[[], None] | None = None
+    topics: list[str],
+    group_id: str,
+    handler: Handler,
+    on_idle: Callable[[], None] | None = None,
+    concurrency: int = 1,
 ) -> None:
     consumer = AIOKafkaConsumer(
         *topics,
@@ -124,20 +133,65 @@ async def run_consumer(
         group_id=group_id,
         enable_auto_commit=False,
         auto_offset_reset="earliest",
-        max_poll_interval_ms=1_800_000,
+        max_poll_interval_ms=POLL_INTERVAL_MS,
         session_timeout_ms=30000,
         heartbeat_interval_ms=10000,
     )
     await consumer.start()
-    log.info("consumer started group=%s topics=%s", group_id, topics)
+    log.info("consumer started group=%s topics=%s concurrency=%d", group_id, topics, concurrency)
     try:
-        while True:
-            batch = await consumer.getmany(timeout_ms=1000, max_records=1)
-            if on_idle:
-                on_idle()
-            for _tp, records in batch.items():
-                for rec in records:
-                    await handle_record(rec, handler)
-                    await consumer.commit()
+        await consume_loop(consumer, handler, concurrency, on_idle)
     finally:
         await consumer.stop()
+
+
+async def consume_loop(
+    consumer: Any,
+    handler: Handler,
+    concurrency: int = 1,
+    on_idle: Callable[[], None] | None = None,
+    stop: asyncio.Event | None = None,
+) -> None:
+    """파티션별 동시 처리 루프 (P3·B6).
+
+    - 처리 중인 파티션은 pause 하고 poll 은 계속한다 → 처리 시간이 max_poll_interval 을 넘어도 리밸런스 없음 (P3)
+    - 서로 다른 파티션의 메시지는 최대 `concurrency` 개까지 동시에 처리한다 (B6). 같은 파티션 안에서는 순서대로
+    - 처리가 끝난 파티션만 그 offset 을 커밋하고 resume 한다 (at-least-once 유지)
+    - 바로 처리하지 못하는 레코드(같은 파티션이 처리 중·동시 처리 상한)는 그 offset 으로 되감아 다음에 다시 받는다
+    """
+    inflight: dict[Any, tuple[asyncio.Task[None], ConsumerRecord]] = {}
+    try:
+        while not (stop is not None and stop.is_set() and not inflight):
+            assigned = consumer.assignment()
+            busy = [tp for tp in inflight if tp in assigned]
+            if busy:
+                consumer.pause(*busy)
+            batch = await consumer.getmany(timeout_ms=500, max_records=max(1, concurrency))
+            if on_idle:
+                on_idle()
+            for tp, recs in batch.items():
+                if not recs:
+                    continue
+                full = len(inflight) >= concurrency or (stop is not None and stop.is_set())
+                if tp in inflight or full:
+                    consumer.seek(tp, recs[0].offset)
+                    continue
+                rec = recs[0]
+                inflight[tp] = (asyncio.create_task(handle_record(rec, handler)), rec)
+                consumer.pause(tp)
+                if len(recs) > 1:
+                    consumer.seek(tp, recs[1].offset)
+            for tp, (task, rec) in list(inflight.items()):
+                if not task.done():
+                    continue
+                del inflight[tp]
+                await task  # handle_record 는 실패를 jobs.retry / jobs.dlq 로 보내고 예외를 올리지 않는다
+                try:
+                    await consumer.commit({tp: rec.offset + 1})
+                except KafkaError as e:  # 리밸런스로 파티션을 잃은 경우: 새 소유자가 멱등 키로 처리 여부를 판단
+                    log.warning("commit failed tp=%s offset=%s err=%s", tp, rec.offset, type(e).__name__)
+                if tp in consumer.assignment():
+                    consumer.resume(tp)
+    finally:
+        for task, _ in inflight.values():
+            task.cancel()

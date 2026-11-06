@@ -1,0 +1,16 @@
+id: SEC-PY-008
+name: Python TLS verification disabled
+category: INSECURE_TRANSPORT
+default_severity: MEDIUM
+target: code
+file_globs: ["**/*.py"]
+exclude_globs: ["**/tests/**", "**/test_*.py"]
+detector: regex
+patterns:
+  - '\bverify\s*=\s*False\b'
+  - 'ssl\._create_unverified_context\('
+  - '\.check_hostname\s*=\s*False'
+  - 'cert_reqs\s*=\s*(?:ssl\.)?CERT_NONE|verify_mode\s*=\s*ssl\.CERT_NONE'
+needs_llm_review: false
+references: ["OWASP-A02:2021", "CWE-295"]
+fix_hint: "인증서 검증 유지, 사설 CA 는 verify='/path/ca.pem'"

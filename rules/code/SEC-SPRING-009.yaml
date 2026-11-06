@@ -1,0 +1,11 @@
+id: SEC-SPRING-009
+name: Sensitive endpoint without method/class authorization
+category: BROKEN_ACCESS_CONTROL
+default_severity: HIGH
+target: code
+file_globs: ["**/*.java", "**/*.kt"]
+detector: python
+check: spring_sensitive_endpoint_no_authz
+needs_llm_review: true   # 전역 SecurityFilterChain 이 막고 있을 수 있어 LLM 이 설정과 함께 검토
+references: ["OWASP-A01:2021", "CWE-862"]
+fix_hint: "@PreAuthorize(\"hasRole('ADMIN')\") 또는 SecurityFilterChain 에서 경로별 권한 지정"

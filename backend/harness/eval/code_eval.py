@@ -64,8 +64,16 @@ def score_code(findings: list[Finding], truth: dict[str, Any] | None = None, tol
     matched = {g["id"] for g in gt if any(_hit(f, g, tol) for f in findings)}
     used = {i for i, f in enumerate(findings) if any(_hit(f, g, tol) for g in gt)}
     decoy_fp = _decoy_fps(findings, t.get("decoys", []))
+    info_ok = [d for d in t.get("decoys", []) if d.get("expected") == "NOT_REPORTED_OR_INFO"]
     unmatched = [
-        f for i, f in enumerate(findings) if i not in used and f.get("category") != "AUDITOR_INJECTION_ATTEMPT"
+        f
+        for i, f in enumerate(findings)
+        if i not in used
+        and f.get("category") != "AUDITOR_INJECTION_ATTEMPT"
+        # INFO 허용 함정에 INFO 로 보고한 것은 오탐이 아니다 (2026-11-06 채점 버그 수정)
+        and not (f.get("severity") == "INFO" and any(_hit(f, d, 1) for d in info_ok))
+        # 함정 위치 보고는 decoy_fp 로 이미 셌다 → 이중 집계 방지 (2026-11-06, scorer.py 와 동일하게)
+        and not any(_hit(f, d, 0) for d in t.get("decoys", []))
     ]
     tp = len(matched)
     fp = len(decoy_fp) + len(unmatched)
